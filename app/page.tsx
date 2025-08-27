@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Download, Brain, Zap, Shield, Star, Users, Check, AlertTriangle, ArrowRight, Play, Cpu, Eye, MessageSquare, Sparkles, Globe, Lock, Award, ChevronRight, Layers, Hexagon, Orbit, Zap as Lightning, Database, Network, Bot } from 'lucide-react';
-import Navigation from '../app/components/Navigation';
+
 
 // Google Analytics tracking functions
 const trackEvent = (action: string, category: string, label?: string) => {
@@ -154,13 +154,6 @@ const NuroLandingPage = () => {
           backgroundSize: '40px 40px'
         }}></div>
       </div>
-
-      {/* Navigation */}
-      <Navigation 
-        onDownload={handleDownload}
-        showDownloadButton={true}
-        variant="landing"
-      />
 
       {/* Hero Section */}
       <section className="relative z-10 container mx-auto px-4 sm:px-6 py-12 sm:py-20">
