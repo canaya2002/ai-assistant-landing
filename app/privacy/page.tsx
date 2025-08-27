@@ -5,17 +5,17 @@ import Image from 'next/image';
 import { Shield, Lock, Eye, Database, User, FileText, Clock, CheckCircle, AlertTriangle, Home, Mail, Phone } from 'lucide-react';
 
 const NuroPrivacyPage = () => {
-  const [activeSection, setActiveSection] = useState('');
+  const [activeSection, setActiveSection] = useState<string | null>('');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
 
     const handleScroll = () => {
       const sections = document.querySelectorAll('[data-section]');
-      let currentSection = '';
+      let currentSection: string | null = '';
       
       sections.forEach((section) => {
         const rect = section.getBoundingClientRect();
