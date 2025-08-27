@@ -1,13 +1,15 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { Calendar, Home, Tag, Zap, Shield, Eye, MessageSquare, Settings, Bug, Plus, ArrowUp, Download, Star, AlertTriangle, Info, Clock, Users, Code } from 'lucide-react';
+import { Calendar, Home, Tag, Zap, Shield, Eye, MessageSquare, Settings, Bug, Plus, ArrowUp, Download, Star, Info, Clock, Users, Code } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 const NuroChangelogPage = () => {
   const [selectedVersion, setSelectedVersion] = useState('all');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (window.innerWidth > 768) {
         setMousePosition({ x: e.clientX, y: e.clientY });
       }
@@ -191,7 +193,7 @@ const NuroChangelogPage = () => {
     }
   ];
 
-  const getTypeColor = (type) => {
+  const getTypeColor = (type: string) => {
     switch (type) {
       case 'new': return 'bg-green-100 text-green-800';
       case 'improvement': return 'bg-blue-100 text-blue-800';
@@ -200,7 +202,7 @@ const NuroChangelogPage = () => {
     }
   };
 
-  const getTypeIcon = (type) => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case 'new': return Plus;
       case 'improvement': return ArrowUp;
@@ -209,7 +211,7 @@ const NuroChangelogPage = () => {
     }
   };
 
-  const getCategoryIcon = (category) => {
+  const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'core': return Eye;
       case 'ai': return MessageSquare;
@@ -264,7 +266,7 @@ const NuroChangelogPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="relative">
-                <img src="/images/nurologo.png" alt="NURO" className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg" />
+                <Image src="/images/nurologo.png" alt="NURO" width={48} height={48} className="drop-shadow-lg" />
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-purple-500/20 rounded-full blur-md"></div>
               </div>
               <div>
@@ -272,10 +274,10 @@ const NuroChangelogPage = () => {
                 <div className="text-xs sm:text-sm text-gray-500">Historial de versiones</div>
               </div>
             </div>
-            <a href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-sm">
+            <Link href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-sm">
               <Home className="w-4 h-4" />
               <span className="font-medium">Volver al Inicio</span>
-            </a>
+            </Link>
           </div>
         </nav>
 
@@ -306,29 +308,29 @@ const NuroChangelogPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-2xl mx-auto mb-8">
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-white/50">
                   <Tag className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
-                  <div className="font-bold text-lg text-gray-900">v{changelogData[0].version}</div>
+                  <div className="font-bold text-lg text-gray-900">v{changelogData[0]?.version ?? 'N/A'}</div>
                   <div className="text-xs text-gray-600">Versión Actual</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-white/50">
                   <Download className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                  <div className="font-bold text-lg text-gray-900">{changelogData[0].stats.downloads}</div>
+                  <div className="font-bold text-lg text-gray-900">{changelogData[0]?.stats.downloads ?? '0'}</div>
                   <div className="text-xs text-gray-600">Descargas</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-white/50">
                   <Clock className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                  <div className="font-bold text-lg text-gray-900">{new Date(changelogData[0].date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
+                  <div className="font-bold text-lg text-gray-900">{changelogData[0] ? new Date(changelogData[0].date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'N/A'}</div>
                   <div className="text-xs text-gray-600">Última Actualización</div>
                 </div>
               </div>
 
               {/* Quick Download */}
-              <a
+              <Link
                 href="/"
                 className="inline-flex items-center space-x-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               >
                 <Download className="w-5 h-5" />
                 <span className="text-sm sm:text-base">Descargar Última Versión</span>
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -431,13 +433,13 @@ const NuroChangelogPage = () => {
                               })}</span>
                             </div>
                             {release.status === 'stable' && (
-                              <a
+                              <Link
                                 href="/"
                                 className="inline-flex items-center space-x-2 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-200 transition-colors"
                               >
                                 <Download className="w-4 h-4" />
                                 <span>Descargar</span>
-                              </a>
+                              </Link>
                             )}
                           </div>
                         </div>
@@ -534,12 +536,12 @@ const NuroChangelogPage = () => {
                     >
                       Enviar Sugerencias
                     </a>
-                    <a
+                    <Link
                       href="/"
                       className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base"
                     >
                       Unirse a Updates por Email →
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -579,7 +581,7 @@ const NuroChangelogPage = () => {
           <div className="container mx-auto px-4 sm:px-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-6 lg:space-y-0">
               <div className="flex items-center space-x-3 sm:space-x-4">
-                <img src="/images/nurologo.png" alt="NURO" className="w-10 h-10 sm:w-12 sm:h-12" />
+                <Image src="/images/nurologo.png" alt="NURO" width={48} height={48} />
                 <div>
                   <div className="text-base sm:text-lg font-bold text-gray-900">NURO Technologies</div>
                   <div className="text-xs sm:text-sm text-gray-500">Historial de Versiones</div>
@@ -587,16 +589,16 @@ const NuroChangelogPage = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 sm:gap-8">
-                <a href="/" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1 text-sm">
+                <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1 text-sm">
                   <Home className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>Inicio</span>
-                </a>
-                <a href="/docs" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                </Link>
+                <Link href="/docs" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                   Documentación
-                </a>
-                <a href="/faq" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                </Link>
+                <Link href="/faq" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                   FAQ
-                </a>
+                </Link>
                 <div className="text-gray-500 text-xs sm:text-sm">
                   © 2025 NURO Technologies.
                 </div>
