@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Download, Shield, Star, Users, Check, AlertTriangle, ArrowRight, Play, Cpu, Eye, MessageSquare, Globe, Lock, Award, Layers, Hexagon, Orbit, Database, Network, Bot } from 'lucide-react';
+import Link from 'next/link';
+import { Download, Shield, Star, Users, Check, AlertTriangle, ArrowRight, Play, Cpu, Eye, MessageSquare, Globe, Lock, Award, Layers, Hexagon, Orbit, Database, Network, Bot, Menu, X, FileText, HelpCircle, Calendar } from 'lucide-react';
 
 // Google Analytics tracking functions
 const trackEvent = (action: string, category: string, label?: string) => {
@@ -30,6 +31,7 @@ const NuroLandingPage = () => {
   const [email, setEmail] = useState('');
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -39,7 +41,7 @@ const NuroLandingPage = () => {
       setCurrentFeature((prev) => (prev + 1) % 3);
     }, 4000);
 
-    // Mouse tracking (only on desktop)
+    // Mouse tracking (only on desktop) - Fixed TypeScript
     const handleMouseMove = (e: MouseEvent) => {
       if (window.innerWidth > 768) {
         setMousePosition({ x: e.clientX, y: e.clientY });
@@ -81,11 +83,12 @@ const NuroLandingPage = () => {
     trackDownload();
     setShowWarning(true);
     setTimeout(() => {
+      // Updated to your GitHub release URL
       window.open('https://github.com/canaya2002/ai-assistant-professional/releases/download/v1.0.0/AI.Assistant.Professional.Setup.1.0.0.exe', '_blank');
     }, 1000);
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!email || !email.includes('@')) {
@@ -133,6 +136,14 @@ const NuroLandingPage = () => {
     { icon: Database, text: "Procesamiento Instantáneo", color: "from-emerald-500 to-teal-400" },
   ];
 
+  const navigationItems = [
+    { href: '/docs', label: 'Documentación', icon: FileText },
+    { href: '/faq', label: 'FAQ', icon: HelpCircle },
+    { href: '/changelog', label: 'Changelog', icon: Calendar },
+    { href: '/privacy', label: 'Privacidad', icon: Shield },
+    { href: '/terms', label: 'Términos', icon: Lock },
+  ];
+
   return (
     <>
       <head>
@@ -143,6 +154,93 @@ const NuroLandingPage = () => {
       </head>
 
       <div className="min-h-screen bg-white text-gray-900 overflow-hidden relative">
+        {/* Navigation Header */}
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between h-16 sm:h-20">
+              {/* Logo */}
+              <Link href="/" className="flex items-center space-x-3">
+                <Image src="/images/nurologo.png" alt="NURO" width={40} height={40} className="w-8 h-8 sm:w-10 sm:h-10" />
+                <div className="text-xl sm:text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  NURO
+                </div>
+              </Link>
+
+              {/* Desktop Navigation */}
+              <div className="hidden lg:flex items-center space-x-8">
+                {navigationItems.map((item) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors duration-300 group"
+                    >
+                      <IconComponent className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                      <span className="font-medium">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Download Button */}
+              <button
+                onClick={handleDownload}
+                className="hidden lg:flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                <Download className="w-4 h-4" />
+                <span>Descargar</span>
+              </button>
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6 text-gray-600" />
+                ) : (
+                  <Menu className="w-6 h-6 text-gray-600" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
+              <div className="container mx-auto px-4 py-4">
+                <div className="space-y-4">
+                  {navigationItems.map((item) => {
+                    const IconComponent = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center space-x-3 text-gray-600 hover:text-blue-600 transition-colors duration-300 py-2"
+                      >
+                        <IconComponent className="w-4 h-4" />
+                        <span className="font-medium">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                  <button
+                    onClick={() => {
+                      handleDownload();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold mt-4"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Descargar NURO</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </nav>
+
         {/* Advanced Animated Background - Hidden on mobile for performance */}
         <div className="hidden md:block fixed inset-0 pointer-events-none">
           {/* Floating Geometric Elements */}
@@ -170,8 +268,8 @@ const NuroLandingPage = () => {
           }}></div>
         </div>
 
-        {/* Hero Section */}
-        <section className="relative z-10 container mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        {/* Hero Section - Added padding-top for fixed header */}
+        <section className="relative z-10 container mx-auto px-4 sm:px-6 py-12 sm:py-20 pt-24 sm:pt-32">
           <div className={`max-w-6xl mx-auto text-center transform transition-all duration-1500 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             {/* Animated Feature Badge */}
             <div className="inline-flex items-center space-x-3 bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-full px-4 sm:px-6 py-2 mb-8 sm:mb-12 shadow-lg backdrop-blur-sm">
@@ -714,23 +812,23 @@ const NuroLandingPage = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 sm:gap-8">
-                <a href="/docs" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                <Link href="/docs" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                   Documentación
-                </a>
-                <a href="/faq" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                </Link>
+                <Link href="/faq" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                   FAQ
-                </a>
-                <a href="/changelog" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                </Link>
+                <Link href="/changelog" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                   Changelog
-                </a>
-                <a href="/privacy" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1 text-sm">
+                </Link>
+                <Link href="/privacy" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1 text-sm">
                   <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>Política de Privacidad</span>
-                </a>
-                <a href="/terms" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1 text-sm">
+                </Link>
+                <Link href="/terms" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1 text-sm">
                   <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>Términos de Servicio</span>
-                </a>
+                </Link>
                 <div className="text-gray-500 text-xs sm:text-sm">
                   © 2025 NURO Technologies. Todos los derechos reservados.
                 </div>
