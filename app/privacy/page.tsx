@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { Shield, Lock, Eye, Database, Globe, User, FileText, Clock, CheckCircle, AlertTriangle, ArrowRight, Home, Mail, Phone } from 'lucide-react';
 
 const NuroPrivacyPage = () => {
@@ -85,7 +87,7 @@ const NuroPrivacyPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <img src="/images/nurologo.png" alt="NURO" className="w-16 h-16 drop-shadow-lg" />
+                <Image src="/images/nurologo.png" alt="NURO" width={64} height={64} className="w-16 h-16 drop-shadow-lg" />
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-purple-500/20 rounded-full blur-md"></div>
               </div>
               <div>
@@ -93,10 +95,10 @@ const NuroPrivacyPage = () => {
                 <div className="text-sm text-gray-500">Última actualización: 26 de agosto, 2025</div>
               </div>
             </div>
-            <a href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
               <Home className="w-5 h-5" />
               <span className="font-medium">Volver al Inicio</span>
-            </a>
+            </Link>
           </div>
         </nav>
 
@@ -585,7 +587,7 @@ const NuroPrivacyPage = () => {
           <div className="container mx-auto px-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-8 lg:space-y-0">
               <div className="flex items-center space-x-4">
-                <img src="/images/nurologo.png" alt="NURO" className="w-12 h-12" />
+                <Image src="/images/nurologo.png" alt="NURO" width={48} height={48} className="w-12 h-12" />
                 <div>
                   <div className="text-lg font-bold text-gray-900">NURO Technologies</div>
                   <div className="text-sm text-gray-500">Inteligencia Artificial Avanzada</div>
@@ -593,10 +595,10 @@ const NuroPrivacyPage = () => {
               </div>
               
               <div className="flex flex-wrap items-center gap-8">
-                <a href="/" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1">
+                <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1">
                   <Home className="w-4 h-4" />
                   <span>Inicio</span>
-                </a>
+                </Link>
                 <a href="/terms" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1">
                   <FileText className="w-4 h-4" />
                   <span>Términos de Servicio</span>

@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { FileText, Shield, User, Gavel, AlertTriangle, CheckCircle, Home, Mail, Globe, Clock, Scale, BookOpen, UserCheck, Zap, Lock, Award } from 'lucide-react';
 
 const NuroTermsPage = () => {
@@ -87,7 +89,7 @@ const NuroTermsPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <img src="/images/nurologo.png" alt="NURO" className="w-16 h-16 drop-shadow-lg" />
+                <Image src="/images/nurologo.png" alt="NURO" width={64} height={64} className="w-16 h-16 drop-shadow-lg" />
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-purple-500/20 rounded-full blur-md"></div>
               </div>
               <div>
@@ -95,10 +97,10 @@ const NuroTermsPage = () => {
                 <div className="text-sm text-gray-500">Última actualización: 26 de agosto, 2025</div>
               </div>
             </div>
-            <a href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
               <Home className="w-5 h-5" />
               <span className="font-medium">Volver al Inicio</span>
-            </a>
+            </Link>
           </div>
         </nav>
 
@@ -508,7 +510,7 @@ const NuroTermsPage = () => {
                               <ul className="space-y-2 text-sm text-gray-700">
                                 <li className="flex items-center space-x-2">
                                   <CheckCircle className="w-4 h-4 text-green-500" />
-                                  <span>Marca registrada "NURO"</span>
+                                  <span>Marca registrada &quot;NURO&quot;</span>
                                 </li>
                                 <li className="flex items-center space-x-2">
                                   <CheckCircle className="w-4 h-4 text-green-500" />
@@ -590,7 +592,7 @@ const NuroTermsPage = () => {
                             <h3 className="text-xl font-bold text-gray-900">Exención de Garantías</h3>
                           </div>
                           <p className="text-gray-700 mb-4">
-                            NURO se proporciona "tal como está" y "según disponibilidad". No garantizamos que:
+                            NURO se proporciona &quot;tal como está&quot; y &quot;según disponibilidad&quot;. No garantizamos que:
                           </p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <ul className="space-y-2 text-sm text-gray-700">
@@ -848,7 +850,7 @@ const NuroTermsPage = () => {
           <div className="container mx-auto px-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-8 lg:space-y-0">
               <div className="flex items-center space-x-4">
-                <img src="/images/nurologo.png" alt="NURO" className="w-12 h-12" />
+                <Image src="/images/nurologo.png" alt="NURO" width={48} height={48} className="w-12 h-12" />
                 <div>
                   <div className="text-lg font-bold text-gray-900">NURO Technologies</div>
                   <div className="text-sm text-gray-500">Inteligencia Artificial Avanzada</div>
@@ -856,14 +858,14 @@ const NuroTermsPage = () => {
               </div>
               
               <div className="flex flex-wrap items-center gap-8">
-                <a href="/" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1">
+                <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1">
                   <Home className="w-4 h-4" />
                   <span>Inicio</span>
-                </a>
-                <a href="/privacy" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1">
+                </Link>
+                <Link href="/privacy" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1">
                   <Lock className="w-4 h-4" />
                   <span>Política de Privacidad</span>
-                </a>
+                </Link>
                 <div className="text-gray-500 text-sm">
                   © 2025 NURO Technologies. Todos los derechos reservados.
                 </div>
