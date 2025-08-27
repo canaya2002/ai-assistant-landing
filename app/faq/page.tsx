@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, ChevronDown, ChevronUp, Home, HelpCircle, Shield, Zap, Download, CheckCircle, Globe, Star, MessageCircle, ArrowRight, Bot, Lightbulb, Clock, Users, Code, Database, Cpu, Monitor, Smartphone } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Home, HelpCircle, Shield, Download, Star, MessageCircle, ArrowRight, Bot, Lightbulb, Clock, Users, Code } from 'lucide-react';
 
 const NuroFAQPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -425,30 +425,30 @@ const NuroFAQPage = () => {
                   <Download className="w-8 h-8 text-emerald-600 mb-4" />
                   <h3 className="text-lg font-bold text-gray-900 mb-2">Guía de Instalación</h3>
                   <p className="text-gray-600 mb-4 text-sm">Instrucciones paso a paso para instalar NURO en tu sistema.</p>
-                  <a href="/docs" className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center space-x-1">
+                  <Link href="/docs" className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center space-x-1">
                     <span>Leer Guía</span>
                     <ArrowRight className="w-3 h-3" />
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
                   <Shield className="w-8 h-8 text-blue-600 mb-4" />
                   <h3 className="text-lg font-bold text-gray-900 mb-2">Política de Privacidad</h3>
                   <p className="text-gray-600 mb-4 text-sm">Conoce cómo protegemos tu información y garantizamos tu privacidad.</p>
-                  <a href="/privacy" className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center space-x-1">
+                  <Link href="/privacy" className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center space-x-1">
                     <span>Leer Política</span>
                     <ArrowRight className="w-3 h-3" />
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
                   <Lightbulb className="w-8 h-8 text-yellow-600 mb-4" />
                   <h3 className="text-lg font-bold text-gray-900 mb-2">Tips y Trucos</h3>
                   <p className="text-gray-600 mb-4 text-sm">Descubre funciones avanzadas y maximiza tu productividad con NURO.</p>
-                  <a href="/docs" className="text-yellow-600 hover:text-yellow-700 font-medium text-sm flex items-center space-x-1">
+                  <Link href="/docs" className="text-yellow-600 hover:text-yellow-700 font-medium text-sm flex items-center space-x-1">
                     <span>Ver Tips</span>
                     <ArrowRight className="w-3 h-3" />
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -472,12 +472,12 @@ const NuroFAQPage = () => {
                   <Home className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>Inicio</span>
                 </Link>
-                <a href="/docs" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                <Link href="/docs" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                   Documentación
-                </a>
-                <a href="/changelog" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                </Link>
+                <Link href="/changelog" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                   Changelog
-                </a>
+                </Link>
                 <div className="text-gray-500 text-xs sm:text-sm">
                   © 2025 NURO Technologies.
                 </div>
