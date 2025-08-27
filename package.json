@@ -1,27 +1,82 @@
 {
-  "name": "ai-assistant-landing",
-  "version": "0.1.0",
+  "name": "nuro-ai-website",
+  "version": "1.2.0",
+  "description": "NURO - Asistente de IA Profesional. Landing page y documentación oficial.",
+  "homepage": "https://nuro-ai.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nuro-technologies/nuro-website.git"
+  },
+  "author": {
+    "name": "NURO Technologies",
+    "email": "contact@nuro-ai.com",
+    "url": "https://nuro-ai.com"
+  },
+  "license": "MIT",
   "private": true,
+  "keywords": [
+    "artificial intelligence",
+    "ai assistant",
+    "screen analysis",
+    "productivity",
+    "ocr",
+    "computer vision",
+    "nextjs",
+    "react",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "export": "next export",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "clean": "rm -rf .next out dist",
+    "reinstall": "npm run clean && rm -rf node_modules package-lock.json && npm install",
+    
+    "analyze": "cross-env ANALYZE=true npm run build",
+    "test": "echo 'No tests specified'",
+    "deploy": "npm run build && npm run export"
   },
   "dependencies": {
+    "lucide-react": "^0.541.0",
+    "next": "15.5.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.5.0"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.0",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    
+    "@next/bundle-analyzer": "^15.0.0",
+    "cross-env": "^7.0.3",
+    "prettier": "^3.3.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
