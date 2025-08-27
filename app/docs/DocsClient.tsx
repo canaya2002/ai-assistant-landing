@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { FileText, Search, Download, Play, Settings, Zap, Eye, MessageSquare, Shield, Monitor, Keyboard, Mouse, Globe, Book, ChevronRight, CheckCircle, AlertTriangle, Info, Lightbulb, Code, ExternalLink } from 'lucide-react';
-import Navigation from '../components/Navigation';
+import { FileText, Search, Download, Play, Settings, Zap, Eye, MessageSquare, Shield, Monitor, Keyboard, Mouse, Globe, Book, ChevronRight, CheckCircle, AlertTriangle, Info, Lightbulb, Code, ExternalLink, Home } from 'lucide-react';
 
 const DocsClientComponent = () => {
   const [activeSection, setActiveSection] = useState('');
@@ -56,6 +55,35 @@ const DocsClientComponent = () => {
   return (
     <div className="min-h-screen bg-white text-gray-900 relative">
       
+      {/* Navigation Inline - SIN IMPORTS EXTERNOS */}
+      <nav className="relative z-20 backdrop-blur-md bg-white/80 border-b border-gray-100 sticky top-0">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            <a href="/" className="flex items-center space-x-3 sm:space-x-4 group">
+              <div className="relative">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg sm:text-xl">N</span>
+                </div>
+              </div>
+              <div className="hidden sm:block">
+                <div className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">NURO</div>
+                <div className="text-xs text-gray-500">Documentación</div>
+              </div>
+            </a>
+
+            <div className="flex items-center space-x-4">
+              <a href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                <Home className="w-4 h-4" />
+                <span className="font-medium">Volver al Inicio</span>
+              </a>
+              <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                Descargar
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Animated Background - Hidden on mobile */}
       <div className="hidden md:block fixed inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full opacity-30 animate-ping"></div>
@@ -70,12 +98,6 @@ const DocsClientComponent = () => {
           }}
         ></div>
       </div>
-
-      {/* Navigation */}
-      <Navigation 
-        showDownloadButton={true}
-        variant="internal"
-      />
 
       {/* Search Hero */}
       <section className="relative z-10 bg-gradient-to-br from-blue-50 to-purple-50 py-12 sm:py-20">
@@ -305,9 +327,6 @@ const DocsClientComponent = () => {
                   </div>
                 </section>
 
-                {/* El resto de secciones seguirían aquí con el mismo patrón... */}
-                {/* Por brevedad, muestro solo las dos primeras pero incluirías todas */}
-
               </div>
             </div>
           </div>
@@ -319,7 +338,9 @@ const DocsClientComponent = () => {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-6 lg:space-y-0">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <img src="/images/nurologo.png" alt="NURO" className="w-10 h-10 sm:w-12 sm:h-12" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">N</span>
+              </div>
               <div>
                 <div className="text-base sm:text-lg font-bold text-gray-900">NURO Technologies</div>
                 <div className="text-xs sm:text-sm text-gray-500">Documentación y Soporte</div>
