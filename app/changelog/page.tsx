@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Home, Tag, Zap, Shield, Eye, MessageSquare, Settings, Bug, Plus, ArrowUp, Download, Star, CheckCircle, AlertTriangle, Info, Clock, Users, Code } from 'lucide-react';
 
 const NuroChangelogPage = () => {
