@@ -1,23 +1,23 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FileText, Shield, User, Gavel, AlertTriangle, CheckCircle, Home, Mail, Globe, Clock, Scale, BookOpen, UserCheck, Zap, Lock, Award } from 'lucide-react';
+import { Shield, Gavel, AlertTriangle, CheckCircle, Home, Mail, Clock, Scale, BookOpen, UserCheck, Zap, Lock, Award } from 'lucide-react';
 
 const NuroTermsPage = () => {
-  const [activeSection, setActiveSection] = useState('');
+  const [activeSection, setActiveSection] = useState<string | null>('');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
 
     const handleScroll = () => {
       const sections = document.querySelectorAll('[data-section]');
-      let currentSection = '';
+      let currentSection: string | null = '';
       
-      sections.forEach((section) => {
+      sections.forEach((section: Element) => {
         const rect = section.getBoundingClientRect();
         if (rect.top <= 100 && rect.bottom >= 100) {
           currentSection = section.getAttribute('data-section');
@@ -466,7 +466,7 @@ const NuroTermsPage = () => {
 
                   {/* Propiedad Intelectual */}
                   <section data-section="propiedad" id="propiedad" className="scroll-mt-8">
-                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl border border-indigo-200 p-8 shadow-lg">
+                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl border border-blue-200 p-8 shadow-lg">
                       <div className="flex items-center space-x-4 mb-8">
                         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-3 rounded-xl">
                           <Award className="w-6 h-6 text-white" />
@@ -475,7 +475,7 @@ const NuroTermsPage = () => {
                       </div>
 
                       <div className="space-y-6">
-                        <div className="bg-white p-6 rounded-2xl border border-indigo-100">
+                        <div className="bg-white p-6 rounded-2xl border border-blue-100">
                           <h3 className="text-xl font-bold text-gray-900 mb-4">Derechos de NURO Technologies</h3>
                           <p className="text-gray-700 mb-6">
                             NURO Technologies es propietario de todos los derechos, títulos e intereses 
@@ -529,7 +529,7 @@ const NuroTermsPage = () => {
                           </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-2xl border border-indigo-100">
+                        <div className="bg-white p-6 rounded-2xl border border-blue-100">
                           <h3 className="text-xl font-bold text-gray-900 mb-4">Tus Derechos sobre el Contenido</h3>
                           <p className="text-gray-700 mb-4">
                             Mantienes la propiedad completa del contenido que procesas a través de NURO:
@@ -556,15 +556,15 @@ const NuroTermsPage = () => {
                           </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-2xl border border-indigo-100">
+                        <div className="bg-white p-6 rounded-2xl border border-blue-100">
                           <h3 className="text-xl font-bold text-gray-900 mb-4">Reportes de Infracción</h3>
                           <p className="text-gray-700 mb-4">
                             Si crees que tu propiedad intelectual ha sido infringida, contacta inmediatamente a:
                           </p>
-                          <div className="bg-indigo-50 p-4 rounded-xl">
+                          <div className="bg-blue-50 p-4 rounded-xl">
                             <div className="flex items-center space-x-2 mb-2">
-                              <Mail className="w-4 h-4 text-indigo-600" />
-                              <span className="text-sm font-medium text-indigo-800">legal@nuro-technologies.com</span>
+                              <Mail className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-800">legal@nuro-technologies.com</span>
                             </div>
                             <p className="text-xs text-gray-600">
                               Incluye toda la información relevante para acelerar la investigación
