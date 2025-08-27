@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { FileText, Search, Download, Play, Settings, Zap, Eye, MessageSquare, Shield, Monitor, Keyboard, Mouse, Globe, Book, ChevronRight, CheckCircle, AlertTriangle, Info, Lightbulb, Code, ExternalLink, Home } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, Search, Download, Play, Settings, Zap, Eye, MessageSquare, Keyboard, AlertTriangle, Book, CheckCircle, Lightbulb, Code, ExternalLink, Home } from 'lucide-react';
+import Link from 'next/link';
 
 const DocsClientComponent = () => {
   const [activeSection, setActiveSection] = useState('');
@@ -55,11 +56,11 @@ const DocsClientComponent = () => {
   return (
     <div className="min-h-screen bg-white text-gray-900 relative">
       
-      {/* Navigation Inline - SIN IMPORTS EXTERNOS */}
+      {/* Navigation Inline */}
       <nav className="relative z-20 backdrop-blur-md bg-white/80 border-b border-gray-100 sticky top-0">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 sm:h-20">
-            <a href="/" className="flex items-center space-x-3 sm:space-x-4 group">
+            <Link href="/" className="flex items-center space-x-3 sm:space-x-4 group">
               <div className="relative">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-lg sm:text-xl">N</span>
@@ -69,13 +70,13 @@ const DocsClientComponent = () => {
                 <div className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">NURO</div>
                 <div className="text-xs text-gray-500">Documentación</div>
               </div>
-            </a>
+            </Link>
 
             <div className="flex items-center space-x-4">
-              <a href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-sm">
+              <Link href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-sm">
                 <Home className="w-4 h-4" />
                 <span className="font-medium">Volver al Inicio</span>
-              </a>
+              </Link>
               <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold text-sm">
                 Descargar
               </button>
@@ -165,7 +166,7 @@ const DocsClientComponent = () => {
                 <h3 className="font-bold text-gray-900 mb-4 sm:mb-6">Contenido</h3>
                 <nav className="space-y-1 sm:space-y-2">
                   {filteredSections.map((section) => (
-                    <a
+                    <Link
                       key={section.id}
                       href={`#${section.id}`}
                       className={`flex items-center space-x-3 p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-300 text-sm sm:text-base ${
@@ -176,7 +177,7 @@ const DocsClientComponent = () => {
                     >
                       <section.icon className="w-4 h-4 flex-shrink-0" />
                       <span className="font-medium">{section.title}</span>
-                    </a>
+                    </Link>
                   ))}
                 </nav>
               </div>
@@ -274,10 +275,10 @@ const DocsClientComponent = () => {
                             <div>
                               <h4 className="font-bold text-gray-900 mb-2">Descargar NURO</h4>
                               <p className="text-gray-700 mb-3">Descarga <code className="bg-gray-100 px-2 py-1 rounded text-sm">AI.Assistant.Professional.Setup.1.0.0.exe</code> desde la página principal.</p>
-                              <a href="/" className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium text-sm">
+                              <Link href="/" className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium text-sm">
                                 <ExternalLink className="w-4 h-4" />
                                 <span>Ir a página de descarga</span>
-                              </a>
+                              </Link>
                             </div>
                           </div>
 
@@ -293,7 +294,7 @@ const DocsClientComponent = () => {
                                   <div>
                                     <h5 className="font-bold text-yellow-800 mb-1">Advertencia de Windows</h5>
                                     <p className="text-sm text-yellow-700">
-                                      Windows mostrará "Windows protected your PC" porque NURO no está firmado digitalmente. 
+                                      Windows mostrará &quot;Windows protected your PC&quot; porque NURO no está firmado digitalmente. 
                                       Esto es normal y la aplicación es completamente segura.
                                     </p>
                                   </div>
@@ -307,8 +308,8 @@ const DocsClientComponent = () => {
                             <div>
                               <h4 className="font-bold text-gray-900 mb-2">Bypass de Windows Defender</h4>
                               <ol className="space-y-2 text-sm text-gray-700">
-                                <li>1. Haz clic en <strong>"More info"</strong></li>
-                                <li>2. Selecciona <strong>"Run anyway"</strong></li>
+                                <li>1. Haz clic en <strong>&quot;More info&quot;</strong></li>
+                                <li>2. Selecciona <strong>&quot;Run anyway&quot;</strong></li>
                                 <li>3. Confirma la instalación como administrador</li>
                               </ol>
                             </div>
@@ -348,15 +349,15 @@ const DocsClientComponent = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 sm:gap-8">
-              <a href="/" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+              <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                 Inicio
-              </a>
-              <a href="/faq" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+              </Link>
+              <Link href="/faq" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                 FAQ
-              </a>
-              <a href="/changelog" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+              </Link>
+              <Link href="/changelog" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                 Changelog
-              </a>
+              </Link>
               <div className="text-gray-500 text-xs sm:text-sm">
                 © 2025 NURO Technologies.
               </div>
