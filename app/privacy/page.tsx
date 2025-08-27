@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Shield, Lock, Eye, Database, Globe, User, FileText, Clock, CheckCircle, AlertTriangle, ArrowRight, Home, Mail, Phone } from 'lucide-react';
+import { Shield, Lock, Eye, Database, User, FileText, Clock, CheckCircle, AlertTriangle, Home, Mail, Phone } from 'lucide-react';
 
 const NuroPrivacyPage = () => {
   const [activeSection, setActiveSection] = useState('');
