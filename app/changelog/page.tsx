@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { Calendar, Home, Tag, Zap, Shield, Eye, MessageSquare, Settings, Bug, Plus, ArrowUp, Download, Star, CheckCircle, AlertTriangle, Info, Clock, Users, Code } from 'lucide-react';
+import { Calendar, Home, Tag, Zap, Shield, Eye, MessageSquare, Settings, Bug, Plus, ArrowUp, Download, Star, AlertTriangle, Info, Clock, Users, Code } from 'lucide-react';
 
 const NuroChangelogPage = () => {
   const [selectedVersion, setSelectedVersion] = useState('all');
