@@ -1,15 +1,17 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { HelpCircle, Home, Search, ChevronDown, ChevronUp, Shield, Download, Zap, Eye, MessageSquare, Settings, CreditCard, Users, Globe, Lock, AlertTriangle, CheckCircle, Info, Star } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Search, ChevronDown, ChevronUp, Home, HelpCircle, Shield, Zap, Download, CheckCircle, Globe, Star, MessageCircle, ArrowRight, Bot, Lightbulb, Clock, Users, Code, Database, Cpu, Monitor, Smartphone } from 'lucide-react';
 
 const NuroFAQPage = () => {
-  const [openItems, setOpenItems] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [selectedCategory, setSelectedCategory] = useState('todas');
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (window.innerWidth > 768) {
         setMousePosition({ x: e.clientX, y: e.clientY });
       }
@@ -22,175 +24,204 @@ const NuroFAQPage = () => {
     };
   }, []);
 
-  const toggleItem = (index) => {
-    const newOpenItems = new Set(openItems);
-    if (newOpenItems.has(index)) {
-      newOpenItems.delete(index);
-    } else {
-      newOpenItems.add(index);
-    }
-    setOpenItems(newOpenItems);
-  };
-
   const categories = [
-    { id: 'todas', name: 'Todas', icon: HelpCircle, count: 0 },
-    { id: 'instalacion', name: 'Instalación', icon: Download, count: 0 },
-    { id: 'funciones', name: 'Funciones', icon: Zap, count: 0 },
-    { id: 'privacidad', name: 'Privacidad', icon: Shield, count: 0 },
-    { id: 'precios', name: 'Precios', icon: CreditCard, count: 0 },
-    { id: 'soporte', name: 'Soporte', icon: Users, count: 0 }
+    { id: 'all', name: 'Todas las Preguntas', icon: HelpCircle, count: 25 },
+    { id: 'general', name: 'General', icon: Bot, count: 8 },
+    { id: 'installation', name: 'Instalación', icon: Download, count: 5 },
+    { id: 'privacy', name: 'Privacidad', icon: Shield, count: 4 },
+    { id: 'features', name: 'Funcionalidades', icon: Star, count: 6 },
+    { id: 'technical', name: 'Soporte Técnico', icon: Code, count: 2 }
   ];
 
   const faqData = [
-    // Instalación
+    // General
     {
-      category: 'instalacion',
-      question: '¿Por qué Windows dice que NURO es peligroso?',
-      answer: 'Windows Defender muestra esta advertencia porque NURO no está firmado digitalmente con un certificado de Microsoft (que cuesta $300+ anuales). Esto es común en software independiente. NURO es completamente seguro y no contiene virus ni malware. Para instalarlo, haz clic en "More info" y luego "Run anyway".',
-      popular: true
+      id: 1,
+      category: 'general',
+      question: '¿Qué es NURO?',
+      answer: 'NURO es un asistente de inteligencia artificial avanzado que analiza tu pantalla en tiempo real y proporciona respuestas contextuales. Funciona completamente offline procesando todo localmente en tu dispositivo para garantizar máxima privacidad.'
     },
     {
-      category: 'instalacion',
-      question: '¿Qué requisitos del sistema necesito?',
-      answer: 'Windows 10 (versión 1903+) o Windows 11, 4GB RAM mínimo (8GB recomendado), 200MB de espacio libre, y conexión a internet solo para actualizaciones opcionales. NURO funciona completamente offline una vez instalado.'
+      id: 2,
+      category: 'general',
+      question: '¿NURO es gratuito?',
+      answer: 'Sí, NURO ofrece una versión gratuita con funcionalidades completas para uso personal. También tenemos planes profesionales para empresas que requieren funciones avanzadas y soporte prioritario.'
     },
     {
-      category: 'instalacion',
-      question: '¿NURO funciona en Mac o Linux?',
-      answer: 'Actualmente NURO está disponible solo para Windows. Estamos desarrollando versiones para Mac y Linux que estarán disponibles en 2025. Únete a nuestra lista de correo para recibir notificaciones cuando estén listas.'
+      id: 3,
+      category: 'general',
+      question: '¿En qué se diferencia NURO de otros asistentes de IA?',
+      answer: 'NURO es único porque: 1) Procesa todo localmente - cero datos enviados a servidores, 2) Analiza visualmente tu pantalla para dar respuestas contextuales, 3) Funciona completamente offline, 4) Respuesta promedio de 50ms, 5) Privacidad garantizada al 100%.'
     },
     {
-      category: 'instalacion',
-      question: '¿Puedo instalar NURO en múltiples computadoras?',
-      answer: 'Sí, puedes instalar NURO en todos tus dispositivos Windows con la misma licencia. No hay límite en el número de instalaciones para uso personal.'
-    },
-
-    // Funciones
-    {
-      category: 'funciones',
-      question: '¿Cómo funciona el análisis de pantalla?',
-      answer: 'NURO utiliza tecnología de visión computacional avanzada (OCR + AI) para "leer" todo el contenido visible en tu pantalla. Identifica texto, imágenes, botones, formularios y estructura, luego procesa esta información localmente con modelos de IA para generar respuestas contextuales.',
-      popular: true
+      id: 4,
+      category: 'general',
+      question: '¿Qué idiomas soporta NURO?',
+      answer: 'Actualmente NURO soporta español, inglés, francés, alemán, italiano y portugués. Estamos trabajando en agregar más idiomas en futuras actualizaciones.'
     },
     {
-      category: 'funciones',
-      question: '¿Qué puedo preguntar a NURO?',
-      answer: 'Puedes preguntar sobre cualquier cosa visible en tu pantalla: "¿Qué dice este documento?", "Resume esta página web", "¿Cómo completo este formulario?", "Explica este gráfico", "¿Hay errores en este código?". NURO comprende contexto y puede ayudar con tareas complejas.'
+      id: 5,
+      category: 'general',
+      question: '¿Puedo usar NURO para trabajo comercial?',
+      answer: 'Absolutamente. NURO es perfecto para uso comercial y empresarial. Ofrecemos licencias comerciales con funciones avanzadas, soporte prioritario 24/7 y opciones de personalización para equipos.'
     },
     {
-      category: 'funciones',
-      question: '¿Cuál es la diferencia entre plan gratuito y profesional?',
-      answer: 'Plan gratuito: 10 análisis/mes, IA básica, soporte comunitario. Plan profesional ($19/mes): 500 análisis/mes, IA avanzada, soporte prioritario 24/7, acceso beta, integraciones API.'
+      id: 6,
+      category: 'general',
+      question: '¿NURO funciona con cualquier aplicación?',
+      answer: 'Sí, NURO puede analizar cualquier contenido visible en tu pantalla, incluyendo navegadores web, documentos, aplicaciones de escritorio, videos, imágenes y más. Es completamente universal.'
     },
     {
-      category: 'funciones',
-      question: '¿NURO puede automatizar tareas?',
-      answer: 'Sí, NURO puede crear macros inteligentes y automatizar tareas repetitivas. Por ejemplo: completar formularios automáticamente, navegar sitios web, procesar documentos en lote, y crear workflows personalizados.'
-    },
-
-    // Privacidad
-    {
-      category: 'privacidad',
-      question: '¿Mis datos se envían a servidores externos?',
-      answer: '¡NO! NURO procesa TODO localmente en tu dispositivo. Ni capturas de pantalla, ni texto, ni conversaciones se envían a internet. Los modelos de IA están instalados en tu computadora. Tu privacidad está 100% garantizada.',
-      popular: true
+      id: 7,
+      category: 'general',
+      question: '¿Hay límites en el uso gratuito?',
+      answer: 'La versión gratuita permite hasta 100 consultas mensuales. Para uso ilimitado, considera nuestro plan profesional que también incluye funciones avanzadas y soporte prioritario.'
     },
     {
-      category: 'privacidad',
-      question: '¿Qué datos recopila NURO?',
-      answer: 'Solo estadísticas anónimas de uso (como "análisis completados: 15") para mejorar el producto. NUNCA recopilamos contenido personal, capturas de pantalla, conversaciones, o datos identificables. Puedes desactivar incluso estas estadísticas.'
-    },
-    {
-      category: 'privacidad',
-      question: '¿NURO guarda mi historial de conversaciones?',
-      answer: 'El historial se guarda localmente en tu dispositivo (cifrado con AES-256) para mejorar la experiencia. Puedes configurar el tiempo de retención o desactivar el historial completamente en Configuración → Privacidad.'
-    },
-    {
-      category: 'privacidad',
-      question: '¿Puedo usar NURO para información confidencial?',
-      answer: 'Sí, NURO es seguro para información confidencial porque todo se procesa localmente. Es ideal para documentos legales, financieros, médicos, o cualquier información sensible. Muchas empresas usan NURO para análisis de datos confidenciales.'
+      id: 8,
+      category: 'general',
+      question: '¿Cómo puedo contactar soporte?',
+      answer: 'Puedes contactarnos via email a support@nuro-technologies.com, a través del chat en vivo en nuestra web, o creando un ticket en nuestro portal de soporte. Respondemos en menos de 24 horas.'
     },
 
-    // Precios
+    // Installation
     {
-      category: 'precios',
-      question: '¿El plan gratuito tiene limitaciones de tiempo?',
-      answer: 'No, el plan gratuito es permanente. Puedes usar 10 análisis cada mes indefinidamente. Solo se limita la cantidad de análisis, no el tiempo de uso ni las funciones básicas.',
-      popular: true
+      id: 9,
+      category: 'installation',
+      question: '¿Qué requisitos necesita mi computadora?',
+      answer: 'NURO requiere: Windows 10 (1903+) o Windows 11, mínimo 4GB RAM (recomendado 8GB), 200MB de espacio libre, y procesador de 64 bits. No requiere conexión a internet para funcionar.'
     },
     {
-      category: 'precios',
-      question: '¿Puedo cambiar o cancelar mi suscripción?',
-      answer: 'Sí, puedes actualizar, bajar de plan o cancelar en cualquier momento desde Configuración → Suscripción. No hay contratos ni penalizaciones. Si cancelas, mantienes acceso profesional hasta el final del período pagado.'
+      id: 10,
+      category: 'installation',
+      question: 'Windows Defender bloquea la instalación, ¿es seguro?',
+      answer: 'Es completamente normal. Windows muestra esta advertencia porque NURO no tiene firma digital costosa. La aplicación es 100% segura. Simplemente haz clic en "More info" y luego "Run anyway" para continuar.'
     },
     {
-      category: 'precios',
-      question: '¿Hay descuentos para estudiantes o equipos?',
-      answer: 'Sí: 50% descuento para estudiantes con email .edu. Descuentos por volumen para equipos de 5+ usuarios. Precios especiales para ONG y organizaciones educativas. Contacta support@nuro-technologies.com para más detalles.'
+      id: 11,
+      category: 'installation',
+      question: '¿Puedo instalar NURO en múltiples dispositivos?',
+      answer: 'Sí, puedes instalar NURO en todos tus dispositivos personales. Para uso empresarial con múltiples licencias, contáctanos para obtener un descuento por volumen.'
     },
     {
-      category: 'precios',
-      question: '¿Qué métodos de pago aceptan?',
-      answer: 'Aceptamos todas las tarjetas de crédito/débito principales (Visa, MasterCard, American Express), PayPal, y transferencias bancarias para cuentas empresariales. El pago es seguro y procesado por Stripe.'
+      id: 12,
+      category: 'installation',
+      question: '¿Cómo actualizo NURO?',
+      answer: 'NURO se actualiza automáticamente en segundo plano. También puedes verificar actualizaciones manualmente desde la configuración o descargando la última versión desde nuestra web.'
+    },
+    {
+      id: 13,
+      category: 'installation',
+      question: '¿Cómo desinstalo NURO?',
+      answer: 'Ve a Configuración > Apps > NURO > Desinstalar, o usa el Panel de Control de Windows. Todos los datos locales se eliminarán completamente, pero puedes exportar tu configuración antes de desinstalar.'
     },
 
-    // Soporte
+    // Privacy
     {
-      category: 'soporte',
-      question: '¿Cómo obtengo soporte técnico?',
-      answer: 'Plan gratuito: Documentación, FAQ y foros comunitarios. Plan profesional: Soporte prioritario 24/7 por email (respuesta <1 hora), chat en vivo, y llamadas de soporte para problemas críticos.',
-      popular: true
+      id: 14,
+      category: 'privacy',
+      question: '¿NURO envía mis datos a servidores?',
+      answer: 'No, nunca. NURO procesa todo localmente en tu dispositivo. Cero capturas de pantalla, cero datos personales, cero transmisiones a servidores externos. Tu privacidad es nuestra máxima prioridad.'
     },
     {
-      category: 'soporte',
-      question: '¿Con qué frecuencia se actualiza NURO?',
-      answer: 'Actualizaciones de seguridad: semanales. Nuevas funciones: mensualmente. Actualizaciones mayores: trimestralmente. Los usuarios profesionales reciben acceso beta a nuevas funciones 2-4 semanas antes.'
+      id: 15,
+      category: 'privacy',
+      question: '¿Qué datos almacena NURO localmente?',
+      answer: 'NURO solo guarda: tus preferencias de configuración, historial local de consultas (opcional), y datos de rendimiento anónimos. Todo está cifrado con AES-256 y solo tú tienes acceso.'
     },
     {
-      category: 'soporte',
-      question: '¿NURO funciona con otras aplicaciones?',
-      answer: 'NURO es compatible con todas las aplicaciones Windows: Office, browsers, Adobe, editores de código, CRM, ERP, etc. Para usuarios profesionales, ofrecemos integraciones API con Slack, Notion, Zapier y más.'
+      id: 16,
+      category: 'privacy',
+      question: '¿Puedo usar NURO offline completamente?',
+      answer: 'Sí, NURO funciona 100% offline. Solo necesita internet para descargar actualizaciones opcionales. Todos los modelos de IA están instalados localmente en tu dispositivo.'
     },
     {
-      category: 'soporte',
-      question: '¿Qué hago si NURO es lento o no responde?',
-      answer: 'Verifica: 1) Suficiente RAM disponible (>2GB libre), 2) Nivel de análisis no en "Avanzado", 3) Otros programas no consumiendo CPU. En Configuración → Rendimiento puedes optimizar NURO para tu sistema específico.'
+      id: 17,
+      category: 'privacy',
+      question: '¿NURO cumple con GDPR?',
+      answer: 'Absolutamente. Como NURO procesa todo localmente y no envía datos a servidores, cumple automáticamente con GDPR, CCPA y todas las regulaciones de privacidad internacionales.'
+    },
+
+    // Features
+    {
+      id: 18,
+      category: 'features',
+      question: '¿Qué tan rápido responde NURO?',
+      answer: 'NURO tiene un tiempo de respuesta promedio de 50 milisegundos. Al procesar todo localmente con IA optimizada, es significativamente más rápido que asistentes basados en la nube.'
+    },
+    {
+      id: 19,
+      category: 'features',
+      question: '¿NURO puede leer texto en imágenes?',
+      answer: 'Sí, NURO incluye OCR avanzado que puede leer y comprender texto en imágenes, PDFs, capturas de pantalla, videos, y cualquier contenido visual con precisión del 99.5%.'
+    },
+    {
+      id: 20,
+      category: 'features',
+      question: '¿Puedo personalizar las respuestas de NURO?',
+      answer: 'Sí, NURO aprende de tus preferencias y se adapta a tu estilo. Puedes configurar el tono de respuestas, idioma preferido, nivel de detalle, y crear comandos personalizados.'
+    },
+    {
+      id: 21,
+      category: 'features',
+      question: '¿NURO funciona con múltiples monitores?',
+      answer: 'Sí, NURO funciona perfectamente con configuraciones de múltiples monitores. Puede analizar contenido en cualquier pantalla y proporcionar respuestas contextualmente apropiadas.'
+    },
+    {
+      id: 22,
+      category: 'features',
+      question: '¿Hay atajos de teclado?',
+      answer: 'Sí, NURO incluye atajos personalizables. Por defecto: Ctrl+Shift+N activa NURO, Ctrl+Shift+H muestra historial, Ctrl+Shift+S abre configuración. Puedes cambiar todos los atajos.'
+    },
+    {
+      id: 23,
+      category: 'features',
+      question: '¿NURO puede ayudar con código de programación?',
+      answer: 'Absolutamente. NURO puede analizar, explicar, optimizar y debuggear código en más de 50 lenguajes de programación. También puede sugerir mejores prácticas y detectar errores.'
+    },
+
+    // Technical
+    {
+      id: 24,
+      category: 'technical',
+      question: 'NURO usa mucha CPU/RAM, ¿es normal?',
+      answer: 'NURO está optimizado para usar mínimos recursos. Normalmente usa 2-4% CPU y 200-400MB RAM. Si experimentas uso alto, verifica que tienes la última versión o contacta soporte.'
+    },
+    {
+      id: 25,
+      category: 'technical',
+      question: '¿NURO funciona con software antivirus?',
+      answer: 'Sí, NURO es compatible con todos los antivirus principales. Algunos pueden mostrar alertas la primera vez (falsos positivos). Simplemente agrega NURO a las excepciones de tu antivirus.'
     }
   ];
 
-  // Count FAQs per category
-  categories.forEach(cat => {
-    if (cat.id === 'todas') {
-      cat.count = faqData.length;
-    } else {
-      cat.count = faqData.filter(item => item.category === cat.id).length;
-    }
+  const filteredFAQs = faqData.filter(faq => {
+    const matchesCategory = selectedCategory === 'all' || faq.category === selectedCategory;
+    const matchesSearch = faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
-  const filteredFAQ = faqData.filter(item => {
-    const matchesSearch = item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.answer.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'todas' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const popularFAQ = faqData.filter(item => item.popular);
+  const toggleFAQ = (id: number) => {
+    setOpenFAQ(openFAQ === id ? null : id);
+  };
 
   return (
     <>
       <head>
-        <title>Preguntas Frecuentes - NURO | Respuestas y Soporte</title>
-        <meta name="description" content="Encuentra respuestas a las preguntas más frecuentes sobre NURO. Aprende sobre instalación, funciones, privacidad, precios y soporte técnico." />
+        <title>Preguntas Frecuentes - NURO | FAQ y Soporte</title>
+        <meta name="description" content="Encuentra respuestas a las preguntas más frecuentes sobre NURO. Instalación, privacidad, funcionalidades y soporte técnico." />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://nuro-ai.com/faq" />
       </head>
 
-      <div className="min-h-screen bg-white text-gray-900 relative">
+      <div className="min-h-screen bg-white text-gray-900 relative overflow-hidden">
         
-        {/* Animated Background - Hidden on mobile */}
+        {/* Animated Background */}
         <div className="hidden md:block fixed inset-0 pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full opacity-30 animate-ping"></div>
           <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-purple-400 rounded-full opacity-20 animate-pulse"></div>
+          <div className="absolute top-1/2 left-1/6 w-3 h-3 bg-cyan-300 rounded-full opacity-30 animate-bounce"></div>
           
           <div 
             className="absolute w-96 h-96 rounded-full opacity-3 pointer-events-none transition-all duration-1000 ease-out"
@@ -207,42 +238,42 @@ const NuroFAQPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="relative">
-                <img src="/images/nurologo.png" alt="NURO" className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg" />
+                <Image src="/images/nurologo.png" alt="NURO" width={48} height={48} className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg" />
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-purple-500/20 rounded-full blur-md"></div>
               </div>
               <div>
-                <div className="text-lg sm:text-xl font-bold text-gray-900">Preguntas Frecuentes</div>
-                <div className="text-xs sm:text-sm text-gray-500">Encuentra respuestas rápidas</div>
+                <div className="text-lg sm:text-xl font-bold text-gray-900">FAQ</div>
+                <div className="text-xs sm:text-sm text-gray-500">Preguntas Frecuentes</div>
               </div>
             </div>
-            <a href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-sm">
+            <Link href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-sm">
               <Home className="w-4 h-4" />
               <span className="font-medium">Volver al Inicio</span>
-            </a>
+            </Link>
           </div>
         </nav>
 
         {/* Hero Section */}
-        <section className="relative z-10 bg-gradient-to-br from-purple-50 to-pink-50 py-12 sm:py-20">
+        <section className="relative z-10 bg-gradient-to-br from-cyan-50 to-blue-50 py-12 sm:py-20">
           <div className="container mx-auto px-4 sm:px-6 text-center">
             <div className="max-w-4xl mx-auto">
-              <div className="inline-block bg-gradient-to-r from-purple-100 to-pink-100 rounded-full px-4 sm:px-6 py-2 mb-4 sm:mb-6">
+              <div className="inline-block bg-gradient-to-r from-cyan-100 to-blue-100 rounded-full px-4 sm:px-6 py-2 mb-4 sm:mb-6">
                 <div className="flex items-center space-x-2">
-                  <HelpCircle className="w-4 h-4 text-purple-600" />
-                  <span className="text-xs sm:text-sm font-semibold text-purple-800">CENTRO DE AYUDA</span>
+                  <HelpCircle className="w-4 h-4 text-cyan-600" />
+                  <span className="text-xs sm:text-sm font-semibold text-cyan-800">SOPORTE Y AYUDA</span>
                 </div>
               </div>
               
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
-                ¿Necesitas
-                <span className="block bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Ayuda?
+                ¿Tienes
+                <span className="block bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                  Preguntas?
                 </span>
               </h1>
               
               <p className="text-base sm:text-lg md:text-xl text-gray-600 leading-relaxed mb-8 sm:mb-12">
-                Encuentra respuestas rápidas a las preguntas más comunes sobre NURO. 
-                Si no encuentras lo que buscas, nuestro equipo está listo para ayudarte.
+                Encuentra respuestas instantáneas a las preguntas más frecuentes sobre NURO. 
+                Si no encuentras lo que buscas, contáctanos directamente.
               </p>
 
               {/* Search Bar */}
@@ -255,31 +286,31 @@ const NuroFAQPage = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar preguntas frecuentes..."
-                  className="block w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base shadow-lg"
+                  className="block w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-4 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base shadow-lg"
                 />
               </div>
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 max-w-2xl mx-auto">
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-white/50">
-                  <HelpCircle className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                  <div className="font-bold text-lg text-gray-900">{faqData.length}</div>
+                  <HelpCircle className="w-6 h-6 text-cyan-600 mx-auto mb-2" />
+                  <div className="font-bold text-lg text-gray-900">25+</div>
                   <div className="text-xs text-gray-600">Preguntas</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-white/50">
-                  <Star className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-                  <div className="font-bold text-lg text-gray-900">{popularFAQ.length}</div>
-                  <div className="text-xs text-gray-600">Populares</div>
+                  <Clock className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                  <div className="font-bold text-lg text-gray-900">24h</div>
+                  <div className="text-xs text-gray-600">Respuesta</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-white/50">
-                  <Users className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
-                  <div className="font-bold text-lg text-gray-900">24/7</div>
-                  <div className="text-xs text-gray-600">Soporte Pro</div>
+                  <Users className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                  <div className="font-bold text-lg text-gray-900">1000+</div>
+                  <div className="text-xs text-gray-600">Usuarios</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-white/50">
-                  <CheckCircle className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                  <div className="font-bold text-lg text-gray-900">98%</div>
-                  <div className="text-xs text-gray-600">Resueltos</div>
+                  <MessageCircle className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
+                  <div className="font-bold text-lg text-gray-900">Chat</div>
+                  <div className="text-xs text-gray-600">En Vivo</div>
                 </div>
               </div>
             </div>
@@ -289,29 +320,7 @@ const NuroFAQPage = () => {
         <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <div className="max-w-6xl mx-auto">
             
-            {/* Popular Questions */}
-            {!searchQuery && selectedCategory === 'todas' && (
-              <div className="mb-12 sm:mb-16">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
-                  Preguntas Populares
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  {popularFAQ.map((item, index) => (
-                    <div key={`popular-${index}`} className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-start space-x-3">
-                        <Star className="w-5 h-5 text-yellow-500 mt-1 flex-shrink-0" />
-                        <div>
-                          <h3 className="font-bold text-gray-900 mb-2 text-sm sm:text-base">{item.question}</h3>
-                          <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">{item.answer.substring(0, 120)}...</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Category Filters */}
+            {/* Categories */}
             <div className="mb-8 sm:mb-12">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Categorías</h2>
               <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -321,13 +330,13 @@ const NuroFAQPage = () => {
                     onClick={() => setSelectedCategory(category.id)}
                     className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm sm:text-base font-medium transition-all duration-300 ${
                       selectedCategory === category.id
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <category.icon className="w-4 h-4" />
                     <span>{category.name}</span>
-                    <span className="bg-white/20 text-xs px-2 py-0.5 rounded-full">{category.count}</span>
+                    <span className="text-xs opacity-75">({category.count})</span>
                   </button>
                 ))}
               </div>
@@ -335,50 +344,35 @@ const NuroFAQPage = () => {
 
             {/* FAQ List */}
             <div className="space-y-4 sm:space-y-6">
-              {filteredFAQ.length === 0 ? (
-                <div className="text-center py-12 sm:py-16">
-                  <div className="bg-gray-50 rounded-2xl sm:rounded-3xl p-8 sm:p-12">
-                    <Search className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">No encontramos resultados</h3>
-                    <p className="text-gray-600 mb-6">
-                      Intenta con otros términos de búsqueda o contacta nuestro soporte.
-                    </p>
-                    <button
-                      onClick={() => {setSearchQuery(''); setSelectedCategory('todas');}}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all"
-                    >
-                      Ver todas las preguntas
-                    </button>
-                  </div>
+              {filteredFAQs.length === 0 ? (
+                <div className="text-center py-12">
+                  <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">No se encontraron resultados</h3>
+                  <p className="text-gray-600">Intenta con otros términos de búsqueda o selecciona una categoría diferente.</p>
                 </div>
               ) : (
-                filteredFAQ.map((item, index) => (
-                  <div key={index} className="bg-white border border-gray-200 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
+                filteredFAQs.map((faq) => (
+                  <div key={faq.id} className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
                     <button
-                      onClick={() => toggleItem(index)}
-                      className="w-full text-left p-4 sm:p-6 flex items-center justify-between hover:bg-gray-50 rounded-xl sm:rounded-2xl transition-colors"
+                      onClick={() => toggleFAQ(faq.id)}
+                      className="w-full px-6 sm:px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors rounded-2xl sm:rounded-3xl"
                     >
-                      <div className="flex items-start space-x-3 sm:space-x-4 pr-4">
-                        {item.popular && (
-                          <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 mt-1 flex-shrink-0" />
-                        )}
-                        <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-snug">{item.question}</h3>
+                      <div className="flex-1 pr-4">
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-relaxed">
+                          {faq.question}
+                        </h3>
                       </div>
-                      {openItems.has(index) ? (
-                        <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                      {openFAQ === faq.id ? (
+                        <ChevronUp className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 flex-shrink-0" />
                       ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                        <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 flex-shrink-0" />
                       )}
                     </button>
                     
-                    {openItems.has(index) && (
-                      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-                        <div className={`pl-0 ${item.popular ? 'sm:pl-9' : 'sm:pl-0'}`}>
-                          <div className="bg-gray-50 rounded-lg sm:rounded-xl p-4 sm:p-6">
-                            <p className="text-gray-700 leading-relaxed text-sm sm:text-base whitespace-pre-line">
-                              {item.answer}
-                            </p>
-                          </div>
+                    {openFAQ === faq.id && (
+                      <div className="px-6 sm:px-8 pb-6 border-t border-gray-100">
+                        <div className="pt-4">
+                          <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{faq.answer}</p>
                         </div>
                       </div>
                     )}
@@ -387,53 +381,74 @@ const NuroFAQPage = () => {
               )}
             </div>
 
-            {/* Contact Support */}
+            {/* Contact Section */}
             <div className="mt-16 sm:mt-20">
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl sm:rounded-3xl border border-blue-200 p-6 sm:p-8 text-center">
-                <div className="max-w-2xl mx-auto">
-                  <Users className="w-12 h-12 sm:w-16 sm:h-16 text-blue-600 mx-auto mb-4 sm:mb-6" />
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl sm:rounded-3xl border border-gray-200 p-6 sm:p-8 text-center">
+                <div className="max-w-3xl mx-auto">
+                  <MessageCircle className="w-12 h-12 sm:w-16 sm:h-16 text-blue-600 mx-auto mb-4 sm:mb-6" />
                   <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">
-                    ¿No encontraste tu respuesta?
+                    ¿No encuentras tu respuesta?
                   </h2>
                   <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
-                    Nuestro equipo de soporte está listo para ayudarte con cualquier pregunta 
-                    que tengas sobre NURO.
+                    Nuestro equipo de soporte está aquí para ayudarte. Contáctanos y te responderemos 
+                    en menos de 24 horas.
                   </p>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200">
-                      <HelpCircle className="w-6 h-6 sm:w-8 sm:h-8 text-gray-600 mx-auto mb-3" />
-                      <h3 className="font-bold text-gray-900 mb-2">Plan Gratuito</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-4">Soporte por comunidad y documentación</p>
-                      <a href="/docs" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                        Ver Documentación →
-                      </a>
-                    </div>
-                    
-                    <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 sm:p-6 rounded-xl border border-blue-200">
-                      <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mx-auto mb-3" />
-                      <h3 className="font-bold text-gray-900 mb-2">Plan Profesional</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-4">Soporte prioritario 24/7 por email y chat</p>
-                      <a href="mailto:support@nuro-technologies.com" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                        Contactar Soporte →
-                      </a>
-                    </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+                    <a
+                      href="mailto:support@nuro-technologies.com"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all text-sm sm:text-base flex items-center space-x-2"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Enviar Email</span>
+                    </a>
+                    <a
+                      href="#chat"
+                      className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base flex items-center space-x-2"
+                    >
+                      <span>Chat en Vivo</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
                   </div>
+                </div>
+              </div>
+            </div>
 
-                  <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-xs sm:text-sm text-gray-500">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      <span>Respuesta típica: &lt;2 horas</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Globe className="w-4 h-4 text-blue-500" />
-                      <span>Soporte en español</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Shield className="w-4 h-4 text-purple-500" />
-                      <span>Equipo certificado</span>
-                    </div>
-                  </div>
+            {/* Popular Resources */}
+            <div className="mt-16 sm:mt-20">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 sm:mb-12 text-center">
+                Recursos Populares
+              </h2>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <Download className="w-8 h-8 text-emerald-600 mb-4" />
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Guía de Instalación</h3>
+                  <p className="text-gray-600 mb-4 text-sm">Instrucciones paso a paso para instalar NURO en tu sistema.</p>
+                  <a href="/docs" className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center space-x-1">
+                    <span>Leer Guía</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <Shield className="w-8 h-8 text-blue-600 mb-4" />
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Política de Privacidad</h3>
+                  <p className="text-gray-600 mb-4 text-sm">Conoce cómo protegemos tu información y garantizamos tu privacidad.</p>
+                  <a href="/privacy" className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center space-x-1">
+                    <span>Leer Política</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <Lightbulb className="w-8 h-8 text-yellow-600 mb-4" />
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Tips y Trucos</h3>
+                  <p className="text-gray-600 mb-4 text-sm">Descubre funciones avanzadas y maximiza tu productividad con NURO.</p>
+                  <a href="/docs" className="text-yellow-600 hover:text-yellow-700 font-medium text-sm flex items-center space-x-1">
+                    <span>Ver Tips</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </a>
                 </div>
               </div>
             </div>
@@ -445,18 +460,18 @@ const NuroFAQPage = () => {
           <div className="container mx-auto px-4 sm:px-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-6 lg:space-y-0">
               <div className="flex items-center space-x-3 sm:space-x-4">
-                <img src="/images/nurologo.png" alt="NURO" className="w-10 h-10 sm:w-12 sm:h-12" />
+                <Image src="/images/nurologo.png" alt="NURO" width={48} height={48} className="w-10 h-10 sm:w-12 sm:h-12" />
                 <div>
                   <div className="text-base sm:text-lg font-bold text-gray-900">NURO Technologies</div>
-                  <div className="text-xs sm:text-sm text-gray-500">Centro de Ayuda</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Preguntas Frecuentes</div>
                 </div>
               </div>
               
               <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 sm:gap-8">
-                <a href="/" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1 text-sm">
+                <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-1 text-sm">
                   <Home className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>Inicio</span>
-                </a>
+                </Link>
                 <a href="/docs" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
                   Documentación
                 </a>
