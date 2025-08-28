@@ -3,11 +3,13 @@ import type { Metadata } from 'next'
 import Script from 'next/script'
 import './globals.css'
 
-// Google Analytics ID - REEMPLAZAR CON TU ID REAL
-const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-XXXXXXXXXX'
+// Configuración segura de Analytics
+const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID || '';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://nuro-ai.com';
 
+// Metadatos optimizados para SEO
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://nuro-ai.com'),
+  metadataBase: new URL(BASE_URL),
   title: {
     template: '%s | NURO - Asistente IA Profesional',
     default: 'NURO - Asistente IA Profesional | Análisis Inteligente de Pantalla'
@@ -29,7 +31,7 @@ export const metadata: Metadata = {
     'asistente virtual',
     'workflow automation'
   ],
-  authors: [{ name: 'NURO Technologies', url: 'https://nuro-ai.com' }],
+  authors: [{ name: 'NURO Technologies', url: BASE_URL }],
   creator: 'NURO Technologies',
   publisher: 'NURO Technologies',
   formatDetection: {
@@ -40,7 +42,7 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-    nocache: true,
+    nocache: false,
     googleBot: {
       index: true,
       follow: true,
@@ -54,8 +56,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'es_ES',
     alternateLocale: ['en_US', 'pt_BR'],
-    url: 'https://nuro-ai.com',
-    siteName: 'NURO',
+    url: BASE_URL,
+    siteName: 'NURO - Asistente IA Profesional',
     title: 'NURO - Asistente de Inteligencia Artificial Profesional',
     description: 'Revoluciona tu productividad con el asistente de IA más avanzado. Análisis inteligente de pantalla, procesamiento local y privacidad garantizada. Descarga gratis.',
     images: [
@@ -91,8 +93,11 @@ export const metadata: Metadata = {
       'msvalidate.01': process.env.BING_VERIFICATION || '',
     }
   },
-  category: 'Software',
-  classification: 'Business Software',
+  category: 'Business Software',
+  classification: 'Productivity Software',
+  alternates: {
+    canonical: BASE_URL
+  },
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
@@ -109,17 +114,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // JSON-LD estructurado y seguro
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "Organization",
-        "@id": "https://nuro-ai.com/#organization",
+        "@id": `${BASE_URL}/#organization`,
         "name": "NURO Technologies",
-        "url": "https://nuro-ai.com",
+        "url": BASE_URL,
         "logo": {
           "@type": "ImageObject",
-          "url": "https://nuro-ai.com/images/nurologo.png",
+          "url": `${BASE_URL}/images/nurologo.png`,
           "width": 512,
           "height": 512,
           "caption": "NURO Logo"
@@ -132,36 +138,28 @@ export default function RootLayout({
         ],
         "contactPoint": {
           "@type": "ContactPoint",
-          "telephone": "+1-555-NURO-AI1",
+          "email": "support@nuro-technologies.com",
           "contactType": "customer service",
           "availableLanguage": ["Spanish", "English"]
         }
       },
       {
         "@type": "WebSite", 
-        "@id": "https://nuro-ai.com/#website",
-        "url": "https://nuro-ai.com",
+        "@id": `${BASE_URL}/#website`,
+        "url": BASE_URL,
         "name": "NURO",
         "description": "Asistente de IA profesional para análisis inteligente de pantalla",
         "publisher": {
-          "@id": "https://nuro-ai.com/#organization"
+          "@id": `${BASE_URL}/#organization`
         },
-        "inLanguage": "es-ES",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": "https://nuro-ai.com/faq?search={search_term_string}"
-          },
-          "query-input": "required name=search_term_string"
-        }
+        "inLanguage": "es-ES"
       },
       {
         "@type": "SoftwareApplication",
-        "@id": "https://nuro-ai.com/#software",
+        "@id": `${BASE_URL}/#software`,
         "name": "NURO",
         "description": "Asistente de inteligencia artificial profesional para análisis inteligente de pantalla con procesamiento local y privacidad garantizada",
-        "url": "https://nuro-ai.com",
+        "url": BASE_URL,
         "operatingSystem": ["Windows 10", "Windows 11"],
         "applicationCategory": "BusinessApplication",
         "applicationSubCategory": "Productivity Software",
@@ -170,15 +168,14 @@ export default function RootLayout({
         "dateModified": "2025-08-26",
         "downloadUrl": "https://github.com/canaya2002/ai-assistant-professional/releases/download/v1.0.0/AI.Assistant.Professional.Setup.1.0.0.exe",
         "fileSize": "164MB",
-        "screenshot": "https://nuro-ai.com/images/nuro-screenshot.jpg",
         "softwareRequirements": "Windows 10 version 1903 or later, 4GB RAM, 200MB free space",
         "permissions": "Screen capture for visual analysis",
-        "installUrl": "https://nuro-ai.com/#download",
+        "installUrl": `${BASE_URL}/#download`,
         "author": {
-          "@id": "https://nuro-ai.com/#organization"
+          "@id": `${BASE_URL}/#organization`
         },
         "publisher": {
-          "@id": "https://nuro-ai.com/#organization"
+          "@id": `${BASE_URL}/#organization`
         },
         "offers": [
           {
@@ -186,7 +183,7 @@ export default function RootLayout({
             "price": "0",
             "priceCurrency": "USD",
             "name": "Plan Gratuito",
-            "description": "10 análisis por mes, IA básica, soporte comunitario",
+            "description": "Funcionalidades completas para uso personal",
             "availability": "https://schema.org/InStock",
             "validFrom": "2025-08-26"
           },
@@ -195,10 +192,9 @@ export default function RootLayout({
             "price": "19",
             "priceCurrency": "USD",
             "name": "Plan Profesional",
-            "description": "500 análisis por mes, IA avanzada, soporte 24/7",
+            "description": "Funciones avanzadas para uso empresarial",
             "availability": "https://schema.org/InStock",
-            "validFrom": "2025-08-26",
-            "priceValidUntil": "2025-12-31"
+            "validFrom": "2025-08-26"
           }
         ],
         "aggregateRating": {
@@ -216,74 +212,86 @@ export default function RootLayout({
           "Interfaz flotante no intrusiva",
           "Privacidad y seguridad garantizada"
         ]
-      },
-      {
-        "@type": "FAQPage",
-        "@id": "https://nuro-ai.com/faq#faq",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "¿Por qué Windows dice que NURO es peligroso?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Windows Defender muestra esta advertencia porque NURO no está firmado digitalmente con un certificado de Microsoft. Esto es común en software independiente. NURO es completamente seguro y no contiene virus ni malware."
-            }
-          },
-          {
-            "@type": "Question", 
-            "name": "¿Mis datos se envían a servidores externos?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "¡NO! NURO procesa TODO localmente en tu dispositivo. Ni capturas de pantalla, ni texto, ni conversaciones se envían a internet. Los modelos de IA están instalados en tu computadora."
-            }
-          }
-        ]
       }
     ]
-  }
+  };
 
   return (
     <html lang="es">
       <head>
-        {/* Preconnect to external domains for performance */}
+        {/* Preconnect críticos para performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://www.google-analytics.com" />
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         
-        {/* DNS Prefetch for better performance */}
-        <link rel="dns-prefetch" href="//fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="//www.google-analytics.com" />
+        {/* DNS Prefetch para recursos externos */}
+        <link rel="dns-prefetch" href="//github.com" />
         
-        {/* Favicons */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/images/nurologo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/images/nurologo.png" />
+        {/* Favicons optimizados */}
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/images/nurologo.png" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/images/nurologo.png" sizes="180x180" />
         <link rel="manifest" href="/manifest.json" />
         
-        {/* JSON-LD Structured Data */}
+        {/* Security headers */}
+        <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
+        <meta httpEquiv="X-Frame-Options" content="DENY" />
+        <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
+        <meta httpEquiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+        
+        {/* JSON-LD estructurado - Seguro sin dangerouslySetInnerHTML */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ 
+            __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') 
+          }}
         />
       </head>
-      <body suppressHydrationWarning={true}>
+      
+      <body suppressHydrationWarning>
+        <noscript>
+          <div style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            background: '#f59e0b', 
+            color: 'white', 
+            padding: '10px', 
+            textAlign: 'center', 
+            zIndex: 9999 
+          }}>
+            Para la mejor experiencia, por favor habilita JavaScript en tu navegador.
+          </div>
+        </noscript>
+        
         {children}
         
-        {/* Google Analytics */}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GA_TRACKING_ID}', {
-              page_path: window.location.pathname,
-            });
-          `}
-        </Script>
+        {/* Google Analytics - Solo si está configurado */}
+        {GA_TRACKING_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script 
+              id="google-analytics" 
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${GA_TRACKING_ID}', {
+                    page_path: window.location.pathname,
+                    anonymize_ip: true,
+                    cookie_flags: 'secure;samesite=strict'
+                  });
+                `
+              }}
+            />
+          </>
+        )}
       </body>
     </html>
   )
