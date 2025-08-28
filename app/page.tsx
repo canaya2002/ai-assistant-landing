@@ -204,7 +204,6 @@ const NuroLandingPage = () => {
 
   const navigationItems = [
     { href: '/docs', label: 'Documentación' },
-    { href: '/api', label: 'API' },
     { href: '/faq', label: 'FAQ' },
     { href: '/privacy', label: 'Privacidad' },
   ];
@@ -385,10 +384,6 @@ const NuroLandingPage = () => {
                   priority 
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              </div>
-              <div className="ml-3">
-                <div className="text-xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300 animate-subtleGlow">NURO</div>
-                <div className="text-xs text-gray-600">AI Technologies</div>
               </div>
             </Link>
 
@@ -671,6 +666,10 @@ const NuroLandingPage = () => {
                   <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span className="text-gray-600">Actualizaciones automáticas</span>
                 </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="text-gray-600">Acceso a modo en vivo</span>
+                </li>
               </ul>
               <button className="w-full py-3 border border-blue-300/50 rounded-full text-gray-700 font-semibold text-sm hover:bg-blue-50/50 transition-all duration-500">
                 Incluido en la Descarga
@@ -688,7 +687,7 @@ const NuroLandingPage = () => {
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">Profesional</h3>
                 <p className="text-gray-600 mb-4 text-sm">Para profesionales y equipos</p>
                 <div className="mb-6">
-                  <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">$19</div>
+                  <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">$15</div>
                   <div className="text-gray-500 text-sm">Por mes, cancela cuando quieras</div>
                 </div>
                 <ul className="space-y-3 mb-6 text-sm">
