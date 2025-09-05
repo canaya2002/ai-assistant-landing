@@ -12,7 +12,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   refreshProfile: () => Promise<void>;
-  signOut: () => Promise<void>; // ✅ Agregar signOut al contexto
+  signOut: () => Promise<void>;
   isAuthenticated: boolean;
   isPremium: boolean;
   isPro: boolean;
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await cloudFunctions.getUserProfile();
       setUserProfile(result.data as UserProfile);
       setError(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching user profile:', error);
       setError('Error cargando perfil de usuario');
       setUserProfile({
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUserProfile(null);
       setError(null);
       toast.success('Sesión cerrada correctamente');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error signing out:', error);
       toast.error('Error al cerrar sesión. Intenta nuevamente.');
     }
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loading,
     error,
     refreshProfile,
-    signOut, // ✅ Agregar signOut al valor del contexto
+    signOut,
     isAuthenticated: !!user,
     isPremium: userProfile?.user?.isPremium || false,
     isPro: userProfile?.user?.isPro || false,

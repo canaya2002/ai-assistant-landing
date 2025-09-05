@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, memo } from 'react';
-import { Calendar, Home, Tag, Zap, Shield, Eye, MessageSquare, Settings, Bug, Plus, ArrowUp, Download, Star, Info, Clock, Users, Code, Sparkles } from 'lucide-react';
+import { Calendar, Tag, Zap, Shield, Eye, MessageSquare, Settings, Bug, Plus, ArrowUp, Download, Star, Info, Clock, Users, Code, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 

@@ -1,10 +1,11 @@
 "use client";
+
 import { useState, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Added for Image component
 import { 
-  Shield, Gavel, AlertTriangle, CheckCircle, Home, Mail, Clock, 
-  Scale, BookOpen, UserCheck, Zap, Lock, Award, ArrowUp, Menu, X,
-  Download, Bot, Plus
+  Shield, AlertTriangle, CheckCircle, Home, Mail, Clock, 
+  Scale, BookOpen, UserCheck, Zap, Lock, Award, Menu, X, Bot
 } from 'lucide-react';
 
 // Configuration
@@ -60,10 +61,12 @@ const Navigation = memo(function Navigation({
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          <img 
+          <Image 
             src="/images/nora.png" 
             alt="NORA Logo" 
-            className="h-24 w-auto hover:scale-105 transition-transform duration-300"
+            width={96} // Approximate width based on h-24 w-auto
+            height={96} 
+            className="hover:scale-105 transition-transform duration-300"
           />
         </Link>
 
@@ -925,10 +928,12 @@ const Footer = memo(function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Logo section */}
           <div className="md:col-span-1">
-            <img 
+            <Image 
               src="/images/nora.png" 
               alt="NORA Logo" 
-              className="h-20 w-auto mb-4"
+              width={80} // Approximate width based on h-20 w-auto
+              height={80} 
+              className="mb-4"
             />
           </div>
 

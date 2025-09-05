@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { 
   Shield, Lock, Eye, Database, User, Mail, Clock, CheckCircle, 
-  AlertTriangle, Menu, X, Download, Bot, Plus
+  AlertTriangle, Menu, X, Bot
 } from 'lucide-react';
 
 // Configuration
