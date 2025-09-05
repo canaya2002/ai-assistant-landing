@@ -55,7 +55,9 @@ const ChatInterface = memo(function ChatInterface() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    const messageText = input.trim();
+    if (!messageText) return;
+
     const accessCheck = checkChatAccess();
     if (!accessCheck.allowed) {
       toast.error(accessCheck.message);
@@ -65,18 +67,17 @@ const ChatInterface = memo(function ChatInterface() {
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
-      message: input.trim(),
+      message: messageText,
       timestamp: new Date(),
     };
 
-    const messageText = input.trim();
     setInput('');
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
       const result = await cloudFunctions.chatWithAI({
-        message: messageText,
+        message: messageText as string, // Explicit type assertion to ensure string type
         fileContext: '',
         chatHistory: messages.slice(-10),
       }) as { data: ChatResponse };
@@ -157,7 +158,7 @@ const ChatInterface = memo(function ChatInterface() {
     setIsLoading(true);
     try {
       const result = await cloudFunctions.chatWithAI({
-        message: message.message,
+        message: message.message as string, // Explicit type assertion to ensure string type
         fileContext: '',
         chatHistory: messages.slice(-10),
       }) as { data: ChatResponse };

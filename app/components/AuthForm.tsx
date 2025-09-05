@@ -358,7 +358,7 @@ export default function AuthForm() {
                 <AuthInput
                   type="password"
                   placeholder="Confirmar contraseña"
-                  value={formData.formData.confirmPassword}
+                  value={formData.confirmPassword}
                   onChange={handleInputChange('confirmPassword')}
                   icon={Lock}
                   error={errors.confirmPassword}
