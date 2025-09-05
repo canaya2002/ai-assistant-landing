@@ -1,147 +1,678 @@
 "use client";
-import { useState, useEffect, useCallback, memo } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Download, Shield, Star, Users, Check, AlertTriangle, Play, Brain, Clock, Menu, X, Zap, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import { 
+  Download, AlertTriangle, Bot, Menu, X, Plus
+} from 'lucide-react';
 
-// Configuración segura
+// Configuration
 const CONFIG = {
-  GA_ID: process.env.NEXT_PUBLIC_GA_ID || '',
-  DOWNLOAD_URL: 'https://github.com/canaya2002/ai-assistant-professional/releases/download/v1.0.0/AI.Assistant.Professional.Setup.1.0.0.exe',
   VERSION: '1.0.0',
-  RELEASE_DATE: '2025-08-26'
+  DOWNLOAD_URL: 'https://github.com/canaya2002/ai-assistant-professional/releases/download/v1.0.0/AI.Assistant.Professional.Setup.1.0.0.exe',
 };
 
-// Tipos
-interface IconProps {
-  className?: string;
+// Types
+interface Language { 
+  code: 'es' | 'en' | 'br'; 
+  name: string; 
 }
 
-type LucideIcon = React.ComponentType<IconProps>;
-
-interface TrustIndicatorProps {
-  icon: LucideIcon;
-  value: string;
-  label: string;
-}
-
-interface FeatureCardProps {
-  icon: LucideIcon;
-  title: string;
+interface Platform {
+  id: string;
+  name: string;
   description: string;
-  delay?: number;
+  longDescription: string;
+  features: string[];
 }
 
-// Función de tracking
-const trackEvent = (action: string, category: string, label?: string) => {
-  if (typeof window !== 'undefined' && window.gtag && CONFIG.GA_ID) {
-    window.gtag('event', action, {
-      event_category: category,
-      event_label: label || undefined
-    });
+// Multilingual content
+const content = {
+  en: {
+    navDownload: 'Download',
+    heroTitle: 'NORA',
+    heroSubtitle: 'Your Personal AI Assistant',
+    heroDescription: 'NORA is a revolutionary artificial intelligence assistant developed with GPT-4o & Gemini.',
+    tryForFree: 'Try for Free',
+    scrollDown: 'Scroll Down',
+    enterEmail: 'Enter your email address',
+    trustedByText: 'Trusted by thousands of users worldwide',
+    availableForAll: 'Available for Web, iPhone, Apple Watch, macOS, Android',
+    availableOn: 'Available On',
+    askAnything: 'Frequently Asked Questions',
+    askSubtitle: 'Everything you need to know about NORA',
+    features: [
+      {
+        title: 'What is NORA?',
+        description: 'NORA is an advanced artificial intelligence assistant that uses GPT-4o and Gemini to provide accurate and natural responses to any question or task you have.'
+      },
+      {
+        title: 'Is NORA free to use?',
+        description: 'NORA offers a free version with basic functionalities. We also have premium plans with advanced features for more demanding users.'
+      },
+      {
+        title: 'What devices does it work on?',
+        description: 'NORA is available on iPhone, iPad, Apple Watch, Mac, Android, and web browsers. Sync your conversations across all your devices.'
+      },
+      {
+        title: 'Is it safe to use NORA?',
+        description: 'Yes, NORA uses end-to-end encryption and does not store your personal conversations. Your privacy is our top priority.'
+      },
+      {
+        title: 'Can I use NORA offline?',
+        description: 'NORA requires an internet connection to function, as it uses cloud-based AI models to provide the best possible responses.'
+      }
+    ],
+    platforms: [
+      { 
+        id: 'iphone', 
+        name: 'iPhone', 
+        description: 'Available on App Store for iOS 14 and above.',
+        longDescription: 'Experience NORA on your iPhone with our beautifully designed native app. Get instant access to AI-powered conversations, voice commands, and seamless integration with iOS features. Our iPhone app is optimized for performance and battery life.',
+        features: [
+          'Native iOS integration with Siri Shortcuts',
+          'Optimized for all iPhone models from iPhone 8 onwards',
+          'Voice-to-text and text-to-voice capabilities',
+          'Dark mode and light mode support',
+          'Offline conversation history',
+          'Push notifications for important updates'
+        ]
+      },
+      { 
+        id: 'watch', 
+        name: 'Apple Watch', 
+        description: 'Access NORA directly from your wrist with our optimized app.',
+        longDescription: 'NORA on Apple Watch brings AI assistance directly to your wrist. Perfect for quick questions, voice commands, and staying productive on the go. Our Watch app is designed for quick interactions and essential AI features.',
+        features: [
+          'Quick voice interactions with Raise to Speak',
+          'Complications for watch face integration',
+          'Haptic feedback for responses',
+          'Works independently with cellular models',
+          'Optimized for Series 4 and newer',
+          'Battery-efficient background processing'
+        ]
+      },
+      { 
+        id: 'macos', 
+        name: 'macOS', 
+        description: 'Native Mac application with full functionality.',
+        longDescription: 'The most powerful NORA experience is on macOS. With our native Mac app, you get full-featured AI assistance, file integration, and seamless workflow automation. Perfect for professionals and power users.',
+        features: [
+          'Native macOS design with menu bar integration',
+          'File drag-and-drop for document analysis',
+          'Keyboard shortcuts and automation support',
+          'Multiple conversation windows',
+          'Integration with Spotlight search',
+          'Support for macOS Monterey and newer'
+        ]
+      },
+      { 
+        id: 'android', 
+        name: 'Android', 
+        description: 'Available on Google Play Store for Android 8.0 and above.',
+        longDescription: 'NORA for Android delivers the full AI experience with Material Design 3. Enjoy seamless integration with Google services, customizable widgets, and powerful automation features that work across all your Android devices.',
+        features: [
+          'Material Design 3 with dynamic theming',
+          'Google Assistant integration',
+          'Customizable home screen widgets',
+          'Android Auto support for in-car use',
+          'Background processing with minimal battery usage',
+          'Works on Android 8.0 and all newer versions'
+        ]
+      },
+      { 
+        id: 'web', 
+        name: 'Web', 
+        description: 'Use NORA directly in your favorite web browser.',
+        longDescription: 'Access NORA from any device with our progressive web app. No downloads required - just open your browser and start chatting. Full feature parity with native apps, plus the convenience of universal access.',
+        features: [
+          'Progressive Web App (PWA) technology',
+          'Works on all modern browsers',
+          'Offline capability with service workers',
+          'Responsive design for all screen sizes',
+          'Real-time sync across all devices',
+          'Keyboard shortcuts for power users'
+        ]
+      }
+    ]
   }
 };
 
-// Componente de estadísticas
-const TrustIndicator = memo<TrustIndicatorProps>(({ icon: Icon, value, label }) => (
-  <div className="text-center transition-all duration-500 hover:scale-105 group cursor-pointer">
-    <div className="inline-flex items-center justify-center w-12 h-12 mb-3 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 backdrop-blur-lg rounded-full shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 border border-blue-300/30 group-hover:border-purple-400/50 transition-all duration-500">
-      <Icon className="w-6 h-6 text-blue-600 group-hover:text-purple-600 animate-floatSpin" />
+// Background video component
+const VideoBackground = memo(function VideoBackground() {
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden">
+      <video 
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: 'center 30%' }}
+        autoPlay 
+        muted 
+        loop 
+        playsInline
+        preload="metadata"
+      >
+        <source src="/images/fondo.mp4" type="video/mp4" />
+        <source src="/fondo.webm" type="video/webm" />
+      </video>
+      {/* Overlay gradients */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-20" />
     </div>
-    <div className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-subtleGlow">{value}</div>
-    <div className="text-sm text-gray-600">{label}</div>
-  </div>
-));
+  );
+});
 
-TrustIndicator.displayName = 'TrustIndicator';
-
-// Componente de características
-const FeatureCard = memo<FeatureCardProps>(({ icon: Icon, title, description, delay = 0 }) => (
-  <div 
-    className="text-center p-6 bg-gradient-to-br from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-lg rounded-xl border border-blue-200/50 transition-all duration-500 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-102 group relative overflow-hidden cursor-pointer"
-    style={{ animationDelay: `${delay}ms`, animation: 'slideUp 0.8s ease-out forwards' }}
-  >
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 via-purple-100/30 to-cyan-100/50 opacity-0 group-hover:opacity-100 transition-all duration-500 animate-shimmer"></div>
-    <div className="absolute inset-0 border border-blue-300/0 group-hover:border-blue-300/50 rounded-xl transition-all duration-500"></div>
-    <div className="inline-flex items-center justify-center w-12 h-12 mb-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 rounded-full shadow-md group-hover:shadow-lg border border-blue-300/30 group-hover:border-purple-400/50 transition-all duration-500">
-      <Icon className="w-6 h-6 text-blue-600 group-hover:text-purple-600 animate-floatSpin" />
-    </div>
-    <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 animate-subtleGlow">{title}</h3>
-    <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
-    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
-  </div>
-));
-
-FeatureCard.displayName = 'FeatureCard';
-
-// Validación de email
-const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim()) && email.length <= 254;
-};
-
-// Sanitización de strings
-const sanitizeString = (str: string): string => {
-  return str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-            .replace(/[<>]/g, '')
-            .trim();
-};
-
-const NuroLandingPage = () => {
-  const [showWarning, setShowWarning] = useState(false);
-  const [showEmailCapture, setShowEmailCapture] = useState(false);
-  const [email, setEmail] = useState('');
-  const [emailSubmitted, setEmailSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+// Enhanced Navigation
+const Navigation = memo(function Navigation({
+  onDownload,
+  lang
+}: {
+  onDownload: () => void;
+  lang: Language['code'];
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [emailError, setEmailError] = useState('');
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [time, setTime] = useState(0);
 
-  // Animación de tiempo y mouse tracking
+  const handleWebAppClick = () => {
+    window.location.href = '/app';
+  };
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent">
+      <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+        {/* Logo as image */}
+        <div className="flex items-center">
+          <img 
+            src="/images/nora.png" 
+            alt="NORA Logo" 
+            className="h-24 w-auto hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+
+        {/* Enhanced buttons */}
+        <div className="hidden md:flex items-center space-x-4">
+          <button 
+            onClick={handleWebAppClick}
+            className="px-6 py-2 bg-black/20 backdrop-blur-sm border border-white/10 rounded-full text-white hover:bg-white/5 hover:border-white/20 transition-all duration-300 flex items-center space-x-2"
+          >
+            <span className="text-sm font-light">Web App</span>
+            <Bot className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={onDownload}
+            className="px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300"
+          >
+            {content[lang].navDownload}
+          </button>
+        </div>
+
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 text-white/80 hover:text-white transition-colors"
+        >
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+    </nav>
+  );
+});
+
+// Enhanced Hero Section
+const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code'] }) {
+  const currentContent = content[lang];
+
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <VideoBackground />
+      
+      <div className="relative z-30 container mx-auto px-6 text-center">
+        <div className="max-w-4xl mx-auto">
+          {/* Title with animation - moved down more */}
+          <div className="mb-1 animate-fade-up mt-80">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-light text-white mb-20 tracking-wide" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+              NORA : Your AI Assistant
+            </h1>
+          </div>
+
+          <p className="text-xl md:text-3xl text-white/90 mb-16 max-w-3xl mx-auto leading-relaxed font-light animate-fade-up" style={{ animationDelay: '0.5s' }}>
+            {currentContent.heroDescription}
+          </p>
+
+          {/* Store buttons as images - separated more and moved down more */}
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-44 animate-fade-up mb-60" style={{ animationDelay: '2s' }}>
+            <button className="hover:scale-115 transition-transform duration-300">
+              <img 
+                src="/images/appstore.png" 
+                alt="Download on App Store" 
+                className="h-16 w-auto"
+              />
+            </button>
+            
+            <button className="hover:scale-115 transition-transform duration-300">
+              <img 
+                src="/images/googleplay.png" 
+                alt="Get it on Google Play" 
+                className="h-16 w-auto"
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+});
+
+// Section with AI model image and animated video
+const ModelImageSection = memo(function ModelImageSection() {
+  return (
+    <section className="py-32 bg-black relative overflow-hidden">
+      {/* Background animated video positioned above background but below content */}
+      <div className="absolute inset-0 z-5 flex items-center justify-center">
+        <div className="w-96 h-96 rounded-3xl overflow-hidden opacity-30">
+          <video 
+            className="w-full h-full object-cover"
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+            preload="metadata"
+          >
+            <source src="/images/fondo-animado.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 relative z-10">
+        {/* Main AI model image */}
+        <div className="relative max-w-4xl mx-auto text-center">
+          <div className="relative animate-fade-up">
+            {/* Model image */}
+            <div className="mb-12">
+              <img 
+                src="/images/modeloia.png" 
+                alt="NORA AI Model" 
+                className="w-full max-w-3xl mx-auto hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+            
+            {/* Descriptive information */}
+            <div className="max-w-2xl mx-auto text-center">
+              <h2 className="text-3xl md:text-4xl font-light text-white mb-6" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                Advanced Artificial Intelligence
+              </h2>
+              <p className="text-lg text-gray-400 leading-relaxed font-light mb-8">
+                NORA uses the most advanced artificial intelligence models, combining GPT-4o and Gemini to offer you precise, creative, and natural responses at any time of day.
+              </p>
+              <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500 mb-12">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span>Instant responses</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <span>Multiple languages</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                  <span>Advanced context</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+});
+
+// Section with animated phrases - improved animation
+const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
+  const [currentPhrase, setCurrentPhrase] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+  
+  const phrases = [
+    "Your personal AI assistant always available",
+    "Intelligent answers for all your questions",
+    "Creativity and innovation in every conversation",
+    "Boost your productivity with artificial intelligence",
+    "The future of digital assistance is here"
+  ];
+
   useEffect(() => {
-    setIsLoaded(true);
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (window.innerWidth > 768) {
-        setMousePosition({ x: e.clientX, y: e.clientY });
-      }
-    };
+    const interval = setInterval(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        setCurrentPhrase((prev) => (prev + 1) % phrases.length);
+        setIsVisible(true);
+      }, 500);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [phrases.length]);
 
-    const handleScroll = () => {
-      const elements = document.querySelectorAll('[data-parallax]');
-      elements.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        const offset = window.scrollY / 20;
-        (el as HTMLElement).style.transform = `translateY(${offset}px)`;
-      });
-    };
+  return (
+    <section className="relative py-32 overflow-hidden">
+      {/* Background video */}
+      <div className="absolute inset-0 z-0">
+        <video 
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay 
+          muted 
+          loop 
+          playsInline
+          preload="metadata"
+        >
+          <source src="/images/fondo-nora-dos.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-black/60 z-10" />
+      </div>
 
-    const timeInterval = setInterval(() => {
-      setTime(prev => prev + 1);
-    }, 50);
+      {/* Content */}
+      <div className="relative z-20 container mx-auto px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="min-h-[200px] flex items-center justify-center">
+            <h2 
+              className={`text-3xl md:text-5xl lg:text-6xl font-light text-white leading-tight transition-all duration-700 ease-in-out transform ${
+                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+            >
+              {phrases[currentPhrase]}
+            </h2>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+});
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('scroll', handleScroll);
+// Enhanced "Available On" section with improved design
+const AvailableSection = memo(function AvailableSection({ lang }: { lang: Language['code'] }) {
+  const [activeTab, setActiveTab] = useState('web');
+  const currentContent = content[lang];
 
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('scroll', handleScroll);
-      clearInterval(timeInterval);
-    };
-  }, []);
-
-  // Manejo de descarga
-  const handleDownload = useCallback(() => {
-    if (!emailSubmitted) {
-      setShowEmailCapture(true);
-      return;
+  const tabs = [
+    { 
+      id: 'iphone', 
+      image: '/images/iphone-icon.png', 
+      deviceImage: '/images/iphone-image.png',
+      label: 'iPhone' 
+    },
+    { 
+      id: 'watch', 
+      image: '/images/watch-icon.png', 
+      deviceImage: '/images/watch-image.png',
+      label: 'Watch' 
+    },
+    { 
+      id: 'macos', 
+      image: '/images/mac-icon.png', 
+      deviceImage: '/images/mac-image.png',
+      label: 'macOS' 
+    },
+    { 
+      id: 'android', 
+      image: '/images/android-icon.png', 
+      deviceImage: '/images/android-image.png',
+      label: 'Android' 
+    },
+    { 
+      id: 'web', 
+      image: '/images/web-icon.png', 
+      deviceImage: '/images/web-image.png',
+      label: 'Web' 
     }
-    
-    trackEvent('download', 'engagement', `nuro_v${CONFIG.VERSION}`);
+  ];
+
+  const getCurrentPlatform = (): Platform => {
+    return currentContent.platforms.find(p => p.id === activeTab) || currentContent.platforms[4];
+  };
+
+  const getCurrentTab = () => {
+    return tabs.find(t => t.id === activeTab) || tabs[4];
+  };
+
+  return (
+    <section className="py-24 bg-black">
+      <div className="container mx-auto px-6">
+        <h2 className="text-4xl md:text-5xl font-light text-white text-center mb-16 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+          {currentContent.availableOn}
+        </h2>
+        
+        {/* Tab Headers with #737373 color */}
+        <div className="flex flex-wrap justify-center space-x-2 md:space-x-6 mb-16">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`group p-6 rounded-2xl transition-all duration-700 transform hover:scale-110 ${
+                activeTab === tab.id 
+                  ? 'border border-[#737373] scale-110 shadow-2xl shadow-[#737373]/20' 
+                  : 'bg-[#737373]/30 border border-[#737373]/40 hover:border-[#737373]/60 hover:bg-[#737373]/40'
+              }`}
+              style={{ 
+                animationDelay: `${index * 150}ms`,
+                backgroundColor: activeTab === tab.id ? '#737373' : undefined
+              }}
+            >
+              <div className="flex flex-col items-center space-y-3">
+                <img 
+                  src={tab.image} 
+                  alt={tab.label}
+                  className={`w-10 h-10 transition-all duration-700 ${
+                    activeTab === tab.id ? 'opacity-100 scale-110' : 'opacity-70 group-hover:opacity-90'
+                  }`}
+                />
+                <span className={`text-sm font-light transition-all duration-700 ${
+                  activeTab === tab.id ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
+                }`}>
+                  {tab.label}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content with vertical layout and animations */}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-[#737373]/20 backdrop-blur-2xl rounded-3xl p-12 border border-[#737373]/40 transition-all duration-700 shadow-2xl">
+            <div className="text-center">
+              {/* Device image at top */}
+              <div className="mb-12 animate-fade-up">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#737373]/20 to-[#737373]/20 rounded-3xl blur-xl"></div>
+                  <img 
+                    src={getCurrentTab().deviceImage} 
+                    alt={getCurrentPlatform().name}
+                    className="relative z-10 w-full max-w-md mx-auto hover:scale-105 transition-transform duration-700 rounded-2xl shadow-2xl"
+                  />
+                </div>
+              </div>
+              
+              {/* Content below */}
+              <div className="animate-slide-up">
+                <div className="mb-8">
+                  <div className="w-24 h-24 bg-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-6 backdrop-blur-xl border border-[#737373]/40 shadow-xl">
+                    <img 
+                      src={getCurrentTab().image} 
+                      alt={getCurrentPlatform().name}
+                      className="w-12 h-12"
+                    />
+                  </div>
+                </div>
+                
+                <h3 className="text-4xl font-light text-white mb-6 animate-fade-up" style={{ 
+                  fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif',
+                  animationDelay: '0.2s'
+                }}>
+                  {getCurrentPlatform().name}
+                </h3>
+                
+                <p className="text-gray-300 mb-8 max-w-2xl mx-auto font-light leading-relaxed text-lg animate-fade-up" style={{
+                  animationDelay: '0.4s'
+                }}>
+                  {getCurrentPlatform().longDescription}
+                </p>
+
+                {/* Features list with animations */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+                  {getCurrentPlatform().features.map((feature, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center space-x-3 p-4 bg-[#737373]/20 rounded-xl border border-[#737373]/30 animate-slide-in-left"
+                      style={{ animationDelay: `${0.6 + index * 0.1}s` }}
+                    >
+                      <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                      <span className="text-gray-300 font-light text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+});
+
+// Enhanced FAQ section with #737373 colors
+const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }) {
+  const [activeQuestion, setActiveQuestion] = useState(0);
+  const currentContent = content[lang];
+
+  return (
+    <section className="relative py-32 mt-16 overflow-hidden">
+      {/* Background video */}
+      <div className="absolute inset-0 z-0">
+        <video 
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay 
+          muted 
+          loop 
+          playsInline
+          preload="metadata"
+        >
+          <source src="/images/fondo-nora-tres.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-black/70 z-10" />
+      </div>
+
+      <div className="relative z-20 container mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-light text-white mb-6 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+            {currentContent.askAnything}
+          </h2>
+          <p className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed font-light animate-fade-up" style={{ animationDelay: '200ms' }}>
+            {currentContent.askSubtitle}
+          </p>
+        </div>
+
+        {/* FAQ Items with #737373 colors */}
+        <div className="max-w-4xl mx-auto space-y-6">
+          {currentContent.features.map((faq, index) => (
+            <div 
+              key={index}
+              className="bg-[#737373]/30 backdrop-blur-xl rounded-2xl border border-[#737373]/30 overflow-hidden transition-all duration-1000 ease-in-out hover:border-[#737373]/50 hover:bg-[#737373]/20"
+            >
+              <button
+                onClick={() => setActiveQuestion(activeQuestion === index ? -1 : index)}
+                className="w-full p-6 text-left flex items-center justify-between hover:bg-[#737373]/20 transition-all duration-1000 ease-in-out"
+              >
+                <h3 className="text-lg font-light text-white flex-1 pr-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                  {faq.title}
+                </h3>
+                <div className={`transition-all duration-1000 ease-in-out ${activeQuestion === index ? 'rotate-45 scale-110' : 'rotate-0 scale-100'}`}>
+                  <Plus className="w-5 h-5 text-gray-400" />
+                </div>
+              </button>
+              
+              <div className={`overflow-hidden transition-all duration-1500 ease-in-out ${
+                activeQuestion === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+              }`}>
+                <div className="p-6 pt-0">
+                  <div className={`transform transition-all duration-1000 ease-in-out ${
+                    activeQuestion === index ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
+                  }`}>
+                    <p className="text-gray-300 font-light leading-relaxed">
+                      {faq.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+});
+
+// Footer
+const Footer = memo(function Footer() {
+  return (
+    <footer className="py-20 mt-20 bg-black">
+      <div className="container mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          {/* Logo section */}
+          <div className="md:col-span-1">
+            <img 
+              src="/images/nora.png" 
+              alt="NORA Logo" 
+              className="h-20 w-auto mb-4"
+            />
+          </div>
+
+          {/* Links sections */}
+          <div>
+            <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Products</h3>
+            <ul className="space-y-2 text-gray-400 font-light">
+              <li><a href="#" className="hover:text-white transition-colors">NORA for iPhone</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">NORA for iPad</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">NORA for Apple Watch</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">NORA for Mac</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">NORA for Android</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Information</h3>
+            <ul className="space-y-2 text-gray-400 font-light">
+              <li><a href="#" className="hover:text-white transition-colors">What is NORA?</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">NORA for Work</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">NORA for Tasks</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">NORA for Essays</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Community</h3>
+            <ul className="space-y-2 text-gray-400 font-light">
+              <li><a href="#" className="hover:text-white transition-colors">Twitter</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Instagram</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Company</h3>
+            <ul className="space-y-2 text-gray-400 font-light">
+              <li><a href="#" className="hover:text-white transition-colors">Roadmap</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">About</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
+              <li><a href="/privacy" className="hover:text-white transition-colors">Privacy</a></li>
+              <li><a href="/terms" className="hover:text-white transition-colors">Terms</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+});
+
+// Main component
+const NuroNovaStyle: React.FC = () => {
+  const [lang] = useState<Language['code']>('en');
+  const [showWarning, setShowWarning] = useState(false);
+
+  const handleDownload = useCallback(() => {
     setShowWarning(true);
-    
     const link = document.createElement('a');
     link.href = CONFIG.DOWNLOAD_URL;
     link.target = '_blank';
@@ -149,994 +680,125 @@ const NuroLandingPage = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [emailSubmitted]);
-
-  // Manejo del formulario de email
-  const handleEmailSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setEmailError('');
-    
-    const cleanEmail = sanitizeString(email);
-    
-    if (!validateEmail(cleanEmail)) {
-      setEmailError('Por favor ingresa un email válido');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ 
-          email: cleanEmail, 
-          source: 'download_page',
-          timestamp: new Date().toISOString()
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        setEmailSubmitted(true);
-        setShowEmailCapture(false);
-        trackEvent('email_capture', 'lead_generation', 'download_intent');
-        setTimeout(() => handleDownload(), 500);
-      } else {
-        setEmailError(result.error || 'Error al suscribirse. Inténtalo de nuevo.');
-      }
-      
-    } catch (error) {
-      console.error('Email submission error:', error);
-      setEmailError('Error de conexión. Inténtalo de nuevo.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [email, handleDownload]);
-
-  const navigationItems = [
-    { href: '/docs', label: 'Documentación' },
-    { href: '/faq', label: 'FAQ' },
-    { href: '/privacy', label: 'Privacidad' },
-  ];
+  }, []);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 relative overflow-hidden">
-      {/* Fondo animado mejorado */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        {/* Gradiente base sutil */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-cyan-50/30 animate-gradientFlow" style={{ animationDuration: '15s' }}></div>
-        
-        {/* Grid tecnológico sutil */}
-        <div className="absolute inset-0 opacity-5" 
-             style={{
-               backgroundImage: `
-                 linear-gradient(to right, #3b82f6 1px, transparent 1px),
-                 linear-gradient(to bottom, #3b82f6 1px, transparent 1px)
-               `,
-               backgroundSize: '30px 30px',
-               animation: 'gridFloat 8s ease-in-out infinite',
-               transform: `translate(${Math.sin(time * 0.005) * 2}px, ${Math.cos(time * 0.007) * 2}px)`
-             }}>
-        </div>
-        
-        {/* Partículas flotantes mejoradas */}
-        {[...Array(60)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full animate-gentleFloat"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${1 + Math.random() * 4}px`,
-              height: `${1 + Math.random() * 4}px`,
-              background: `linear-gradient(45deg, ${['#3b82f6', '#8b5cf6', '#06b6d4'][Math.floor(Math.random() * 3)]}, transparent)`,
-              animationDelay: `${i * 0.1}s`,
-              animationDuration: `${4 + Math.random() * 6}s`,
-              opacity: 0.4,
-              boxShadow: `0 0 10px ${['#3b82f6', '#8b5cf6', '#06b6d4'][Math.floor(Math.random() * 3)]}`
-            }}
-          />
-        ))}
-        
-        {/* Efectos holográficos */}
-        <div className="absolute inset-0 opacity-10">
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute border border-blue-400 animate-holoRing"
-              style={{
-                left: `${20 + Math.random() * 60}%`,
-                top: `${20 + Math.random() * 60}%`,
-                width: `${50 + Math.random() * 100}px`,
-                height: `${50 + Math.random() * 100}px`,
-                borderRadius: '50%',
-                animationDelay: `${i * 0.3}s`,
-                animationDuration: `${3 + Math.random() * 2}s`
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* Líneas de código matrix */}
-        <div className="absolute inset-0 opacity-5 font-mono text-xs text-blue-600 overflow-hidden">
-          {[...Array(15)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute animate-matrixCode"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `-20px`,
-                animationDelay: `${i * 0.5}s`,
-                animationDuration: `${8 + Math.random() * 4}s`
-              }}
-            >
-              {Array.from({length: 25}, () => Math.random().toString(36)[2] || '0').join('')}
-            </div>
-          ))}
-        </div>
-        
-        {/* Efectos de circuitos */}
-        <div className="absolute inset-0 opacity-10">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 animate-circuitPulse"
-              style={{
-                left: `${Math.random() * 90}%`,
-                top: `${Math.random() * 90}%`,
-                width: `${20 + Math.random() * 100}px`,
-                height: '1px',
-                transform: `rotate(${Math.random() * 360}deg)`,
-                animationDelay: `${i * 0.2}s`,
-                animationDuration: `${2 + Math.random() * 3}s`
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* Pulsos radiales */}
-        <div className="absolute inset-0">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute border border-blue-300/30 rounded-full animate-radialPulse"
-              style={{
-                left: `${20 + Math.random() * 60}%`,
-                top: `${20 + Math.random() * 60}%`,
-                width: '10px',
-                height: '10px',
-                animationDelay: `${i * 0.8}s`,
-                animationDuration: '4s'
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* Hexágonos tecnológicos */}
-        <div className="absolute inset-0 opacity-5">
-          {[...Array(12)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute border border-purple-400 animate-hexSpin"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                width: `${10 + Math.random() * 30}px`,
-                height: `${10 + Math.random() * 30}px`,
-                clipPath: 'polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)',
-                animationDelay: `${i * 0.3}s`,
-                animationDuration: `${6 + Math.random() * 4}s`
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* Cursor interactivo sutil */}
-        <div 
-          className="absolute w-96 h-96 rounded-full opacity-5 pointer-events-none transition-all duration-300 ease-out"
-          style={{
-            left: mousePosition.x - 192,
-            top: mousePosition.y - 192,
-            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(139, 92, 246, 0.2) 50%, transparent 70%)',
-            animation: 'pulseGentle 4s ease-in-out infinite'
-          }}
-        ></div>
-        
-        {/* Ondas de energía sutiles */}
-        <div className="absolute inset-0">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute bg-gradient-to-r from-transparent via-blue-400/20 to-transparent h-px animate-energyWave"
-              style={{
-                left: 0,
-                top: `${(i * 15) % 100}%`,
-                width: '100%',
-                animationDelay: `${i * 0.5}s`,
-                animationDuration: `${3 + Math.random() * 2}s`
-              }}
-            />
-          ))}
-        </div>
-      </div>
+    <div className="min-h-screen bg-black text-white overflow-hidden">
+      <Navigation onDownload={handleDownload} lang={lang} />
+      
+      <main>
+        <HeroSection lang={lang} />
+        <ModelImageSection />
+        <AnimatedPhrasesSection />
+        <AvailableSection lang={lang} />
+        <FAQSection lang={lang} />
+      </main>
 
-      {/* Header optimizado más ancho */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg border-b border-blue-200/50 shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-24">
-            <Link href="/" className="flex items-center group">
-              <div className="relative">
-                <Image 
-                  src="/images/nurologo.png" 
-                  alt="NURO Logo" 
-                  width={32} 
-                  height={32} 
-                  className="w-8 h-8 group-hover:scale-110 transition-all duration-500 animate-subtleGlow"
-                  priority 
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              </div>
-            </Link>
-
-            <div className="hidden lg:flex items-center space-x-6">
-              {navigationItems.map((item, index) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm font-semibold text-gray-700 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text hover:text-transparent transition-all duration-300 relative group"
-                >
-                  {item.label}
-                  <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 group-hover:w-full transition-all duration-300"></div>
-                </Link>
-              ))}
-              <button
-                onClick={handleDownload}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-semibold text-sm hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-500 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/50 to-purple-400/50 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
-                <span className="relative">Descargar</span>
-              </button>
-            </div>
-
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-blue-50 transition-all duration-300"
-              aria-label="Menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5 text-gray-600" /> : <Menu className="w-5 h-5 text-gray-600" />}
-            </button>
-          </div>
-        </div>
-
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-white/95 backdrop-blur-lg border-t border-blue-200/50 animate-slideDown">
-            <div className="container mx-auto px-4 py-4">
-              <div className="space-y-3">
-                {navigationItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block text-sm font-semibold text-gray-700 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text hover:text-transparent transition-all py-2"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                <button
-                  onClick={() => {
-                    handleDownload();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-semibold text-sm hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-500"
-                >
-                  Descargar NURO
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      {/* Hero Section optimizado */}
-      <section className="min-h-screen flex items-center justify-center pt-24 bg-white relative z-10" data-parallax>
-        <div className="container mx-auto px-4 text-center relative z-20">
-          <div className={`max-w-4xl mx-auto transition-all duration-1000 ${isLoaded ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-            <div className="inline-flex items-center space-x-3 bg-gradient-to-r from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-lg px-6 py-2 rounded-full text-sm font-semibold text-gray-700 mb-8 shadow-sm border border-blue-200/50 animate-slideUp">
-              <span>Neural AI • 99.7% Precisión • Tiempo Real</span>
-              <Sparkles className="w-4 h-4 text-blue-600 animate-floatSpin" />
-            </div>
-
-            <div className="relative mb-8">
-              <h1 className="text-8xl md:text-9xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent mb-6 animate-solarFlare leading-tight relative transform-gpu">
-                NURO
-              </h1>
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-cyan-500/10 blur-xl animate-pulseGentle opacity-50"></div>
-              {/* Scan lines sobre el título */}
-              <div className="absolute inset-0 opacity-30">
-                <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-scanLine top-1/4"></div>
-                <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-scanLine top-2/4" style={{ animationDelay: '0.5s' }}></div>
-                <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-scanLine top-3/4" style={{ animationDelay: '1s' }}></div>
-              </div>
-              {/* Efectos de partículas alrededor del texto */}
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(12)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-1 h-1 bg-blue-400 rounded-full animate-orbitText"
-                    style={{
-                      left: `${30 + Math.cos(i * 30 * Math.PI / 180) * 40}%`,
-                      top: `${50 + Math.sin(i * 30 * Math.PI / 180) * 30}%`,
-                      animationDelay: `${i * 0.1}s`,
-                      animationDuration: '4s'
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <p className="text-lg text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Procesamiento neuronal avanzado con arquitectura de transformadores optimizada, comprensión contextual profunda y respuestas en tiempo real.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 max-w-3xl mx-auto">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50/80 to-purple-50/60 backdrop-blur-lg border border-blue-200/50 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-500 group animate-slideUp" style={{ animationDelay: '0ms' }}>
-                <div className="flex items-center space-x-3 mb-2">
-                  <Brain className="w-5 h-5 text-blue-600 group-hover:text-purple-600 animate-floatSpin" />
-                  <span className="font-semibold text-gray-800 text-sm">175B Parámetros</span>
-                </div>
-                <p className="text-xs text-gray-600">Modelo avanzado con razonamiento profundo</p>
-              </div>
-              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50/80 to-purple-50/60 backdrop-blur-lg border border-blue-200/50 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-500 group animate-slideUp" style={{ animationDelay: '200ms' }}>
-                <div className="flex items-center space-x-3 mb-2">
-                  <Clock className="w-5 h-5 text-blue-600 group-hover:text-purple-600 animate-floatSpin" />
-                  <span className="font-semibold text-gray-800 text-sm">Respuesta 50ms</span>
-                </div>
-                <p className="text-xs text-gray-600">Latencia ultrabaja en tiempo real</p>
-              </div>
-              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50/80 to-purple-50/60 backdrop-blur-lg border border-blue-200/50 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-500 group animate-slideUp" style={{ animationDelay: '400ms' }}>
-                <div className="flex items-center space-x-3 mb-2">
-                  <Shield className="w-5 h-5 text-blue-600 group-hover:text-purple-600 animate-floatSpin" />
-                  <span className="font-semibold text-gray-800 text-sm">100% Local</span>
-                </div>
-                <p className="text-xs text-gray-600">Procesamiento con privacidad garantizada</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-              <button 
-                onClick={handleDownload}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-semibold text-base hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-500 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/50 to-purple-400/50 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
-                <span className="relative">Descargar Gratis</span>
-              </button>
-              <button className="flex items-center space-x-3 border border-blue-300/50 px-6 py-3 rounded-full text-gray-700 font-semibold text-base hover:bg-blue-50/50 transition-all duration-500 group">
-                <Play className="w-5 h-5 text-blue-600 group-hover:text-purple-600 animate-floatSpin" />
-                <span>Ver Demo</span>
-              </button>
-            </div>
-
-            <div className="text-sm text-gray-500 mb-8">
-              <div className="inline-block bg-gradient-to-r from-blue-50/80 to-purple-50/60 backdrop-blur-lg rounded-full px-6 py-2 shadow-sm border border-blue-200/50">
-                Windows 10/11 • Versión {CONFIG.VERSION} • 164MB
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-3xl mx-auto">
-              <TrustIndicator icon={Users} value="1,247+" label="Usuarios Activos" />
-              <TrustIndicator icon={Star} value="4.9/5" label="Calificación" />
-              <TrustIndicator icon={Zap} value="99.9%" label="Tiempo Activo" />
-              <TrustIndicator icon={Clock} value="50ms" label="Respuesta" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-white relative z-10" data-parallax>
-        <div className="container mx-auto px-4 relative z-20">
-          <div className="text-center mb-12">
-            <span className="inline-block bg-gradient-to-r from-blue-50/80 to-purple-50/60 backdrop-blur-lg rounded-full px-6 py-2 text-sm font-semibold text-gray-700 mb-4 shadow-sm border border-blue-200/50">ARQUITECTURA NEURONAL</span>
-            <h2 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">Procesamiento Avanzado</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">Arquitectura optimizada que redefine el rendimiento de la IA.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
-            <FeatureCard 
-              icon={Zap}
-              title="Visión Computacional"
-              description="Análisis visual con 147 capas de procesamiento y 99.7% de precisión."
-              delay={0}
-            />
-            <FeatureCard 
-              icon={Brain}
-              title="Transformador Avanzado"
-              description="Arquitectura de 175B parámetros con comprensión contextual."
-              delay={200}
-            />
-            <FeatureCard 
-              icon={Clock}
-              title="Motor Cuántico"
-              description="Latencia inferior a 50ms con 2.3M operaciones por segundo."
-              delay={400}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50/80 to-purple-50/60 backdrop-blur-lg border border-blue-200/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-500 group">
-              <div className="flex items-center space-x-3 mb-4">
-                <Zap className="w-6 h-6 text-blue-600 group-hover:text-purple-600 animate-floatSpin" />
-                <h4 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Rendimiento</h4>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">Procesamiento distribuido con aceleración de hardware.</p>
-              <div className="bg-white/60 backdrop-blur-lg p-4 rounded-lg border border-blue-200/50">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium text-sm">Análisis visual:</span>
-                    <span className="text-blue-600 font-semibold text-sm">28ms</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium text-sm">Procesamiento:</span>
-                    <span className="text-blue-600 font-semibold text-sm">22ms</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium text-sm">Respuesta:</span>
-                    <span className="text-blue-600 font-semibold text-sm">19ms</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-blue-200/50">
-                    <span className="text-gray-800 font-semibold text-sm">Promedio:</span>
-                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold text-sm">47ms</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50/80 to-purple-50/60 backdrop-blur-lg border border-blue-200/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-500 group">
-              <div className="flex items-center space-x-3 mb-4">
-                <Shield className="w-6 h-6 text-blue-600 group-hover:text-purple-600 animate-floatSpin" />
-                <h4 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Seguridad</h4>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">Seguridad de grado militar con procesamiento 100% local.</p>
-              <div className="bg-white/60 backdrop-blur-lg p-4 rounded-lg border border-blue-200/50">
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600" />
-                    <span className="text-gray-600 font-medium text-sm">Cifrado AES-256</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600" />
-                    <span className="text-gray-600 font-medium text-sm">Arquitectura de conocimiento cero</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600" />
-                    <span className="text-gray-600 font-medium text-sm">Auditorías continuas</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600" />
-                    <span className="text-gray-600 font-medium text-sm">Certificación SOC 2</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section arreglada */}
-      <section className="py-20 pb-32 bg-white relative z-10" data-parallax>
-        <div className="container mx-auto px-4 relative z-20">
-          <div className="text-center mb-12">
-            <span className="inline-block bg-gradient-to-r from-blue-50/80 to-purple-50/60 backdrop-blur-lg rounded-full px-6 py-2 text-sm font-semibold text-gray-700 mb-4 shadow-sm border border-blue-200/50">PLANES DE ACCESO</span>
-            <h2 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">Planes de Precios</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">Soluciones para necesidades personales y profesionales.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Plan Personal */}
-            <div className="p-8 rounded-xl bg-gradient-to-br from-blue-50/80 to-purple-50/60 backdrop-blur-lg border border-blue-200/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-500 group relative">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">Personal</h3>
-              <p className="text-gray-600 mb-4 text-sm">Para individuos y exploradores de IA</p>
-              <div className="mb-6">
-                <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">$0</div>
-                <div className="text-gray-500 text-sm">Gratis para siempre</div>
-              </div>
-              <ul className="space-y-3 mb-6 text-sm">
-                <li className="flex items-center space-x-3">
-                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-600">100 análisis por mes</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-600">IA neuronal completa</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-600">Soporte comunitario</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-600">Actualizaciones automáticas</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-600">Acceso a modo en vivo</span>
-                </li>
-              </ul>
-              <button className="w-full py-3 border border-blue-300/50 rounded-full text-gray-700 font-semibold text-sm hover:bg-blue-50/50 transition-all duration-500">
-                Incluido en la Descarga
-              </button>
-            </div>
-
-            {/* Plan Profesional */}
-            <div className="p-8 rounded-xl bg-gradient-to-br from-blue-50/80 to-purple-50/60 backdrop-blur-lg border border-blue-300/60 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-500 group relative">
-              {/* Badge Popular - Posicionado correctamente */}
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 rounded-full text-xs font-bold z-10 shadow-lg">
-                Más Popular
-              </div>
-              
-              <div className="pt-4">
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">Profesional</h3>
-                <p className="text-gray-600 mb-4 text-sm">Para profesionales y equipos</p>
-                <div className="mb-6">
-                  <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">$15</div>
-                  <div className="text-gray-500 text-sm">Por mes, cancela cuando quieras</div>
-                </div>
-                <ul className="space-y-3 mb-6 text-sm">
-                  <li className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span className="text-gray-600">Análisis ilimitados</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span className="text-gray-600">IA neuronal premium</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span className="text-gray-600">Soporte prioritario 24/7</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span className="text-gray-600">Acceso beta exclusivo</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span className="text-gray-600">API e integraciones</span>
-                  </li>
-                </ul>
-                <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-full font-semibold text-sm hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-500">
-                  Actualizar en la App
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-16 mt-16 border-t border-blue-200/50 bg-white relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-6 lg:space-y-0">
-            <div className="flex items-center space-x-3 group">
-              <div className="relative">
-                <Image src="/images/nurologo.png" alt="NURO" width={32} height={32} className="w-8 h-8 group-hover:scale-110 transition-all duration-500 animate-subtleGlow" />
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              </div>
-              <div>
-                <div className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:scale-105 transition-transform">NURO Technologies</div>
-                <div className="text-xs text-gray-600">Inteligencia Artificial del Futuro</div>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-6">
-              {navigationItems.map((item) => (
-                <Link key={item.href} href={item.href} className="text-gray-600 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text hover:text-transparent transition-all text-sm relative group">
-                  {item.label}
-                  <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 group-hover:w-full transition-all duration-300"></div>
-                </Link>
-              ))}
-              <div className="text-gray-500 text-xs">
-                © 2025 NURO Technologies. Todos los derechos reservados.
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Email Capture Modal */}
-      {showEmailCapture && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-lg p-8 rounded-xl max-w-md mx-auto shadow-xl border border-blue-200/50 relative animate-modalIn">
-            <div className="flex items-center space-x-3 mb-4">
-              <Download className="w-6 h-6 text-blue-600 animate-floatSpin" />
-              <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Descargar NURO</h3>
-            </div>
-            <p className="text-gray-600 mb-4 text-sm">Únete a la revolución de la IA con actualizaciones exclusivas.</p>
-            <div className="space-y-4">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError('');
-                }}
-                placeholder="tu@email.com"
-                required
-                disabled={isSubmitting}
-                maxLength={254}
-                className="w-full px-4 py-3 border border-blue-300/50 rounded-full focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white/80 text-sm"
-              />
-              {emailError && (
-                <p className="text-red-500 text-sm">{emailError}</p>
-              )}
-              <button 
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleEmailSubmit(e as any);
-                }}
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-full font-semibold text-sm hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-500"
-              >
-                {isSubmitting ? 'Procesando...' : 'Descargar NURO'}
-              </button>
-            </div>
-            <button
-              onClick={() => {
-                setEmailSubmitted(true);
-                setShowEmailCapture(false);
-                setTimeout(() => handleDownload(), 100);
-              }}
-              className="text-gray-600 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text hover:text-transparent text-sm mt-4 block text-center"
-              disabled={isSubmitting}
-            >
-              Omitir y descargar directamente
-            </button>
-            <button
-              onClick={() => setShowEmailCapture(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-blue-600 text-xl"
-              disabled={isSubmitting}
-              aria-label="Cerrar"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
+      <Footer />
 
       {/* Warning Modal */}
       {showWarning && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-lg p-8 rounded-xl max-w-md mx-auto shadow-xl border border-blue-200/50 animate-modalIn">
-            <div className="flex items-center space-x-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-amber-500" />
-              <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Aviso de Seguridad</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-8 max-w-md mx-auto">
+            <div className="flex items-center space-x-3 mb-6">
+              <AlertTriangle className="w-8 h-8 text-yellow-500" />
+              <h3 className="text-xl font-light text-white" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Security Notice</h3>
             </div>
-            <p className="text-gray-600 mb-4 text-sm">
-              Windows puede mostrar una advertencia. NURO es completamente seguro.
+            <p className="text-gray-300 mb-6 font-light">
+              Windows may show a warning. NORA is completely safe.
             </p>
-            <ol className="space-y-3 mb-6 text-sm text-gray-600">
-              <li className="flex items-center space-x-3">
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                <span>Windows muestra: "Windows protegió tu PC"</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                <span>Haz clic en "Más información"</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                <span>Haz clic en "Ejecutar de todos modos"</span>
-              </li>
-            </ol>
             <button 
               onClick={() => setShowWarning(false)}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-full font-semibold text-sm hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-500"
+              className="w-full bg-white text-black font-medium py-3 rounded-full hover:bg-gray-100 transition-colors duration-300"
             >
-              Entendido, Continuar
+              Got it
             </button>
           </div>
         </div>
       )}
+      
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
+        
+        @keyframes fade-up {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slide-up {
+          0% { opacity: 0; transform: translateY(30px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slide-in-left {
+          0% { opacity: 0; transform: translateX(-20px); }
+          100% { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-15px) rotate(2deg); }
+        }
+        
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        
+        .animate-fade-up { 
+          animation: fade-up 0.8s ease-out forwards; 
+          opacity: 0; 
+        }
+        .animate-slide-up { 
+          animation: slide-up 0.8s ease-out forwards; 
+          opacity: 0; 
+        }
+        .animate-slide-in-left { 
+          animation: slide-in-left 0.6s ease-out forwards; 
+          opacity: 0; 
+        }
+        .animate-float { 
+          animation: float 6s ease-in-out infinite; 
+        }
+        .animate-float-delayed { 
+          animation: float-delayed 8s ease-in-out infinite; 
+        }
+        .animate-float-slow { 
+          animation: float-slow 10s ease-in-out infinite; 
+        }
 
-      <style jsx>{`
-        @keyframes slideUp {
-          0% {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        /* Ensure smooth scrolling */
+        html {
+          scroll-behavior: smooth;
         }
-        @keyframes subtleGlow {
-          0%, 100% {
-            filter: brightness(1);
-          }
-          50% {
-            filter: brightness(1.1);
-          }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
         }
-        @keyframes solarFlare {
-          0% {
-            filter: brightness(1) drop-shadow(0 0 10px #3b82f6) drop-shadow(0 0 20px #8b5cf6);
-            text-shadow: 
-              0 0 5px #3b82f6,
-              0 0 15px #8b5cf6,
-              0 0 25px #06b6d4,
-              5px 5px 10px rgba(0,0,0,0.3),
-              10px 10px 20px rgba(0,0,0,0.2);
-            transform: perspective(500px) rotateX(0deg) translateZ(0px);
-          }
-          25% {
-            filter: brightness(1.4) drop-shadow(0 0 20px #8b5cf6) drop-shadow(0 0 30px #06b6d4);
-            text-shadow: 
-              0 0 10px #8b5cf6,
-              0 0 25px #06b6d4,
-              0 0 35px #3b82f6,
-              6px 6px 12px rgba(0,0,0,0.4),
-              12px 12px 24px rgba(0,0,0,0.3);
-            transform: perspective(500px) rotateX(2deg) translateZ(5px);
-          }
-          50% {
-            filter: brightness(1.8) drop-shadow(0 0 30px #06b6d4) drop-shadow(0 0 40px #3b82f6);
-            text-shadow: 
-              0 0 15px #06b6d4,
-              0 0 30px #3b82f6,
-              0 0 45px #8b5cf6,
-              8px 8px 16px rgba(0,0,0,0.5),
-              16px 16px 32px rgba(0,0,0,0.4);
-            transform: perspective(500px) rotateX(-1deg) translateZ(10px);
-          }
-          75% {
-            filter: brightness(1.4) drop-shadow(0 0 25px #3b82f6) drop-shadow(0 0 35px #8b5cf6);
-            text-shadow: 
-              0 0 12px #3b82f6,
-              0 0 28px #8b5cf6,
-              0 0 40px #06b6d4,
-              6px 6px 12px rgba(0,0,0,0.4),
-              12px 12px 24px rgba(0,0,0,0.3);
-            transform: perspective(500px) rotateX(1deg) translateZ(5px);
-          }
-          100% {
-            filter: brightness(1) drop-shadow(0 0 10px #3b82f6) drop-shadow(0 0 20px #8b5cf6);
-            text-shadow: 
-              0 0 5px #3b82f6,
-              0 0 15px #8b5cf6,
-              0 0 25px #06b6d4,
-              5px 5px 10px rgba(0,0,0,0.3),
-              10px 10px 20px rgba(0,0,0,0.2);
-            transform: perspective(500px) rotateX(0deg) translateZ(0px);
-          }
+        ::-webkit-scrollbar-track {
+          background: #1f2937;
         }
-        @keyframes orbitText {
-          0% {
-            transform: translate(0, 0) scale(0.5);
-            opacity: 0;
-          }
-          50% {
-            opacity: 1;
-            transform: translate(20px, -10px) scale(1);
-          }
-          100% {
-            transform: translate(0, 0) scale(0.5);
-            opacity: 0;
-          }
+        ::-webkit-scrollbar-thumb {
+          background: #4b5563;
+          border-radius: 4px;
         }
-        @keyframes circuitPulse {
-          0%, 100% {
-            opacity: 0.1;
-            transform: scaleX(0);
-          }
-          50% {
-            opacity: 0.8;
-            transform: scaleX(1);
-          }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #6b7280;
         }
-        @keyframes radialPulse {
-          0% {
-            transform: scale(0);
-            opacity: 1;
-          }
-          100% {
-            transform: scale(15);
-            opacity: 0;
-          }
-        }
-        @keyframes hexSpin {
-          0% {
-            transform: rotate(0deg) scale(0.5);
-            opacity: 0.3;
-          }
-          50% {
-            transform: rotate(180deg) scale(1);
-            opacity: 0.7;
-          }
-          100% {
-            transform: rotate(360deg) scale(0.5);
-            opacity: 0.3;
-          }
-        }
-        @keyframes lightSweep {
-          0% {
-            opacity: 0;
-            transform: translateX(-100%) skewX(-45deg);
-          }
-          50% {
-            opacity: 0.7;
-            transform: translateX(0%) skewX(-45deg);
-          }
-          100% {
-            opacity: 0;
-            transform: translateX(100%) skewX(-45deg);
-          }
-        }
-        @keyframes scanLine {
-          0% {
-            transform: translateX(-100%);
-            opacity: 0;
-          }
-          10%, 90% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-        }
-        @keyframes holoRing {
-          0% {
-            transform: scale(0.5) rotate(0deg);
-            opacity: 0;
-            border-width: 2px;
-          }
-          50% {
-            transform: scale(1) rotate(180deg);
-            opacity: 0.5;
-            border-width: 1px;
-          }
-          100% {
-            transform: scale(1.5) rotate(360deg);
-            opacity: 0;
-            border-width: 0.5px;
-          }
-        }
-        @keyframes matrixCode {
-          0% {
-            transform: translateY(-20px);
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(100vh);
-            opacity: 0;
-          }
-        }
-        @keyframes floatSpin {
-          0%, 100% {
-            transform: rotateY(0deg) translateY(0px);
-          }
-          25% {
-            transform: rotateY(90deg) translateY(-2px);
-          }
-          50% {
-            transform: rotateY(180deg) translateY(0px);
-          }
-          75% {
-            transform: rotateY(270deg) translateY(-2px);
-          }
-        }
-        @keyframes gentleFloat {
-          0%, 100% {
-            transform: translateY(0px) translateX(0px) rotate(0deg);
-            opacity: 0.3;
-          }
-          25% {
-            transform: translateY(-5px) translateX(2px) rotate(90deg);
-            opacity: 0.6;
-          }
-          50% {
-            transform: translateY(-10px) translateX(5px) rotate(180deg);
-            opacity: 1;
-          }
-          75% {
-            transform: translateY(-5px) translateX(2px) rotate(270deg);
-            opacity: 0.6;
-          }
-        }
-        @keyframes pulseGentle {
-          0%, 100% {
-            opacity: 0.3;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.6;
-            transform: scale(1.05);
-          }
-        }
-        @keyframes energyWave {
-          0% {
-            transform: translateX(-100%);
-            opacity: 0;
-          }
-          10%, 90% {
-            opacity: 0.5;
-          }
-          100% {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-        }
-        @keyframes gradientFlow {
-          0%, 100% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-        }
-        @keyframes gridFloat {
-          0%, 100% {
-            opacity: 0.05;
-            transform: translate(0, 0);
-          }
-          50% {
-            opacity: 0.1;
-            transform: translate(1px, 1px);
-          }
-        }
-        @keyframes shimmer {
-          0% {
-            background-position: -200% center;
-          }
-          100% {
-            background-position: 200% center;
-          }
-        }
-        @keyframes slideDown {
-          0% {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes modalIn {
-          0% {
-            opacity: 0;
-            transform: scale(0.9) translateY(20px);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-        .animate-shimmer {
-          background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
-          background-size: 200% 100%;
-          animation: shimmer 2s infinite;
-        }
-        .hover\:scale-102:hover {
-          transform: scale(1.02);
+
+        /* Lastica font fallbacks */
+        body {
+          font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
       `}</style>
     </div>
   );
 };
 
-export default NuroLandingPage;
+export default NuroNovaStyle;
