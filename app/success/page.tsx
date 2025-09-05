@@ -1,13 +1,13 @@
-// app/success/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckCircle, Loader2, Zap, MessageCircle } from 'lucide-react';
+import { CheckCircle, Zap, MessageCircle } from 'lucide-react';
 import LoadingScreen from '../components/LoadingScreen';
 
-export default function SuccessPage() {
+// Componente que usa useSearchParams envuelto en Suspense
+function SuccessContent() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(true);
   const { refreshProfile, userProfile } = useAuth();
@@ -121,5 +121,19 @@ export default function SuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback para Suspense
+function SuccessLoading() {
+  return <LoadingScreen message="Cargando..." />;
+}
+
+// Página principal con Suspense
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<SuccessLoading />}>
+      <SuccessContent />
+    </Suspense>
   );
 }

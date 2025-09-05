@@ -1,5 +1,4 @@
-// app/layout.tsx
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from './contexts/AuthContext';
@@ -12,8 +11,6 @@ export const metadata: Metadata = {
   description: 'NORA es un asistente de inteligencia artificial revolucionario desarrollado con GPT-4o & Gemini.',
   keywords: 'IA, asistente, inteligencia artificial, NORA, chat, GPT-4o, Gemini',
   authors: [{ name: 'NORA Team' }],
-  viewport: 'width=device-width, initial-scale=1',
-  themeColor: '#000000',
   openGraph: {
     title: 'NORA - Tu Asistente de IA',
     description: 'Asistente de IA revolucionario con análisis de pantalla, chat inteligente y más.',
@@ -34,6 +31,12 @@ export const metadata: Metadata = {
     description: 'Asistente de IA revolucionario con análisis de pantalla, chat inteligente y más.',
     images: ['https://tu-dominio.com/twitter-image.jpg'],
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
 };
 
 export default function RootLayout({
