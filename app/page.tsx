@@ -553,13 +553,13 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
   );
 });
 
-// Enhanced FAQ section with #737373 colors
+// Enhanced FAQ section - ESPACIADO REDUCIDO MÓVIL
 const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }) {
   const [activeQuestion, setActiveQuestion] = useState(0);
   const currentContent = content[lang];
 
   return (
-    <section className="relative py-32 mt-16 overflow-hidden">
+    <section className="relative py-16 md:py-32 mt-8 md:mt-16 overflow-hidden">
       {/* Background video */}
       <div className="absolute inset-0 z-0">
         <video 
@@ -568,7 +568,8 @@ const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }
           muted 
           loop 
           playsInline
-          preload="metadata"
+          preload="none"
+          loading="lazy"
         >
           <source src="/images/fondo-nora-tres.mp4" type="video/mp4" />
         </video>
@@ -576,8 +577,8 @@ const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }
       </div>
 
       <div className="relative z-20 container mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-light text-white mb-6 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+        <div className="text-center mb-12 md:mb-16">
+          <h2 className="text-4xl md:text-5xl font-light text-white mb-4 md:mb-6 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
             {currentContent.askAnything}
           </h2>
           <p className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed font-light animate-fade-up" style={{ animationDelay: '200ms' }}>
