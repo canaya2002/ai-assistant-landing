@@ -887,15 +887,15 @@ const NuroChangelogPage = () => {
               <ol className="space-y-3 mb-6 text-sm text-gray-600">
                 <li className="flex items-center space-x-3">
                   <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold animate-subtleGlow">1</span>
-                  <span>Windows muestra: "Windows protegió tu PC"</span>
+                  <span>Windows muestra: Windows protegió tu PC</span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold animate-subtleGlow">2</span>
-                  <span>Haz clic en "Más información"</span>
+                  <span>Haz clic en Más información</span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold animate-subtleGlow">3</span>
-                  <span>Haz clic en "Ejecutar de todos modos"</span>
+                  <span>Haz clic en Ejecutar de todos modos</span>
                 </li>
               </ol>
               <button 
