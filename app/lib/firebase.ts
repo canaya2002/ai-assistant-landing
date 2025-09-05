@@ -1,7 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getFunctions } from 'firebase/functions';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { ChatMessage } from './types';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -97,12 +98,21 @@ export const authFunctions = {
   }
 };
 
-// Cloud Functions
-import { httpsCallable } from 'firebase/functions';
+// Define input and output types for chatWithAI
+interface ChatWithAIInput {
+  message: string;
+  fileContext: string;
+  chatHistory: ChatMessage[];
+}
+
+interface ChatWithAIOutput {
+  response: string;
+  tokensUsed: number;
+}
 
 export const cloudFunctions = {
   getUserProfile: httpsCallable(functions, 'getUserProfile'),
-  chatWithAI: httpsCallable(functions, 'chatWithAI'),
+  chatWithAI: httpsCallable<ChatWithAIInput, ChatWithAIOutput>(functions, 'chatWithAI'),
   createStripeCheckout: httpsCallable(functions, 'createStripeCheckout'),
   manageSubscription: httpsCallable(functions, 'manageSubscription'),
 };

@@ -9,11 +9,6 @@ import { ChatMessage } from '../lib/types';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 
-interface ChatResponse {
-  response: string;
-  tokensUsed: number;
-}
-
 const ChatInterface = memo(function ChatInterface() {
   const { userProfile, refreshProfile, plan, signOut } = useAuth();
   const router = useRouter();
@@ -77,10 +72,10 @@ const ChatInterface = memo(function ChatInterface() {
 
     try {
       const result = await cloudFunctions.chatWithAI({
-        message: messageText as string, // Explicit type assertion to ensure string type
+        message: messageText as string, // Type assertion to bypass TS2345
         fileContext: '',
         chatHistory: messages.slice(-10),
-      }) as { data: ChatResponse };
+      });
 
       const aiMessage: ChatMessage = {
         id: Date.now().toString() + '_ai',
@@ -158,10 +153,10 @@ const ChatInterface = memo(function ChatInterface() {
     setIsLoading(true);
     try {
       const result = await cloudFunctions.chatWithAI({
-        message: message.message as string, // Explicit type assertion to ensure string type
+        message: message.message as string, // Type assertion to bypass TS2345
         fileContext: '',
         chatHistory: messages.slice(-10),
-      }) as { data: ChatResponse };
+      });
 
       const aiMessage: ChatMessage = {
         id: Date.now().toString() + '_ai',
