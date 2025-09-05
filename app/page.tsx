@@ -395,7 +395,7 @@ const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
   );
 });
 
-// Enhanced "Available On" section - BOTONES ARREGLADOS PARA MÓVIL
+// Enhanced "Available On" section - BOTONES CENTRADOS Y SIN SOMBRAS
 const AvailableSection = memo(function AvailableSection({ lang }: { lang: Language['code'] }) {
   const [activeTab, setActiveTab] = useState('web');
   const currentContent = content[lang];
@@ -448,8 +448,8 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
           {currentContent.availableOn}
         </h2>
         
-        {/* Tab Headers - ARREGLADO SPACING PARA MÓVIL */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-6 mb-16 max-w-4xl mx-auto">
+        {/* Tab Headers - CENTRADO PERFECTO PARA MÓVIL */}
+        <div className="flex flex-wrap justify-center gap-3 md:gap-6 mb-16 max-w-4xl mx-auto">
           {tabs.map((tab, index) => (
             <button
               key={tab.id}
@@ -473,6 +473,7 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
                   className={`md:w-10 md:h-10 transition-all duration-700 ${
                     activeTab === tab.id ? 'opacity-100 scale-110' : 'opacity-70 group-hover:opacity-90'
                   }`}
+                  loading="lazy"
                 />
                 <span className={`text-xs md:text-sm font-light transition-all duration-700 ${
                   activeTab === tab.id ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
@@ -484,20 +485,20 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
           ))}
         </div>
 
-        {/* Tab Content with vertical layout and animations */}
+        {/* Tab Content - SIN SOMBRAS NI DIFUMINADOS */}
         <div className="max-w-4xl mx-auto">
           <div className="bg-[#737373]/20 backdrop-blur-2xl rounded-3xl p-8 md:p-12 border border-[#737373]/40 transition-all duration-700 shadow-2xl">
             <div className="text-center">
-              {/* Device image at top */}
+              {/* Device image - SIN EFECTOS DE SOMBRA */}
               <div className="mb-8 md:mb-12 animate-fade-up">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#737373]/20 to-[#737373]/20 rounded-3xl blur-xl"></div>
+                <div className="relative bg-[#737373]/20 rounded-2xl p-6">
                   <Image 
                     src={getCurrentTab().deviceImage} 
                     alt={getCurrentPlatform().name}
                     width={448}
                     height={300}
-                    className="relative z-10 w-full max-w-sm md:max-w-md mx-auto hover:scale-105 transition-transform duration-700 rounded-2xl shadow-2xl"
+                    className="relative z-10 w-full max-w-sm md:max-w-md mx-auto hover:scale-105 transition-transform duration-700 rounded-2xl"
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -505,13 +506,14 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
               {/* Content below */}
               <div className="animate-slide-up">
                 <div className="mb-6 md:mb-8">
-                  <div className="w-16 h-16 md:w-24 md:h-24 bg-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-4 md:mb-6 backdrop-blur-xl border border-[#737373]/40 shadow-xl">
+                  <div className="w-16 h-16 md:w-24 md:h-24 bg-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-4 md:mb-6 backdrop-blur-xl border border-[#737373]/40">
                     <Image 
                       src={getCurrentTab().image} 
                       alt={getCurrentPlatform().name}
                       width={32}
                       height={32}
                       className="md:w-12 md:h-12"
+                      loading="lazy"
                     />
                   </div>
                 </div>
