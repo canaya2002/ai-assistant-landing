@@ -1,4 +1,3 @@
-// app/upgrade/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -11,15 +10,31 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import type { LucideIcon } from 'lucide-react';
+
+interface Plan {
+  name: string;
+  price: { monthly: number; yearly: number };
+  description: string;
+  features: string[];
+  limitations: string[];
+  color: string;
+  icon: LucideIcon;
+  popular: boolean;
+  priceId?: { monthly: string; yearly: string };
+}
+
+interface CheckoutResponse {
+  url: string;
+}
 
 export default function UpgradePage() {
-  const [selectedPlan, setSelectedPlan] = useState('pro');
-  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [isLoading, setIsLoading] = useState(false);
-  const { userProfile, refreshProfile } = useAuth();
+  const { userProfile } = useAuth();
   const router = useRouter();
 
-  const plans = {
+  const plans: Record<string, Plan> = {
     free: {
       name: 'Gratis',
       price: { monthly: 0, yearly: 0 },
@@ -110,14 +125,14 @@ export default function UpgradePage() {
       const result = await cloudFunctions.createStripeCheckout({
         plan: planId,
         priceId: plan.priceId[billingCycle]
-      });
+      }) as { data: CheckoutResponse };
       
-      if (result.data?.url) {
+      if (result.data.url) {
         window.location.href = result.data.url;
       } else {
         throw new Error('No se pudo crear el checkout');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error upgrading:', error);
       toast.error('Error al procesar el pago. Intenta nuevamente.');
     } finally {

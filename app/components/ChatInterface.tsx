@@ -9,8 +9,13 @@ import { ChatMessage } from '../lib/types';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 
+interface ChatResponse {
+  response: string;
+  tokensUsed: number;
+}
+
 const ChatInterface = memo(function ChatInterface() {
-  const { userProfile, refreshProfile, plan, isPremium, signOut } = useAuth();
+  const { userProfile, refreshProfile, plan, signOut } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -74,7 +79,7 @@ const ChatInterface = memo(function ChatInterface() {
         message: messageText,
         fileContext: '',
         chatHistory: messages.slice(-10),
-      });
+      }) as { data: ChatResponse };
 
       const aiMessage: ChatMessage = {
         id: Date.now().toString() + '_ai',
@@ -87,13 +92,15 @@ const ChatInterface = memo(function ChatInterface() {
       setMessages((prev) => [...prev, aiMessage]);
       await refreshProfile();
       toast.success(`Respuesta generada (${result.data.tokensUsed} tokens)`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in chat:', error);
       let errorMessage = 'Error procesando tu mensaje. Intenta nuevamente.';
-      if (error.code === 'resource-exhausted') {
-        errorMessage = 'Has alcanzado tu límite diario. Actualiza tu plan para continuar.';
-      } else if (error.code === 'permission-denied') {
-        errorMessage = 'Esta función requiere una suscripción premium.';
+      if (error instanceof Error && 'code' in error) {
+        if (error.code === 'resource-exhausted') {
+          errorMessage = 'Has alcanzado tu límite diario. Actualiza tu plan para continuar.';
+        } else if (error.code === 'permission-denied') {
+          errorMessage = 'Esta función requiere una suscripción premium.';
+        }
       }
 
       const errorAiMessage: ChatMessage = {
@@ -146,14 +153,14 @@ const ChatInterface = memo(function ChatInterface() {
     });
   };
 
-  const handleRegenerate = async (message: string) => {
+  const handleRegenerate = async (message: ChatMessage) => {
     setIsLoading(true);
     try {
       const result = await cloudFunctions.chatWithAI({
-        message: message,
+        message: message.message,
         fileContext: '',
         chatHistory: messages.slice(-10),
-      });
+      }) as { data: ChatResponse };
 
       const aiMessage: ChatMessage = {
         id: Date.now().toString() + '_ai',
@@ -166,7 +173,7 @@ const ChatInterface = memo(function ChatInterface() {
       setMessages((prev) => [...prev.filter((m) => m.id !== message.id), aiMessage]);
       await refreshProfile();
       toast.success(`Respuesta regenerada (${result.data.tokensUsed} tokens)`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error regenerating:', error);
       toast.error('Error al regenerar la respuesta.');
     } finally {

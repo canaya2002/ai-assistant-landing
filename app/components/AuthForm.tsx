@@ -1,4 +1,3 @@
-// components/AuthForm.tsx
 'use client';
 
 import { useState } from 'react';
@@ -8,15 +7,15 @@ import {
   CheckCircle, AlertTriangle, Chrome 
 } from 'lucide-react';
 import { authFunctions, helpers } from '../lib/firebase';
-import { FirebaseError } from '../lib/types';
 import toast from 'react-hot-toast';
+import type { LucideIcon } from 'lucide-react';
 
 interface AuthInputProps {
   type: string;
   placeholder: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  icon: React.ComponentType<any>;
+  icon: LucideIcon;
   error?: string;
   showPassword?: boolean;
   togglePassword?: () => void;
@@ -86,7 +85,7 @@ const SocialButton = ({
   onClick, 
   disabled 
 }: {
-  icon: React.ComponentType<any>;
+  icon: LucideIcon;
   provider: string;
   onClick: () => void;
   disabled: boolean;
@@ -359,7 +358,7 @@ export default function AuthForm() {
                 <AuthInput
                   type="password"
                   placeholder="Confirmar contraseña"
-                  value={formData.confirmPassword}
+                  value={formData.formData.confirmPassword}
                   onChange={handleInputChange('confirmPassword')}
                   icon={Lock}
                   error={errors.confirmPassword}

@@ -1,8 +1,7 @@
-// lib/firebase.ts
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -22,16 +21,9 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 
-// Connect to emulators in development (opcional)
+// Connect to emulators in development (optional)
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-  try {
-    // Descomenta si usas emuladores locales
-    // connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-    // connectFirestoreEmulator(db, 'localhost', 8080);
-    // connectFunctionsEmulator(functions, 'localhost', 5001);
-  } catch (error) {
-    console.log('Emulators not available or already connected');
-  }
+  console.log('Emulators not connected in development mode');
 }
 
 export default app;
@@ -44,8 +36,7 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup,
-  User as FirebaseUser
+  signInWithPopup
 } from 'firebase/auth';
 
 import { FirebaseError } from './types';
@@ -60,7 +51,7 @@ export const authFunctions = {
       }
       
       return { user: result.user, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { user: null, error: error as FirebaseError };
     }
   },
@@ -69,7 +60,7 @@ export const authFunctions = {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       return { user: result.user, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { user: null, error: error as FirebaseError };
     }
   },
@@ -82,7 +73,7 @@ export const authFunctions = {
       
       const result = await signInWithPopup(auth, provider);
       return { user: result.user, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { user: null, error: error as FirebaseError };
     }
   },
@@ -91,7 +82,7 @@ export const authFunctions = {
     try {
       await signOut(auth);
       return { success: true, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { success: false, error: error as FirebaseError };
     }
   },
@@ -100,7 +91,7 @@ export const authFunctions = {
     try {
       await sendPasswordResetEmail(auth, email);
       return { success: true, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { success: false, error: error as FirebaseError };
     }
   }
