@@ -107,13 +107,13 @@ const content = {
   }
 };
 
-// Background video component
+// Background video component - ARREGLADO PARA MÓVIL
 const VideoBackground = memo(function VideoBackground() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
       <video 
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ objectPosition: 'center 30%' }}
+        className="absolute inset-0 w-full h-full object-cover md:object-center object-top"
+        style={{ objectPosition: 'center 20%' }} // Subido más arriba en móvil
         autoPlay 
         muted 
         loop 
@@ -130,7 +130,7 @@ const VideoBackground = memo(function VideoBackground() {
   );
 });
 
-// Enhanced Navigation
+// Enhanced Navigation - MENÚ MÓVIL ARREGLADO
 const Navigation = memo(function Navigation({
   onDownload,
   lang
@@ -142,6 +142,12 @@ const Navigation = memo(function Navigation({
 
   const handleWebAppClick = () => {
     window.location.href = '/app';
+    setMobileMenuOpen(false);
+  };
+
+  const handleDownloadClick = () => {
+    onDownload();
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -184,11 +190,33 @@ const Navigation = memo(function Navigation({
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
+
+      {/* Mobile menu - ARREGLADO */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-black/90 backdrop-blur-md border-b border-white/10">
+          <div className="container mx-auto px-6 py-4 space-y-3">
+            <button 
+              onClick={handleWebAppClick}
+              className="w-full px-6 py-3 bg-black/20 backdrop-blur-sm border border-white/10 rounded-full text-white hover:bg-white/5 hover:border-white/20 transition-all duration-300 flex items-center justify-center space-x-2"
+            >
+              <span className="text-sm font-light">Web App</span>
+              <Bot className="w-4 h-4" />
+            </button>
+            
+            <button
+              onClick={handleDownloadClick}
+              className="w-full px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300"
+            >
+              {content[lang].navDownload}
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 });
 
-// Enhanced Hero Section
+// Enhanced Hero Section - ARREGLADO PARA MÓVIL
 const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code'] }) {
   const currentContent = content[lang];
 
@@ -198,36 +226,36 @@ const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code']
       
       <div className="relative z-30 container mx-auto px-6 text-center">
         <div className="max-w-4xl mx-auto">
-          {/* Title with animation - moved down more */}
-          <div className="mb-1 animate-fade-up mt-80">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-light text-white mb-20 tracking-wide" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+          {/* Title with animation - POSICIÓN ARREGLADA PARA MÓVIL */}
+          <div className="mb-1 animate-fade-up mt-32 md:mt-80">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 md:mb-20 tracking-wide" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
               NORA : Your AI Assistant
             </h1>
           </div>
 
-          <p className="text-xl md:text-3xl text-white/90 mb-16 max-w-3xl mx-auto leading-relaxed font-light animate-fade-up" style={{ animationDelay: '0.5s' }}>
+          <p className="text-lg md:text-3xl text-white/90 mb-12 md:mb-16 max-w-3xl mx-auto leading-relaxed font-light animate-fade-up" style={{ animationDelay: '0.5s' }}>
             {currentContent.heroDescription}
           </p>
 
-          {/* Store buttons as images - separated more and moved down more */}
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-44 animate-fade-up mb-60" style={{ animationDelay: '2s' }}>
-            <button className="hover:scale-115 transition-transform duration-300">
+          {/* Store buttons - ARREGLADO PARA QUE ESTÉN PAREJOS EN MÓVIL */}
+          <div className="flex flex-row items-center justify-center space-x-8 md:space-x-44 animate-fade-up mb-32 md:mb-60" style={{ animationDelay: '2s' }}>
+            <button className="hover:scale-105 transition-transform duration-300">
               <Image 
                 src="/images/appstore.png" 
                 alt="Download on App Store" 
-                width={240}
-                height={80}
-                className="h-16 w-auto"
+                width={180}
+                height={60}
+                className="h-12 md:h-16 w-auto"
               />
             </button>
             
-            <button className="hover:scale-115 transition-transform duration-300">
+            <button className="hover:scale-105 transition-transform duration-300">
               <Image 
                 src="/images/googleplay.png" 
                 alt="Get it on Google Play" 
-                width={240}
-                height={80}
-                className="h-16 w-auto"
+                width={180}
+                height={60}
+                className="h-12 md:h-16 w-auto"
               />
             </button>
           </div>
@@ -302,7 +330,7 @@ const ModelImageSection = memo(function ModelImageSection() {
   );
 });
 
-// Section with animated phrases - improved animation
+// Section with animated phrases - FONDO DE VIDEO ARREGLADO PARA MÓVIL
 const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
   const [currentPhrase, setCurrentPhrase] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
@@ -328,10 +356,15 @@ const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
 
   return (
     <section className="relative py-32 overflow-hidden">
-      {/* Background video */}
+      {/* Background video - ARREGLADO PARA MÓVIL */}
       <div className="absolute inset-0 z-0">
         <video 
           className="absolute inset-0 w-full h-full object-cover"
+          style={{ 
+            objectPosition: 'center center',
+            minHeight: '100%',
+            minWidth: '100%'
+          }}
           autoPlay 
           muted 
           loop 
@@ -348,7 +381,7 @@ const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="min-h-[200px] flex items-center justify-center">
             <h2 
-              className={`text-3xl md:text-5xl lg:text-6xl font-light text-white leading-tight transition-all duration-700 ease-in-out transform ${
+              className={`text-2xl md:text-5xl lg:text-6xl font-light text-white leading-tight transition-all duration-700 ease-in-out transform ${
                 isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
@@ -362,7 +395,7 @@ const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
   );
 });
 
-// Enhanced "Available On" section with improved design
+// Enhanced "Available On" section - BOTONES ARREGLADOS PARA MÓVIL
 const AvailableSection = memo(function AvailableSection({ lang }: { lang: Language['code'] }) {
   const [activeTab, setActiveTab] = useState('web');
   const currentContent = content[lang];
@@ -415,13 +448,13 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
           {currentContent.availableOn}
         </h2>
         
-        {/* Tab Headers with #737373 color */}
-        <div className="flex flex-wrap justify-center space-x-2 md:space-x-6 mb-16">
+        {/* Tab Headers - ARREGLADO SPACING PARA MÓVIL */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-6 mb-16 max-w-4xl mx-auto">
           {tabs.map((tab, index) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`group p-6 rounded-2xl transition-all duration-700 transform hover:scale-110 ${
+              className={`group p-4 md:p-6 rounded-2xl transition-all duration-700 transform hover:scale-110 ${
                 activeTab === tab.id 
                   ? 'border border-[#737373] scale-110 shadow-2xl shadow-[#737373]/20' 
                   : 'bg-[#737373]/30 border border-[#737373]/40 hover:border-[#737373]/60 hover:bg-[#737373]/40'
@@ -431,17 +464,17 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
                 backgroundColor: activeTab === tab.id ? '#737373' : undefined
               }}
             >
-              <div className="flex flex-col items-center space-y-3">
+              <div className="flex flex-col items-center space-y-2 md:space-y-3">
                 <Image 
                   src={tab.image} 
                   alt={tab.label}
-                  width={40}
-                  height={40}
-                  className={`transition-all duration-700 ${
+                  width={32}
+                  height={32}
+                  className={`md:w-10 md:h-10 transition-all duration-700 ${
                     activeTab === tab.id ? 'opacity-100 scale-110' : 'opacity-70 group-hover:opacity-90'
                   }`}
                 />
-                <span className={`text-sm font-light transition-all duration-700 ${
+                <span className={`text-xs md:text-sm font-light transition-all duration-700 ${
                   activeTab === tab.id ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
                 }`}>
                   {tab.label}
@@ -453,10 +486,10 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
 
         {/* Tab Content with vertical layout and animations */}
         <div className="max-w-4xl mx-auto">
-          <div className="bg-[#737373]/20 backdrop-blur-2xl rounded-3xl p-12 border border-[#737373]/40 transition-all duration-700 shadow-2xl">
+          <div className="bg-[#737373]/20 backdrop-blur-2xl rounded-3xl p-8 md:p-12 border border-[#737373]/40 transition-all duration-700 shadow-2xl">
             <div className="text-center">
               {/* Device image at top */}
-              <div className="mb-12 animate-fade-up">
+              <div className="mb-8 md:mb-12 animate-fade-up">
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-br from-[#737373]/20 to-[#737373]/20 rounded-3xl blur-xl"></div>
                   <Image 
@@ -464,32 +497,33 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
                     alt={getCurrentPlatform().name}
                     width={448}
                     height={300}
-                    className="relative z-10 w-full max-w-md mx-auto hover:scale-105 transition-transform duration-700 rounded-2xl shadow-2xl"
+                    className="relative z-10 w-full max-w-sm md:max-w-md mx-auto hover:scale-105 transition-transform duration-700 rounded-2xl shadow-2xl"
                   />
                 </div>
               </div>
               
               {/* Content below */}
               <div className="animate-slide-up">
-                <div className="mb-8">
-                  <div className="w-24 h-24 bg-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-6 backdrop-blur-xl border border-[#737373]/40 shadow-xl">
+                <div className="mb-6 md:mb-8">
+                  <div className="w-16 h-16 md:w-24 md:h-24 bg-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-4 md:mb-6 backdrop-blur-xl border border-[#737373]/40 shadow-xl">
                     <Image 
                       src={getCurrentTab().image} 
                       alt={getCurrentPlatform().name}
-                      width={48}
-                      height={48}
+                      width={32}
+                      height={32}
+                      className="md:w-12 md:h-12"
                     />
                   </div>
                 </div>
                 
-                <h3 className="text-4xl font-light text-white mb-6 animate-fade-up" style={{ 
+                <h3 className="text-2xl md:text-4xl font-light text-white mb-4 md:mb-6 animate-fade-up" style={{ 
                   fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif',
                   animationDelay: '0.2s'
                 }}>
                   {getCurrentPlatform().name}
                 </h3>
                 
-                <p className="text-gray-300 mb-8 max-w-2xl mx-auto font-light leading-relaxed text-lg animate-fade-up" style={{
+                <p className="text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto font-light leading-relaxed text-base md:text-lg animate-fade-up" style={{
                   animationDelay: '0.4s'
                 }}>
                   {getCurrentPlatform().longDescription}
