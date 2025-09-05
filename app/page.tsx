@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect, useCallback, memo } from 'react';
+import Image from 'next/image';
 import { 
-  Download, AlertTriangle, Bot, Menu, X, Plus
+  AlertTriangle, Bot, Menu, X, Plus
 } from 'lucide-react';
 
 // Configuration
@@ -12,7 +13,7 @@ const CONFIG = {
 
 // Types
 interface Language { 
-  code: 'es' | 'en' | 'br'; 
+  code: 'en'; 
   name: string; 
 }
 
@@ -68,12 +69,6 @@ const content = {
         description: 'Available on App Store for iOS 14 and above.',
         longDescription: 'Experience NORA on your iPhone with our beautifully designed native app. Get instant access to AI-powered conversations, voice commands, and seamless integration with iOS features. Our iPhone app is optimized for performance and battery life.',
         features: [
-          'Native iOS integration with Siri Shortcuts',
-          'Optimized for all iPhone models from iPhone 8 onwards',
-          'Voice-to-text and text-to-voice capabilities',
-          'Dark mode and light mode support',
-          'Offline conversation history',
-          'Push notifications for important updates'
         ]
       },
       { 
@@ -82,12 +77,6 @@ const content = {
         description: 'Access NORA directly from your wrist with our optimized app.',
         longDescription: 'NORA on Apple Watch brings AI assistance directly to your wrist. Perfect for quick questions, voice commands, and staying productive on the go. Our Watch app is designed for quick interactions and essential AI features.',
         features: [
-          'Quick voice interactions with Raise to Speak',
-          'Complications for watch face integration',
-          'Haptic feedback for responses',
-          'Works independently with cellular models',
-          'Optimized for Series 4 and newer',
-          'Battery-efficient background processing'
         ]
       },
       { 
@@ -96,12 +85,6 @@ const content = {
         description: 'Native Mac application with full functionality.',
         longDescription: 'The most powerful NORA experience is on macOS. With our native Mac app, you get full-featured AI assistance, file integration, and seamless workflow automation. Perfect for professionals and power users.',
         features: [
-          'Native macOS design with menu bar integration',
-          'File drag-and-drop for document analysis',
-          'Keyboard shortcuts and automation support',
-          'Multiple conversation windows',
-          'Integration with Spotlight search',
-          'Support for macOS Monterey and newer'
         ]
       },
       { 
@@ -110,12 +93,6 @@ const content = {
         description: 'Available on Google Play Store for Android 8.0 and above.',
         longDescription: 'NORA for Android delivers the full AI experience with Material Design 3. Enjoy seamless integration with Google services, customizable widgets, and powerful automation features that work across all your Android devices.',
         features: [
-          'Material Design 3 with dynamic theming',
-          'Google Assistant integration',
-          'Customizable home screen widgets',
-          'Android Auto support for in-car use',
-          'Background processing with minimal battery usage',
-          'Works on Android 8.0 and all newer versions'
         ]
       },
       { 
@@ -124,12 +101,6 @@ const content = {
         description: 'Use NORA directly in your favorite web browser.',
         longDescription: 'Access NORA from any device with our progressive web app. No downloads required - just open your browser and start chatting. Full feature parity with native apps, plus the convenience of universal access.',
         features: [
-          'Progressive Web App (PWA) technology',
-          'Works on all modern browsers',
-          'Offline capability with service workers',
-          'Responsive design for all screen sizes',
-          'Real-time sync across all devices',
-          'Keyboard shortcuts for power users'
         ]
       }
     ]
@@ -178,10 +149,12 @@ const Navigation = memo(function Navigation({
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo as image */}
         <div className="flex items-center">
-          <img 
+          <Image 
             src="/images/nora.png" 
             alt="NORA Logo" 
-            className="h-24 w-auto hover:scale-105 transition-transform duration-300"
+            width={96}
+            height={96}
+            className="hover:scale-105 transition-transform duration-300"
           />
         </div>
 
@@ -239,17 +212,21 @@ const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code']
           {/* Store buttons as images - separated more and moved down more */}
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-44 animate-fade-up mb-60" style={{ animationDelay: '2s' }}>
             <button className="hover:scale-115 transition-transform duration-300">
-              <img 
+              <Image 
                 src="/images/appstore.png" 
                 alt="Download on App Store" 
+                width={240}
+                height={80}
                 className="h-16 w-auto"
               />
             </button>
             
             <button className="hover:scale-115 transition-transform duration-300">
-              <img 
+              <Image 
                 src="/images/googleplay.png" 
                 alt="Get it on Google Play" 
+                width={240}
+                height={80}
                 className="h-16 w-auto"
               />
             </button>
@@ -286,9 +263,11 @@ const ModelImageSection = memo(function ModelImageSection() {
           <div className="relative animate-fade-up">
             {/* Model image */}
             <div className="mb-12">
-              <img 
+              <Image 
                 src="/images/modeloia.png" 
                 alt="NORA AI Model" 
+                width={768}
+                height={512}
                 className="w-full max-w-3xl mx-auto hover:scale-105 transition-transform duration-500"
               />
             </div>
@@ -422,7 +401,7 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
   ];
 
   const getCurrentPlatform = (): Platform => {
-    return currentContent.platforms.find(p => p.id === activeTab) || currentContent.platforms[4];
+    return currentContent.platforms.find((p: Platform) => p.id === activeTab) || currentContent.platforms[4];
   };
 
   const getCurrentTab = () => {
@@ -453,10 +432,12 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
               }}
             >
               <div className="flex flex-col items-center space-y-3">
-                <img 
+                <Image 
                   src={tab.image} 
                   alt={tab.label}
-                  className={`w-10 h-10 transition-all duration-700 ${
+                  width={40}
+                  height={40}
+                  className={`transition-all duration-700 ${
                     activeTab === tab.id ? 'opacity-100 scale-110' : 'opacity-70 group-hover:opacity-90'
                   }`}
                 />
@@ -478,9 +459,11 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
               <div className="mb-12 animate-fade-up">
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-br from-[#737373]/20 to-[#737373]/20 rounded-3xl blur-xl"></div>
-                  <img 
+                  <Image 
                     src={getCurrentTab().deviceImage} 
                     alt={getCurrentPlatform().name}
+                    width={448}
+                    height={300}
                     className="relative z-10 w-full max-w-md mx-auto hover:scale-105 transition-transform duration-700 rounded-2xl shadow-2xl"
                   />
                 </div>
@@ -490,10 +473,11 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
               <div className="animate-slide-up">
                 <div className="mb-8">
                   <div className="w-24 h-24 bg-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-6 backdrop-blur-xl border border-[#737373]/40 shadow-xl">
-                    <img 
+                    <Image 
                       src={getCurrentTab().image} 
                       alt={getCurrentPlatform().name}
-                      className="w-12 h-12"
+                      width={48}
+                      height={48}
                     />
                   </div>
                 </div>
@@ -513,7 +497,7 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
 
                 {/* Features list with animations */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-                  {getCurrentPlatform().features.map((feature, index) => (
+                  {getCurrentPlatform().features.map((feature: string, index: number) => (
                     <div 
                       key={index}
                       className="flex items-center space-x-3 p-4 bg-[#737373]/20 rounded-xl border border-[#737373]/30 animate-slide-in-left"
@@ -567,7 +551,7 @@ const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }
 
         {/* FAQ Items with #737373 colors */}
         <div className="max-w-4xl mx-auto space-y-6">
-          {currentContent.features.map((faq, index) => (
+          {currentContent.features.map((faq: { title: string; description: string }, index: number) => (
             <div 
               key={index}
               className="bg-[#737373]/30 backdrop-blur-xl rounded-2xl border border-[#737373]/30 overflow-hidden transition-all duration-1000 ease-in-out hover:border-[#737373]/50 hover:bg-[#737373]/20"
@@ -613,10 +597,12 @@ const Footer = memo(function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Logo section */}
           <div className="md:col-span-1">
-            <img 
+            <Image 
               src="/images/nora.png" 
               alt="NORA Logo" 
-              className="h-20 w-auto mb-4"
+              width={80}
+              height={80}
+              className="mb-4"
             />
           </div>
 

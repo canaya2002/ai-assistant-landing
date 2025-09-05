@@ -597,7 +597,7 @@ const TermsContent = memo(function TermsContent() {
                             <ul className="space-y-2 text-sm text-gray-400 font-light">
                               <li className="flex items-center space-x-2">
                                 <CheckCircle className="w-4 h-4 text-green-400" />
-                                <span>Marca registrada "NORA"</span>
+                                <span>Marca registrada NORA</span>
                               </li>
                               <li className="flex items-center space-x-2">
                                 <CheckCircle className="w-4 h-4 text-green-400" />
@@ -665,7 +665,7 @@ const TermsContent = memo(function TermsContent() {
                           <h3 className="text-xl font-light text-white">Exención de Garantías</h3>
                         </div>
                         <p className="text-gray-300 mb-4 font-light">
-                          NORA se proporciona "tal como está" y "según disponibilidad". No garantizamos que:
+                          NORA se proporciona tal como está y según disponibilidad. No garantizamos que:
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <ul className="space-y-2 text-sm text-gray-400 font-light">
