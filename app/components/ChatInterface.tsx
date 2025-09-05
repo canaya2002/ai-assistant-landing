@@ -32,7 +32,6 @@ const ChatInterface = memo(function ChatInterface() {
   }, []);
 
   useEffect(() => {
-    // Hide video background after first user message
     if (messages.some((msg) => msg.type === 'user')) {
       setShowVideoBackground(false);
     }
@@ -54,7 +53,7 @@ const ChatInterface = memo(function ChatInterface() {
     if (!messageText) return;
 
     const accessCheck = checkChatAccess();
-    if (!accessCheck.allowed) {
+    if (!accessCheck.allowed && accessCheck.message) {
       toast.error(accessCheck.message);
       return;
     }
@@ -71,11 +70,14 @@ const ChatInterface = memo(function ChatInterface() {
     setIsLoading(true);
 
     try {
-      const result = await cloudFunctions.chatWithAI({
-        message: messageText as string, // Type assertion to bypass TS2345
+      // Explicitly type the input data
+      const inputData = {
+        message: messageText,
         fileContext: '',
         chatHistory: messages.slice(-10),
-      });
+      };
+
+      const result = await cloudFunctions.chatWithAI(inputData);
 
       const aiMessage: ChatMessage = {
         id: Date.now().toString() + '_ai',
@@ -152,11 +154,14 @@ const ChatInterface = memo(function ChatInterface() {
   const handleRegenerate = async (message: ChatMessage) => {
     setIsLoading(true);
     try {
-      const result = await cloudFunctions.chatWithAI({
-        message: message.message as string, // Type assertion to bypass TS2345
+      // Make sure message.message is properly typed as string
+      const inputData = {
+        message: message.message as string, // Explicit cast to ensure it's string
         fileContext: '',
         chatHistory: messages.slice(-10),
-      });
+      };
+
+      const result = await cloudFunctions.chatWithAI(inputData);
 
       const aiMessage: ChatMessage = {
         id: Date.now().toString() + '_ai',
