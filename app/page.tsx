@@ -569,7 +569,6 @@ const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }
           loop 
           playsInline
           preload="none"
-          loading="lazy"
         >
           <source src="/images/fondo-nora-tres.mp4" type="video/mp4" />
         </video>
