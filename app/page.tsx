@@ -5,10 +5,9 @@ import {
   AlertTriangle, Bot, Menu, X, Plus
 } from 'lucide-react';
 
-// Configuration
+// Configuration - LINK DE DESCARGA QUITADO
 const CONFIG = {
   VERSION: '1.0.0',
-  DOWNLOAD_URL: 'https://github.com/canaya2002/ai-assistant-professional/releases/download/v1.0.0/AI.Assistant.Professional.Setup.1.0.0.exe',
 };
 
 // Types
@@ -96,6 +95,14 @@ const content = {
         ]
       },
       { 
+        id: 'windows', 
+        name: 'Windows', 
+        description: 'Native Windows application with full functionality.',
+        longDescription: 'NORA for Windows delivers a powerful desktop experience with deep system integration. Enjoy advanced features like file analysis, clipboard integration, and workflow automation. Our Windows app is optimized for productivity and multitasking.',
+        features: [
+        ]
+      },
+      { 
         id: 'web', 
         name: 'Web', 
         description: 'Use NORA directly in your favorite web browser.',
@@ -107,20 +114,20 @@ const content = {
   }
 };
 
-// Background video component - ARREGLADO PARA MÓVIL
+// Background video component - SIN CAMBIOS
 const VideoBackground = memo(function VideoBackground() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
       <video 
         className="absolute inset-0 w-full h-full object-cover md:object-center object-top"
-        style={{ objectPosition: 'center 20%' }} // Subido más arriba en móvil
+        style={{ objectPosition: 'center 40%' }}
         autoPlay 
         muted 
         loop 
         playsInline
         preload="metadata"
       >
-        <source src="/images/fondo.mp4" type="video/mp4" />
+        <source src="/images/fondo-nora-tres.mp4" type="video/mp4" />
         <source src="/fondo.webm" type="video/webm" />
       </video>
       {/* Overlay gradients */}
@@ -130,12 +137,10 @@ const VideoBackground = memo(function VideoBackground() {
   );
 });
 
-// Enhanced Navigation - MENÚ MÓVIL ARREGLADO
+// Enhanced Navigation - CAMBIADO A /download
 const Navigation = memo(function Navigation({
-  onDownload,
   lang
 }: {
-  onDownload: () => void;
   lang: Language['code'];
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -146,7 +151,7 @@ const Navigation = memo(function Navigation({
   };
 
   const handleDownloadClick = () => {
-    onDownload();
+    window.location.href = '/download';
     setMobileMenuOpen(false);
   };
 
@@ -175,7 +180,7 @@ const Navigation = memo(function Navigation({
           </button>
           
           <button
-            onClick={onDownload}
+            onClick={() => window.location.href = '/download'}
             className="px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300"
           >
             {content[lang].navDownload}
@@ -191,7 +196,7 @@ const Navigation = memo(function Navigation({
         </button>
       </div>
 
-      {/* Mobile menu - ARREGLADO */}
+      {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-black/90 backdrop-blur-md border-b border-white/10">
           <div className="container mx-auto px-6 py-4 space-y-3">
@@ -216,7 +221,7 @@ const Navigation = memo(function Navigation({
   );
 });
 
-// Enhanced Hero Section - ARREGLADO PARA MÓVIL
+// Enhanced Hero Section - SIN CAMBIOS
 const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code'] }) {
   const currentContent = content[lang];
 
@@ -226,8 +231,8 @@ const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code']
       
       <div className="relative z-30 container mx-auto px-6 text-center">
         <div className="max-w-4xl mx-auto">
-          {/* Title with animation - POSICIÓN ARREGLADA PARA MÓVIL */}
-          <div className="mb-1 animate-fade-up mt-32 md:mt-80">
+          {/* Title with animation */}
+          <div className="mb-1 animate-fade-up mt-32 md:mt-72">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 md:mb-20 tracking-wide" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
               NORA : Your AI Assistant
             </h1>
@@ -237,7 +242,7 @@ const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code']
             {currentContent.heroDescription}
           </p>
 
-          {/* Store buttons - ARREGLADO PARA QUE ESTÉN PAREJOS EN MÓVIL */}
+          {/* Store buttons */}
           <div className="flex flex-row items-center justify-center space-x-8 md:space-x-44 animate-fade-up mb-32 md:mb-60" style={{ animationDelay: '2s' }}>
             <button className="hover:scale-105 transition-transform duration-300">
               <Image 
@@ -265,32 +270,16 @@ const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code']
   );
 });
 
-// Section with AI model image and animated video
+// Section with AI model image - ESPACIADO REDUCIDO MÓVIL
 const ModelImageSection = memo(function ModelImageSection() {
   return (
-    <section className="py-32 bg-black relative overflow-hidden">
-      {/* Background animated video positioned above background but below content */}
-      <div className="absolute inset-0 z-5 flex items-center justify-center">
-        <div className="w-96 h-96 rounded-3xl overflow-hidden opacity-30">
-          <video 
-            className="w-full h-full object-cover"
-            autoPlay 
-            muted 
-            loop 
-            playsInline
-            preload="metadata"
-          >
-            <source src="/images/fondo-animado.mp4" type="video/mp4" />
-          </video>
-        </div>
-      </div>
-
+    <section className="py-16 md:py-40 bg-black relative overflow-hidden">
       <div className="container mx-auto px-6 relative z-10">
         {/* Main AI model image */}
         <div className="relative max-w-4xl mx-auto text-center">
           <div className="relative animate-fade-up">
             {/* Model image */}
-            <div className="mb-12">
+            <div className="mb-8 md:mb-12">
               <Image 
                 src="/images/modeloia.png" 
                 alt="NORA AI Model" 
@@ -302,13 +291,13 @@ const ModelImageSection = memo(function ModelImageSection() {
             
             {/* Descriptive information */}
             <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl font-light text-white mb-6" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+              <h2 className="text-3xl md:text-4xl font-light text-white mb-4 md:mb-6" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
                 Advanced Artificial Intelligence
               </h2>
-              <p className="text-lg text-gray-400 leading-relaxed font-light mb-8">
+              <p className="text-lg text-gray-400 leading-relaxed font-light mb-6 md:mb-8">
                 NORA uses the most advanced artificial intelligence models, combining GPT-4o and Gemini to offer you precise, creative, and natural responses at any time of day.
               </p>
-              <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500 mb-12">
+              <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500 mb-8 md:mb-12">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                   <span>Instant responses</span>
@@ -330,7 +319,7 @@ const ModelImageSection = memo(function ModelImageSection() {
   );
 });
 
-// Section with animated phrases - FONDO DE VIDEO ARREGLADO PARA MÓVIL
+// Section with animated phrases - FONDO ARREGLADO SIN CORTES Y ESPACIADO REDUCIDO MÓVIL
 const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
   const [currentPhrase, setCurrentPhrase] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
@@ -355,15 +344,13 @@ const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
   }, [phrases.length]);
 
   return (
-    <section className="relative py-32 overflow-hidden">
-      {/* Background video - ARREGLADO PARA MÓVIL */}
+    <section className="relative py-16 md:py-32 overflow-hidden">
+      {/* Background video - FONDO COMPLETO SIN CORTES */}
       <div className="absolute inset-0 z-0">
         <video 
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover scale-110"
           style={{ 
             objectPosition: 'center center',
-            minHeight: '100%',
-            minWidth: '100%'
           }}
           autoPlay 
           muted 
@@ -373,7 +360,7 @@ const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
         >
           <source src="/images/fondo-nora-dos.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-black/60 z-10" />
+        <div className="absolute inset-0 bg-black/50 z-10" />
       </div>
 
       {/* Content */}
@@ -395,7 +382,7 @@ const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
   );
 });
 
-// Enhanced "Available On" section - BOTONES CENTRADOS Y SIN SOMBRAS
+// Enhanced "Available On" section - DISEÑO MEJORADO CON PUNCH Y WINDOWS AGREGADO Y ESPACIADO REDUCIDO MÓVIL
 const AvailableSection = memo(function AvailableSection({ lang }: { lang: Language['code'] }) {
   const [activeTab, setActiveTab] = useState('web');
   const currentContent = content[lang];
@@ -426,6 +413,12 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
       label: 'Android' 
     },
     { 
+      id: 'windows', 
+      image: '/images/win-icon.png', 
+      deviceImage: '/images/win-image.png',
+      label: 'Windows' 
+    },
+    { 
       id: 'web', 
       image: '/images/web-icon.png', 
       deviceImage: '/images/web-image.png',
@@ -434,49 +427,59 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
   ];
 
   const getCurrentPlatform = (): Platform => {
-    return currentContent.platforms.find((p: Platform) => p.id === activeTab) || currentContent.platforms[4];
+    return currentContent.platforms.find((p: Platform) => p.id === activeTab) || currentContent.platforms[5];
   };
 
   const getCurrentTab = () => {
-    return tabs.find(t => t.id === activeTab) || tabs[4];
+    return tabs.find(t => t.id === activeTab) || tabs[5];
   };
 
   return (
-    <section className="py-24 bg-black">
-      <div className="container mx-auto px-6">
-        <h2 className="text-4xl md:text-5xl font-light text-white text-center mb-16 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+    <section className="relative py-16 md:py-64 bg-black overflow-hidden">
+      {/* Fondo decorativo con efectos visuales para dar punch */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#737373]/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#737373]/15 rounded-full blur-2xl animate-float-delayed"></div>
+        <div className="absolute top-1/2 right-1/3 w-32 h-32 bg-[#737373]/8 rounded-full blur-xl animate-float-slow"></div>
+      </div>
+
+      <div className="container mx-auto px-6 relative z-10">
+        <h2 className="text-4xl md:text-5xl font-light text-white text-center mb-12 md:mb-16 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
           {currentContent.availableOn}
         </h2>
         
-        {/* Tab Headers - CENTRADO PERFECTO PARA MÓVIL */}
-        <div className="flex flex-wrap justify-center gap-3 md:gap-6 mb-16 max-w-4xl mx-auto">
+        {/* Tab Headers - GRID RESPONSIVO PARA 6 ELEMENTOS */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-6 mb-12 md:mb-16 max-w-6xl mx-auto">
           {tabs.map((tab, index) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`group p-4 md:p-6 rounded-2xl transition-all duration-700 transform hover:scale-110 ${
+              className={`group p-3 md:p-6 rounded-2xl transition-all duration-700 transform hover:scale-110 ${
                 activeTab === tab.id 
-                  ? 'border border-[#737373] scale-110 shadow-2xl shadow-[#737373]/20' 
-                  : 'bg-[#737373]/30 border border-[#737373]/40 hover:border-[#737373]/60 hover:bg-[#737373]/40'
+                  ? 'bg-gradient-to-br from-[#737373] to-[#737373]/80 border-2 border-[#737373] scale-110 shadow-2xl shadow-[#737373]/30' 
+                  : 'bg-[#737373]/20 border border-[#737373]/40 hover:border-[#737373]/60 hover:bg-[#737373]/30'
               }`}
               style={{ 
-                animationDelay: `${index * 150}ms`,
-                backgroundColor: activeTab === tab.id ? '#737373' : undefined
+                animationDelay: `${index * 100}ms`,
               }}
             >
               <div className="flex flex-col items-center space-y-2 md:space-y-3">
-                <Image 
-                  src={tab.image} 
-                  alt={tab.label}
-                  width={32}
-                  height={32}
-                  className={`md:w-10 md:h-10 transition-all duration-700 ${
-                    activeTab === tab.id ? 'opacity-100 scale-110' : 'opacity-70 group-hover:opacity-90'
-                  }`}
-                  loading="lazy"
-                />
+                <div className={`p-2 rounded-xl transition-all duration-700 ${
+                  activeTab === tab.id ? 'bg-white/20' : 'bg-transparent'
+                }`}>
+                  <Image 
+                    src={tab.image} 
+                    alt={tab.label}
+                    width={28}
+                    height={28}
+                    className={`md:w-8 md:h-8 transition-all duration-700 ${
+                      activeTab === tab.id ? 'opacity-100 scale-110 brightness-110' : 'opacity-80 group-hover:opacity-90'
+                    }`}
+                    loading="lazy"
+                  />
+                </div>
                 <span className={`text-xs md:text-sm font-light transition-all duration-700 ${
-                  activeTab === tab.id ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
+                  activeTab === tab.id ? 'text-white font-medium' : 'text-gray-400 group-hover:text-gray-300'
                 }`}>
                   {tab.label}
                 </span>
@@ -485,19 +488,23 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
           ))}
         </div>
 
-        {/* Tab Content - SIN SOMBRAS NI DIFUMINADOS */}
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-[#737373]/20 backdrop-blur-2xl rounded-3xl p-8 md:p-12 border border-[#737373]/40 transition-all duration-700 shadow-2xl">
-            <div className="text-center">
-              {/* Device image - SIN EFECTOS DE SOMBRA */}
-              <div className="mb-8 md:mb-12 animate-fade-up">
-                <div className="relative bg-[#737373]/20 rounded-2xl p-6">
+        {/* Tab Content - DISEÑO MEJORADO CON GRADIENTES Y EFECTOS */}
+        <div className="max-w-5xl mx-auto">
+          <div className="relative bg-gradient-to-br from-[#737373]/30 to-[#737373]/10 backdrop-blur-2xl rounded-3xl p-6 md:p-12 border border-[#737373]/40 transition-all duration-700 shadow-2xl overflow-hidden">
+            {/* Efecto de brillo */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#737373]/50 to-transparent"></div>
+            
+            <div className="text-center relative z-10">
+              {/* Device image - FONDO MEJORADO */}
+              <div className="mb-6 md:mb-12 animate-fade-up">
+                <div className="relative bg-gradient-to-br from-[#737373]/30 to-[#737373]/10 rounded-2xl p-4 md:p-6 mx-auto max-w-lg">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#737373]/20 to-transparent rounded-2xl"></div>
                   <Image 
                     src={getCurrentTab().deviceImage} 
                     alt={getCurrentPlatform().name}
                     width={448}
                     height={300}
-                    className="relative z-10 w-full max-w-sm md:max-w-md mx-auto hover:scale-105 transition-transform duration-700 rounded-2xl"
+                    className="relative z-10 w-full hover:scale-105 transition-transform duration-700 rounded-xl"
                     loading="lazy"
                   />
                 </div>
@@ -505,27 +512,27 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
               
               {/* Content below */}
               <div className="animate-slide-up">
-                <div className="mb-6 md:mb-8">
-                  <div className="w-16 h-16 md:w-24 md:h-24 bg-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-4 md:mb-6 backdrop-blur-xl border border-[#737373]/40">
+                <div className="mb-4 md:mb-8">
+                  <div className="w-14 h-14 md:w-20 md:h-20 bg-gradient-to-br from-[#737373]/80 to-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-3 md:mb-6 backdrop-blur-xl border border-[#737373]/50 shadow-xl">
                     <Image 
                       src={getCurrentTab().image} 
                       alt={getCurrentPlatform().name}
-                      width={32}
-                      height={32}
-                      className="md:w-12 md:h-12"
+                      width={28}
+                      height={28}
+                      className="md:w-10 md:h-10 brightness-110"
                       loading="lazy"
                     />
                   </div>
                 </div>
                 
-                <h3 className="text-2xl md:text-4xl font-light text-white mb-4 md:mb-6 animate-fade-up" style={{ 
+                <h3 className="text-2xl md:text-4xl font-light text-white mb-3 md:mb-6 animate-fade-up" style={{ 
                   fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif',
                   animationDelay: '0.2s'
                 }}>
                   {getCurrentPlatform().name}
                 </h3>
                 
-                <p className="text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto font-light leading-relaxed text-base md:text-lg animate-fade-up" style={{
+                <p className="text-gray-300 mb-4 md:mb-8 max-w-2xl mx-auto font-light leading-relaxed text-base md:text-lg animate-fade-up" style={{
                   animationDelay: '0.4s'
                 }}>
                   {getCurrentPlatform().longDescription}
@@ -536,7 +543,7 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
                   {getCurrentPlatform().features.map((feature: string, index: number) => (
                     <div 
                       key={index}
-                      className="flex items-center space-x-3 p-4 bg-[#737373]/20 rounded-xl border border-[#737373]/30 animate-slide-in-left"
+                      className="flex items-center space-x-3 p-4 bg-[#737373]/20 rounded-xl border border-[#737373]/30 animate-slide-in-left hover:bg-[#737373]/30 transition-all duration-300"
                       style={{ animationDelay: `${0.6 + index * 0.1}s` }}
                     >
                       <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
@@ -553,30 +560,31 @@ const AvailableSection = memo(function AvailableSection({ lang }: { lang: Langua
   );
 });
 
-// Enhanced FAQ section - ESPACIADO REDUCIDO MÓVIL
+// Enhanced FAQ section - ANIMACIÓN MÁS PEQUEÑA Y ESPACIADO REDUCIDO MÓVIL
 const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }) {
   const [activeQuestion, setActiveQuestion] = useState(0);
   const currentContent = content[lang];
 
   return (
-    <section className="relative py-16 md:py-32 mt-8 md:mt-16 overflow-hidden">
-      {/* Background video */}
-      <div className="absolute inset-0 z-0">
-        <video 
-          className="absolute inset-0 w-full h-full object-cover"
-          autoPlay 
-          muted 
-          loop 
-          playsInline
-          preload="none"
-        >
-          <source src="/images/fondo-nora-tres.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-black/70 z-10" />
+    <section className="relative py-12 md:py-32 mt-6 md:mt-16 overflow-hidden">
+      {/* Background video - ANIMACIÓN MÁS PEQUEÑA */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
+        <div className="w-82 h-82 md:w-100 md:h-100 rounded-3xl overflow-hidden opacity-100">
+          <video 
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+            preload="none"
+          >
+            <source src="/images/fondo-animado-noru-bola.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div className="absolute inset-0 bg-black/20 z-10" />
       </div>
 
       <div className="relative z-20 container mx-auto px-6">
-        <div className="text-center mb-12 md:mb-16">
+        <div className="text-center mb-8 md:mb-16">
           <h2 className="text-4xl md:text-5xl font-light text-white mb-4 md:mb-6 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
             {currentContent.askAnything}
           </h2>
@@ -625,7 +633,7 @@ const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }
   );
 });
 
-// Footer
+// Footer - SIN CAMBIOS
 const Footer = memo(function Footer() {
   return (
     <footer className="py-20 mt-20 bg-black">
@@ -675,7 +683,7 @@ const Footer = memo(function Footer() {
           <div>
             <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Company</h3>
             <ul className="space-y-2 text-gray-400 font-light">
-              <li><a href="#" className="hover:text-white transition-colors">Roadmap</a></li>
+              <li><a href="/versions" className="hover:text-white transition-colors">Versions</a></li>
               <li><a href="#" className="hover:text-white transition-colors">About</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
               <li><a href="/privacy" className="hover:text-white transition-colors">Privacy</a></li>
@@ -688,25 +696,13 @@ const Footer = memo(function Footer() {
   );
 });
 
-// Main component
+// Main component - SIN handleDownload
 const NuroNovaStyle: React.FC = () => {
   const [lang] = useState<Language['code']>('en');
-  const [showWarning, setShowWarning] = useState(false);
-
-  const handleDownload = useCallback(() => {
-    setShowWarning(true);
-    const link = document.createElement('a');
-    link.href = CONFIG.DOWNLOAD_URL;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
-      <Navigation onDownload={handleDownload} lang={lang} />
+      <Navigation lang={lang} />
       
       <main>
         <HeroSection lang={lang} />
@@ -717,27 +713,6 @@ const NuroNovaStyle: React.FC = () => {
       </main>
 
       <Footer />
-
-      {/* Warning Modal */}
-      {showWarning && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-8 max-w-md mx-auto">
-            <div className="flex items-center space-x-3 mb-6">
-              <AlertTriangle className="w-8 h-8 text-yellow-500" />
-              <h3 className="text-xl font-light text-white" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Security Notice</h3>
-            </div>
-            <p className="text-gray-300 mb-6 font-light">
-              Windows may show a warning. NORA is completely safe.
-            </p>
-            <button 
-              onClick={() => setShowWarning(false)}
-              className="w-full bg-white text-black font-medium py-3 rounded-full hover:bg-gray-100 transition-colors duration-300"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
       
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');

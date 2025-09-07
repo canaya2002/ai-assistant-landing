@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    // Configuración básica
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "es2022"],
     "allowJs": true,
@@ -10,89 +9,42 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
     
-    // Configuraciones específicas de Next.js
     "plugins": [
       {
         "name": "next"
       }
     ],
     
-    // Configuración de paths para imports absolutos
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/utils/*": ["./utils/*"],
-      "@/types/*": ["./types/*"],
-      "@/styles/*": ["./styles/*"],
-      "@/public/*": ["./public/*"],
-      "@/app/*": ["./app/*"]
+      "@/*": ["./*"]
     },
     
-    // Configuraciones menos estrictas para evitar errores en el build
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "exactOptionalPropertyTypes": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": false,
-    "noImplicitOverride": true,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
     
-    // Configuraciones para mejor performance
-    "skipDefaultLibCheck": true,
-    "declaration": false,
-    "declarationMap": false,
-    "sourceMap": true,
-    
-    // Configuración de tipos (solo node para Next.js)
-    "types": ["node"],
-    "typeRoots": ["./node_modules/@types", "./types"],
-    
-    // Configuraciones experimentales
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    
-    // Configuración de JSX
-    "jsxImportSource": "react"
+    "types": ["node"]
   },
   
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "types/**/*.ts"
+    ".next/types/**/*.ts"
   ],
   
   "exclude": [
     "node_modules",
     ".next",
-    "out",
-    "dist",
-    "build",
-    "coverage",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx"
-  ],
-  
-  "ts-node": {
-    "compilerOptions": {
-      "module": "CommonJS",
-      "baseUrl": ".",
-      "paths": {
-       "@/*": ["*"]
-     }
-   }
-  }
+    "functions"
+  ]
 }

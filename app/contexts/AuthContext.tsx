@@ -1,3 +1,4 @@
+// contexts/AuthContext.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error: unknown) {
       console.error('Error fetching user profile:', error);
       setError('Error cargando perfil de usuario');
+      // Perfil por defecto mejorado para free con chat habilitado
       setUserProfile({
         user: {
           uid: firebaseUser.uid,
@@ -87,17 +89,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
           monthlyTokens: 200000,
           dailyAnalyses: 2,
           monthlyAnalyses: 50,
-          chatEnabled: false,
+          chatEnabled: true, // Ahora habilitado para free
           voiceEnabled: false,
           multimediaEnabled: false,
           codeEnabled: false,
-          pdfEnabled: false
+          pdfEnabled: false,
+          maxResponseTokens: 150 // Límite para plan free
         },
         planInfo: {
           currentPlan: 'free',
           displayName: 'Gratis',
           availableFeatures: {
-            chat: false,
+            chat: true, // Habilitado para free
             voice: false,
             multimedia: false,
             code: false,

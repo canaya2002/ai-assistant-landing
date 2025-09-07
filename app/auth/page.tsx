@@ -141,7 +141,7 @@ const Footer = memo(function Footer() {
           <div>
             <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Company</h3>
             <ul className="space-y-2 text-gray-400 font-light">
-              <li><a href="#" className="hover:text-white transition-colors">Roadmap</a></li>
+              <li><a href="/versions" className="hover:text-white transition-colors">Versions</a></li>
               <li><a href="#" className="hover:text-white transition-colors">About</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
               <li><a href="/privacy" className="hover:text-white transition-colors">Privacy</a></li>
