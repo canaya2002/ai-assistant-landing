@@ -13,7 +13,8 @@ import {
   Check,
   X,
   BarChart3,
-  Plus
+  Plus,
+  Menu
 } from 'lucide-react';
 import { useConversations } from '../contexts/ConversationContext';
 import { Conversation } from '../lib/types';
@@ -125,14 +126,14 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
             onClick={onClose}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <Menu className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
         {/* New Conversation Button */}
         <button
           onClick={onNewConversation}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center space-x-2 mb-4"
+          className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center space-x-2 mb-4"
         >
           <Plus className="w-4 h-4" />
           <span>Nueva conversación</span>
@@ -146,7 +147,7 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
             placeholder="Buscar conversaciones..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/60"
+            className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-500/60"
           />
         </div>
 
@@ -218,7 +219,7 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
             {!searchQuery && (
               <button
                 onClick={onNewConversation}
-                className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                className="mt-3 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
               >
                 Iniciar primera conversación
               </button>
@@ -231,7 +232,7 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
                 key={conversation.id}
                 className={`group relative p-3 rounded-lg cursor-pointer transition-all duration-200 ${
                   currentConversation?.id === conversation.id
-                    ? 'bg-blue-600/20 border border-blue-500/30'
+                    ? 'bg-gray-600/20 border border-gray-500/30'
                     : 'hover:bg-white/5'
                 }`}
               >
@@ -241,7 +242,7 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="flex-1 bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-blue-500/60"
+                      className="flex-1 bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-gray-500/60"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') handleSaveEdit();
                         if (e.key === 'Escape') handleCancelEdit();

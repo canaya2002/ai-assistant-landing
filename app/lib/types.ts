@@ -1,4 +1,4 @@
-// lib/types.ts - ARCHIVO COMPLETO DE TIPOS ACTUALIZADO
+// lib/types.ts - ARCHIVO COMPLETO DE TIPOS ACTUALIZADO Y CORREGIDO
 
 export interface User {
   uid: string;
@@ -118,12 +118,25 @@ export interface FirebaseError {
   message: string;
 }
 
-// Tipos para Stripe
+// ✅ TIPOS PARA STRIPE CORREGIDOS Y COMPLETOS
 export interface StripeCheckoutData {
   plan: 'pro' | 'pro_max';
   priceId: string;
   successUrl?: string;
   cancelUrl?: string;
+}
+
+export interface StripeCheckoutInput {
+  plan: string;
+  priceId: string;
+}
+
+export interface StripeCheckoutOutput {
+  url: string;
+}
+
+export interface ManageSubscriptionOutput {
+  url: string;
 }
 
 export interface SubscriptionData {
@@ -133,6 +146,11 @@ export interface SubscriptionData {
   cancelAtPeriodEnd: boolean;
   plan: 'pro' | 'pro_max';
   priceId: string;
+}
+
+// ✅ TIPOS PARA RESPUESTAS DE CLOUD FUNCTIONS
+export interface CloudFunctionResponse<T> {
+  data: T;
 }
 
 // Tipos para respuestas optimizadas de AI
@@ -152,6 +170,19 @@ export interface OptimizedChatResponse {
   model: string;
   responseTime: number;
   finishReason: 'stop' | 'length' | 'safety';
+}
+
+// ✅ TIPOS PARA CHAT CON AI
+export interface ChatWithAIInput {
+  message: string;
+  fileContext?: string;
+  chatHistory: ChatMessage[];
+  maxTokens?: number;
+}
+
+export interface ChatWithAIOutput {
+  response: string;
+  tokensUsed: number;
 }
 
 // Tipos para configuración del usuario
@@ -212,110 +243,116 @@ export interface APIError extends Error {
   retryable?: boolean;
 }
 
-// Tipos para configuración de planes
-export interface PlanConfig {
-  id: 'free' | 'pro' | 'pro_max';
-  name: string;
-  price: {
-    monthly: number;
-    yearly: number;
-  };
-  limits: {
-    dailyTokens: number;
-    monthlyTokens: number;
-    maxResponseTokens: number;
-    analysesPerDay: number;
-    analysesPerMonth: number;
-  };
-  features: {
-    chat: boolean;
-    voice: boolean;
-    multimedia: boolean;
-    code: boolean;
-    pdf: boolean;
-    liveMode: boolean;
-    prioritySupport: boolean;
-    apiAccess: boolean;
-  };
-  stripeProductId?: string;
-  stripePriceIds: {
-    monthly?: string;
-    yearly?: string;
-  };
+// ✅ TIPOS PARA CONVERSACIONES MEJORADOS
+export interface ConversationStats {
+  totalConversations: number;
+  totalMessages: number;
+  avgMessagesPerConversation: number;
+  oldestConversation: Date | null;
+  newestConversation: Date | null;
 }
 
-export const PLAN_CONFIGS: Record<string, PlanConfig> = {
-  free: {
-    id: 'free',
-    name: 'Gratis',
-    price: { monthly: 0, yearly: 0 },
-    limits: {
-      dailyTokens: 6600,
-      monthlyTokens: 200000,
-      maxResponseTokens: 150,
-      analysesPerDay: 2,
-      analysesPerMonth: 50
-    },
-    features: {
-      chat: true,
-      voice: false,
-      multimedia: false,
-      code: false,
-      pdf: false,
-      liveMode: false,
-      prioritySupport: false,
-      apiAccess: false
-    },
-    stripePriceIds: {}
-  },
-  pro: {
-    id: 'pro',
-    name: 'Pro',
-    price: { monthly: 15, yearly: 150 },
-    limits: {
-      dailyTokens: 333000,
-      monthlyTokens: 10000000,
-      maxResponseTokens: 500,
-      analysesPerDay: 50,
-      analysesPerMonth: 1500
-    },
-    features: {
-      chat: true,
-      voice: true,
-      multimedia: true,
-      code: true,
-      pdf: true,
-      liveMode: true,
-      prioritySupport: true,
-      apiAccess: false
-    },
-    stripePriceIds: {
-      monthly: 'price_1S08CYPa2fV72c7wm3DC8M3y'
-    }
-  },
-  pro_max: {
-    id: 'pro_max',
-    name: 'Pro Max',
-    price: { monthly: 75, yearly: 750 },
-    limits: {
-      dailyTokens: 466000,
-      monthlyTokens: -1, // Ilimitado
-      maxResponseTokens: 1000,
-      analysesPerDay: -1, // Ilimitado
-      analysesPerMonth: -1 // Ilimitado
-    },
-    features: {
-      chat: true,
-      voice: true,
-      multimedia: true,
-      code: true,
-      pdf: true,
-      liveMode: true,
-      prioritySupport: true,
-      apiAccess: true
-    },
-    stripePriceIds: {
-      monthly: 'price_1S12wKPa2fV72c7wX2NRAwQF'
-    }
-  }
-};
+export interface BackupSettings {
+  autoBackup: boolean;
+  backupInterval: number; // días
+  lastBackup: Date | null;
+  googleDriveEnabled: boolean;
+}
+
+// ✅ TIPOS PARA METADATOS DE CONVERSACIÓN
+export interface ConversationMetadataInput {
+  userId: string;
+  conversationId: string;
+  title: string;
+  messageCount: number;
+  lastActivity: string; // ISO string
+  tags?: string[];
+}
+
+// ✅ TIPOS PARA COMPONENTES
+export interface SettingsMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export interface ConversationListProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export interface UserMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+// ✅ TIPOS PARA AUTH CONTEXT
+export interface AuthContextType {
+  user: any | null; // Firebase User
+  userProfile: UserProfile | null;
+  loading: boolean;
+  error: string | null;
+  refreshProfile: () => Promise<void>;
+  signOut: () => Promise<void>;
+  isAuthenticated: boolean;
+  isPremium: boolean;
+  isPro: boolean;
+  isProMax: boolean;
+  plan: string;
+  usage: UserProfile['usage'] | null;
+  limits: UserProfile['limits'] | null;
+  planInfo: UserProfile['planInfo'] | null;
+}
+
+// ✅ TIPOS PARA CONVERSATION CONTEXT
+export interface ConversationContextType {
+  // Estado actual
+  currentConversation: Conversation | null;
+  conversations: Conversation[];
+  isLoading: boolean;
+  
+  // Acciones de conversación
+  startNewConversation: () => void;
+  loadConversation: (conversationId: string) => void;
+  addMessage: (message: ChatMessage) => void;
+  updateConversationTitle: (conversationId: string, title: string) => void;
+  deleteConversation: (conversationId: string) => void;
+  
+  // Búsqueda y filtros
+  searchConversations: (query: string) => Conversation[];
+  getRecentConversations: (limit?: number) => Conversation[];
+  
+  // Backup y export
+  exportConversations: () => void;
+  importConversations: (file: File) => Promise<boolean>;
+  
+  // Estadísticas
+  getUsageStats: () => ConversationStats;
+}
+
+// ✅ TIPOS PARA VALIDACIÓN
+export interface ValidationResult {
+  isValid: boolean;
+  message: string;
+}
+
+// ✅ TIPOS PARA RESPUESTAS DE API
+export interface APIResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  timestamp?: string;
+}
+
+// ✅ CONSTANTES DE TIPOS
+export const USER_PLANS = ['free', 'pro', 'pro_max'] as const;
+export type UserPlan = typeof USER_PLANS[number];
+
+export const MESSAGE_TYPES = ['user', 'ai'] as const;
+export type MessageType = typeof MESSAGE_TYPES[number];
+
+export const THEME_OPTIONS = ['dark', 'light', 'auto'] as const;
+export type ThemeOption = typeof THEME_OPTIONS[number];
+
+export const LANGUAGE_OPTIONS = ['es', 'en'] as const;
+export type LanguageOption = typeof LANGUAGE_OPTIONS[number];

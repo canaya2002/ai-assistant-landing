@@ -1,11 +1,12 @@
-// lib/firebase.ts
+// lib/firebase.ts - VERSIÓN COMPLETA CORREGIDA
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ChatMessage } from './types';
 
-const firebaseConfig = {
+// ✅ VALIDACIÓN DE VARIABLES DE ENTORNO
+const requiredEnvVars = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -15,22 +16,59 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// ✅ VERIFICAR QUE TODAS LAS VARIABLES EXISTEN
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([_, value]) => !value)
+  .map(([key, _]) => key);
 
-// Initialize Firebase services
+if (missingVars.length > 0) {
+  throw new Error(
+    `Missing required Firebase environment variables: ${missingVars.join(', ')}\n` +
+    'Please check your .env.local file and ensure all NEXT_PUBLIC_FIREBASE_* variables are set.'
+  );
+}
+
+// ✅ CONFIGURACIÓN VALIDADA
+const firebaseConfig = {
+  apiKey: requiredEnvVars.apiKey!,
+  authDomain: requiredEnvVars.authDomain!,
+  projectId: requiredEnvVars.projectId!,
+  storageBucket: requiredEnvVars.storageBucket!,
+  messagingSenderId: requiredEnvVars.messagingSenderId!,
+  appId: requiredEnvVars.appId!,
+  measurementId: requiredEnvVars.measurementId!
+};
+
+// ✅ INICIALIZACIÓN SEGURA
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error) {
+  console.error('Error initializing Firebase:', error);
+  throw new Error('Failed to initialize Firebase. Please check your configuration.');
+}
+
+// ✅ SERVICIOS FIREBASE
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 
-// Connect to emulators in development (optional)
+// ✅ EMULADORES SOLO EN DESARROLLO
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-  console.log('Emulators not connected in development mode');
+  // Conectar emuladores si están disponibles
+  try {
+    // Descomenta estas líneas si usas emulators
+    // connectAuthEmulator(auth, 'http://localhost:9099');
+    // connectFirestoreEmulator(db, 'localhost', 8080);
+    // connectFunctionsEmulator(functions, 'localhost', 5001);
+  } catch (error) {
+    console.log('Emulators not available or already connected');
+  }
 }
 
 export default app;
 
-// Auth functions
+// ✅ AUTH FUNCTIONS CON MANEJO DE ERRORES MEJORADO
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
@@ -45,103 +83,84 @@ import {
 import { FirebaseError } from './types';
 
 export const authFunctions = {
-  async signUp(email: string, password: string, name: string) {
+  async signUp(email: string, password: string, name: string): Promise<UserCredential> {
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      
-      if (name) {
-        await updateProfile(result.user, { displayName: name });
-        // Force refresh to get updated displayName
-        await result.user.reload();
+      // Validar inputs
+      if (!email || !password || !name) {
+        throw new Error('Todos los campos son requeridos');
       }
       
-      return { user: result.user, error: null };
-    } catch (error: unknown) {
-      console.error('Sign up error:', error);
-      return { user: null, error: error as FirebaseError };
+      if (password.length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres');
+      }
+
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Actualizar perfil con nombre
+      if (result.user) {
+        await updateProfile(result.user, { displayName: name });
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error('Error in signUp:', error.message);
+      throw error;
     }
   },
 
-  async signIn(email: string, password: string) {
+  async signIn(email: string, password: string): Promise<UserCredential> {
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      return { user: result.user, error: null };
-    } catch (error: unknown) {
-      console.error('Sign in error:', error);
-      return { user: null, error: error as FirebaseError };
+      if (!email || !password) {
+        throw new Error('Email y contraseña son requeridos');
+      }
+
+      return await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error('Error in signIn:', error.message);
+      throw error;
     }
   },
 
-  async signInWithGoogle() {
+  async signInWithGoogle(): Promise<UserCredential> {
     try {
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
       provider.addScope('profile');
       
-      // Configuraciones adicionales para mejor compatibilidad
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      
-      const result: UserCredential = await signInWithPopup(auth, provider);
-      
-      // Verificar que tenemos los datos del usuario
-      if (!result.user.email) {
-        throw new Error('No se pudo obtener el email del usuario');
-      }
-      
-      // Si no tiene displayName, usar el nombre del email
-      if (!result.user.displayName && result.user.email) {
-        const emailName = result.user.email.split('@')[0];
-        await updateProfile(result.user, { 
-          displayName: emailName.charAt(0).toUpperCase() + emailName.slice(1)
-        });
-        await result.user.reload();
-      }
-      
-      return { user: result.user, error: null };
-    } catch (error: unknown) {
-      console.error('Google sign in error:', error);
-      
-      // Manejo específico de errores de Google Auth
-      if (error instanceof Error) {
-        if (error.message.includes('popup-closed-by-user')) {
-          return { user: null, error: { code: 'auth/popup-closed-by-user', message: 'Popup cerrado por el usuario' } as FirebaseError };
-        }
-        if (error.message.includes('popup-blocked')) {
-          return { user: null, error: { code: 'auth/popup-blocked', message: 'Popup bloqueado por el navegador' } as FirebaseError };
-        }
-      }
-      
-      return { user: null, error: error as FirebaseError };
+      return await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error('Error in signInWithGoogle:', error.message);
+      throw error;
     }
   },
 
-  async logout() {
+  async resetPassword(email: string): Promise<void> {
+    try {
+      if (!email) {
+        throw new Error('Email es requerido');
+      }
+
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      console.error('Error in resetPassword:', error.message);
+      throw error;
+    }
+  },
+
+  async signOut(): Promise<void> {
     try {
       await signOut(auth);
-      return { success: true, error: null };
-    } catch (error: unknown) {
-      console.error('Logout error:', error);
-      return { success: false, error: error as FirebaseError };
-    }
-  },
-
-  async resetPassword(email: string) {
-    try {
-      await sendPasswordResetEmail(auth, email);
-      return { success: true, error: null };
-    } catch (error: unknown) {
-      console.error('Password reset error:', error);
-      return { success: false, error: error as FirebaseError };
+    } catch (error: any) {
+      console.error('Error in signOut:', error.message);
+      throw error;
     }
   }
 };
 
-// Define input and output types for cloud functions
+// ✅ CLOUD FUNCTIONS CON VALIDACIÓN
 interface ChatWithAIInput {
   message: string;
-  fileContext: string;
+  fileContext?: string;
   chatHistory: ChatMessage[];
   maxTokens?: number;
 }
@@ -173,77 +192,109 @@ interface ConversationMetadataInput {
   tags?: string[];
 }
 
-// Función personalizada para guardar metadatos usando API route
-const saveConversationMetadata = async (metadata: ConversationMetadataInput) => {
-  const user = auth.currentUser;
-  if (!user) throw new Error('Usuario no autenticado');
+// Validar que las claves de API estén configuradas
+const validateAPIKeys = () => {
+  const geminiKeys = [
+    process.env.GEMINI_API_KEY_PRO,
+    process.env.GEMINI_API_KEY_BASIC,
+    process.env.GEMINI_API_KEY_FREE
+  ];
 
-  const token = await user.getIdToken();
+  const hasValidGeminiKey = geminiKeys.some(key => key && key.length > 0);
   
-  const response = await fetch('/api/save-conversation-metadata', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(metadata)
-  });
-
-  if (!response.ok) {
-    throw new Error('Error guardando metadatos');
+  if (!hasValidGeminiKey) {
+    console.warn('Warning: No Gemini API keys configured. Chat functionality may not work.');
   }
-
-  return await response.json();
 };
+
+// Validar en inicialización
+if (typeof window === 'undefined') { // Solo en servidor
+  validateAPIKeys();
+}
 
 export const cloudFunctions = {
   getUserProfile: httpsCallable(functions, 'getUserProfile'),
   chatWithAI: httpsCallable<ChatWithAIInput, ChatWithAIOutput>(functions, 'chatWithAI'),
   createStripeCheckout: httpsCallable<CreateStripeCheckoutInput, CreateStripeCheckoutOutput>(functions, 'createStripeCheckout'),
   manageSubscription: httpsCallable<{}, ManageSubscriptionOutput>(functions, 'manageSubscription'),
-  saveConversationMetadata, // Función personalizada usando API route
+
+  // ✅ FUNCIÓN PERSONALIZADA PARA METADATOS
+  async saveConversationMetadata(metadata: ConversationMetadataInput) {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Usuario no autenticado');
+
+    const token = await user.getIdToken();
+    
+    const response = await fetch('/api/save-conversation-metadata', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(metadata)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error guardando metadatos: ${response.status}`);
+    }
+
+    return await response.json();
+  }
 };
 
-// Helper functions
+// ✅ HELPER FUNCTIONS COMPLETAS - TODAS LAS FUNCIONES FALTANTES AGREGADAS
 export const helpers = {
-  getErrorMessage(errorCode: string): string {
-    const errorMessages: { [key: string]: string } = {
-      'auth/user-not-found': 'No se encontró ningún usuario con este email',
-      'auth/wrong-password': 'Contraseña incorrecta',
-      'auth/email-already-in-use': 'Este email ya está registrado',
-      'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
-      'auth/invalid-email': 'Email inválido',
-      'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
-      'auth/network-request-failed': 'Error de conexión. Verifica tu internet',
-      'auth/requires-recent-login': 'Debes volver a iniciar sesión para esta acción',
-      'auth/popup-closed-by-user': 'Inicio de sesión cancelado',
-      'auth/popup-blocked': 'Popup bloqueado. Permite popups para este sitio',
-      'auth/cancelled-popup-request': 'Múltiples popups detectados. Intenta nuevamente',
-      'auth/operation-not-allowed': 'Método de autenticación no permitido',
-      'auth/account-exists-with-different-credential': 'Ya existe una cuenta con este email usando un método diferente'
-    };
+  getErrorMessage(error: any): string {
+    if (error?.code) {
+      const errorMessages: { [key: string]: string } = {
+        'auth/user-not-found': 'No se encontró ningún usuario con este email',
+        'auth/wrong-password': 'Contraseña incorrecta',
+        'auth/email-already-in-use': 'Este email ya está registrado',
+        'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
+        'auth/invalid-email': 'Email inválido',
+        'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
+        'auth/network-request-failed': 'Error de conexión. Verifica tu internet',
+        'auth/requires-recent-login': 'Debes volver a iniciar sesión para esta acción',
+        'auth/popup-closed-by-user': 'Inicio de sesión cancelado',
+        'auth/popup-blocked': 'Popup bloqueado. Permite popups para este sitio',
+        'auth/cancelled-popup-request': 'Múltiples popups detectados. Intenta nuevamente',
+        'auth/operation-not-allowed': 'Método de autenticación no permitido',
+        'auth/account-exists-with-different-credential': 'Ya existe una cuenta con este email usando un método diferente'
+      };
+      
+      return errorMessages[error.code] || error.message || 'Ocurrió un error inesperado';
+    }
     
-    return errorMessages[errorCode] || 'Ocurrió un error inesperado';
+    return error?.message || 'Ocurrió un error inesperado';
   },
 
-  getPlanDisplayName(plan: string): string {
-    const planNames: { [key: string]: string } = {
-      free: 'Gratis',
-      pro: 'Pro', 
-      pro_max: 'Pro Max'
-    };
-    return planNames[plan] || 'Gratis';
+  validateEmailFormat(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   },
 
-  getPlanColor(plan: string): string {
-    const planColors: { [key: string]: string } = {
-      free: '#6B7280',
-      pro: '#3B82F6',
-      pro_max: '#F59E0B'
-    };
-    return planColors[plan] || '#6B7280';
+  validatePasswordStrength(password: string): { isValid: boolean; message: string } {
+    if (password.length < 6) {
+      return { isValid: false, message: 'La contraseña debe tener al menos 6 caracteres' };
+    }
+    
+    if (password.length < 8) {
+      return { isValid: true, message: 'Contraseña débil. Recomendamos al menos 8 caracteres' };
+    }
+    
+    const hasNumber = /\d/.test(password);
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    
+    if (hasNumber && hasUpper && hasLower) {
+      return { isValid: true, message: 'Contraseña fuerte' };
+    }
+    
+    return { isValid: true, message: 'Contraseña moderada' };
   },
 
+  // ✅ FUNCIONES FALTANTES QUE CAUSABAN ERRORES:
+  
   formatTokens(tokens: number): string {
     if (tokens === -1) return 'Ilimitado';
     if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
@@ -257,13 +308,31 @@ export const helpers = {
     return Math.min(Math.round((used / limit) * 100), 100);
   },
 
-  // Nueva función para validar tokens
+  getPlanDisplayName(plan: string): string {
+    const planNames: { [key: string]: string } = {
+      free: 'Gratis',
+      pro: 'Pro', 
+      pro_max: 'Pro Max'
+    };
+    return planNames[plan] || 'Gratis';
+  },
+
+  getPlanColor(plan: string): string {
+    const planColors: { [key: string]: string } = {
+      free: 'text-gray-400',
+      pro: 'text-blue-400',
+      pro_max: 'text-yellow-400'
+    };
+    return planColors[plan] || 'text-gray-400';
+  },
+
+  // Función para validar tokens
   hasTokensAvailable(userProfile: any): boolean {
     if (!userProfile || !userProfile.usage) return false;
     return userProfile.usage.daily.tokensRemaining > 0;
   },
 
-  // Nueva función para calcular el próximo reset de tokens
+  // Función para calcular el próximo reset de tokens
   getNextTokenReset(): Date {
     const now = new Date();
     const nextMidnight = new Date(now);
@@ -275,7 +344,7 @@ export const helpers = {
   // Función para formatear tiempo restante hasta el reset
   formatTimeUntilReset(): string {
     const now = new Date();
-    const nextReset = this.getNextTokenReset();
+    const nextReset = helpers.getNextTokenReset();
     const diff = nextReset.getTime() - now.getTime();
     
     const hours = Math.floor(diff / (1000 * 60 * 60));

@@ -1,4 +1,4 @@
-// components/AuthForm.tsx
+// components/AuthForm.tsx - BUILD ERROR CORREGIDO
 'use client';
 
 import { useState } from 'react';
@@ -178,47 +178,52 @@ export default function AuthForm() {
 
     try {
       if (showForgotPassword) {
-        // Forgot password flow
-        const result = await authFunctions.resetPassword(formData.email);
-        if (result.error) {
-          setErrors({ ...errors, general: helpers.getErrorMessage(result.error.code) });
-        } else {
+        // ✅ CORRECCIÓN: Forgot password flow sin acceder a .error
+        try {
+          await authFunctions.resetPassword(formData.email);
           setSuccessMessage('Se ha enviado un email para restablecer tu contraseña. Revisa tu bandeja de entrada.');
           toast.success('Email de recuperación enviado');
           setTimeout(() => {
             setShowForgotPassword(false);
             setSuccessMessage('');
           }, 3000);
+        } catch (error: any) {
+          const errorMessage = helpers.getErrorMessage(error);
+          setErrors({ ...errors, general: errorMessage });
+          toast.error('Error al enviar email de recuperación');
         }
       } else if (isLogin) {
-        // Login flow
-        const result = await authFunctions.signIn(formData.email, formData.password);
-        if (result.error) {
-          setErrors({ ...errors, general: helpers.getErrorMessage(result.error.code) });
-          toast.error('Error al iniciar sesión');
-        } else {
+        // ✅ CORRECCIÓN: Login flow mejorado
+        try {
+          await authFunctions.signIn(formData.email, formData.password);
           setSuccessMessage('¡Inicio de sesión exitoso! Redirigiendo...');
           toast.success('¡Bienvenido a NORA!');
           setTimeout(() => {
             router.push('/chat');
           }, 1500);
+        } catch (error: any) {
+          const errorMessage = helpers.getErrorMessage(error);
+          setErrors({ ...errors, general: errorMessage });
+          toast.error('Error al iniciar sesión');
         }
       } else {
-        // Registration flow
-        const result = await authFunctions.signUp(formData.email, formData.password, formData.name);
-        if (result.error) {
-          setErrors({ ...errors, general: helpers.getErrorMessage(result.error.code) });
-          toast.error('Error al crear cuenta');
-        } else {
+        // ✅ CORRECCIÓN: Registration flow mejorado
+        try {
+          await authFunctions.signUp(formData.email, formData.password, formData.name);
           setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
           toast.success('¡Bienvenido a NORA!');
           setTimeout(() => {
             router.push('/chat');
           }, 1500);
+        } catch (error: any) {
+          const errorMessage = helpers.getErrorMessage(error);
+          setErrors({ ...errors, general: errorMessage });
+          toast.error('Error al crear cuenta');
         }
       }
-    } catch (error) {
-      setErrors({ ...errors, general: 'Ocurrió un error inesperado. Por favor intenta nuevamente.' });
+    } catch (error: any) {
+      const errorMessage = helpers.getErrorMessage(error);
+      setErrors({ ...errors, general: errorMessage });
       toast.error('Error inesperado');
     } finally {
       setIsLoading(false);
@@ -230,20 +235,30 @@ export default function AuthForm() {
     setErrors({ name: '', email: '', password: '', confirmPassword: '', general: '' });
 
     try {
-      const result = await authFunctions.signInWithGoogle();
-      if (result.error) {
-        setErrors({ ...errors, general: helpers.getErrorMessage(result.error.code) });
-        toast.error('Error con Google');
+      await authFunctions.signInWithGoogle();
+      setSuccessMessage('¡Inicio de sesión con Google exitoso! Redirigiendo...');
+      toast.success('¡Bienvenido a NORA!');
+      setTimeout(() => {
+        router.push('/chat');
+      }, 1500);
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      
+      // ✅ MANEJO ESPECÍFICO DE ERRORES GOOGLE
+      let errorMessage = 'Error al iniciar sesión con Google';
+      
+      if (error?.code === 'auth/unauthorized-domain') {
+        errorMessage = 'Dominio no autorizado. Contacta al administrador.';
+      } else if (error?.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Inicio de sesión cancelado';
+      } else if (error?.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup bloqueado. Permite popups para este sitio';
       } else {
-        setSuccessMessage('¡Inicio de sesión con Google exitoso! Redirigiendo...');
-        toast.success('¡Bienvenido a NORA!');
-        setTimeout(() => {
-          router.push('/chat');
-        }, 1500);
+        errorMessage = helpers.getErrorMessage(error);
       }
-    } catch (error) {
-      setErrors({ ...errors, general: 'Error al iniciar sesión con Google.' });
-      toast.error('Error con Google');
+      
+      setErrors({ ...errors, general: errorMessage });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -283,8 +298,8 @@ export default function AuthForm() {
             {showForgotPassword 
               ? 'Ingresa tu email para restablecer tu contraseña'
               : isLogin 
-                ? 'Inicia sesión para acceder a tu asistente NORA' 
-                : 'Únete a NORA y desbloquea la asistencia de IA'
+                ? 'Ingresa tus credenciales para acceder'
+                : 'Completa los datos para crear tu cuenta'
             }
           </p>
         </div>
@@ -292,30 +307,9 @@ export default function AuthForm() {
         {/* Success Message */}
         {successMessage && <SuccessMessage message={successMessage} />}
 
-        {/* Social Login */}
-        {!showForgotPassword && (
-          <div className="space-y-4 mb-6">
-            <SocialButton 
-              icon={Chrome}
-              provider="Google"
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
-            />
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/20"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-black text-gray-400">o continúa con email</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name field for registration */}
+          {/* Name field (registration only) */}
           {!isLogin && !showForgotPassword && (
             <AuthInput
               type="text"
@@ -331,7 +325,7 @@ export default function AuthForm() {
           {/* Email field */}
           <AuthInput
             type="email"
-            placeholder="Dirección de email"
+            placeholder="Email"
             value={formData.email}
             onChange={handleInputChange('email')}
             icon={Mail}
@@ -339,7 +333,7 @@ export default function AuthForm() {
             disabled={isLoading}
           />
 
-          {/* Password fields */}
+          {/* Password fields (not for forgot password) */}
           {!showForgotPassword && (
             <>
               <AuthInput
@@ -354,7 +348,7 @@ export default function AuthForm() {
                 disabled={isLoading}
               />
 
-              {/* Confirm Password field for registration */}
+              {/* Confirm password (registration only) */}
               {!isLogin && (
                 <AuthInput
                   type="password"
@@ -401,6 +395,27 @@ export default function AuthForm() {
             )}
           </button>
 
+          {/* Social login (not for forgot password) */}
+          {!showForgotPassword && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-600" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-black/60 text-gray-400">o</span>
+                </div>
+              </div>
+
+              <SocialButton
+                icon={Chrome}
+                provider="Google"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+              />
+            </>
+          )}
+
           {/* Forgot password & Toggle mode */}
           <div className="space-y-4">
             {/* Forgot password (login only) */}
@@ -433,32 +448,22 @@ export default function AuthForm() {
 
             {/* Toggle between login/register */}
             {!showForgotPassword && (
-              <div className="text-center pt-4 border-t border-white/10">
-                <p className="text-gray-400 text-sm">
-                  {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}
-                  <button
-                    type="button"
-                    onClick={toggleMode}
-                    disabled={isLoading}
-                    className="ml-1 text-nora-primary hover:text-nora-primary/80 transition-colors font-medium disabled:cursor-not-allowed"
-                  >
-                    {isLogin ? 'Regístrate' : 'Inicia sesión'}
-                  </button>
-                </p>
+              <div className="text-center">
+                <span className="text-gray-400 text-sm">
+                  {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleMode}
+                  className="ml-2 text-nora-primary hover:text-nora-primary/80 text-sm font-medium transition-colors"
+                  disabled={isLoading}
+                >
+                  {isLogin ? 'Regístrate' : 'Inicia sesión'}
+                </button>
               </div>
             )}
           </div>
         </form>
-      </div>
-
-      {/* Additional info */}
-      <div className="text-center mt-8">
-        <p className="text-gray-500 text-xs">
-          Al registrarte, aceptas nuestros{' '}
-          <a href="/terms" className="text-nora-primary hover:underline">Términos de Servicio</a>
-          {' '}y{' '}
-          <a href="/privacy" className="text-nora-primary hover:underline">Política de Privacidad</a>
-        </p>
       </div>
     </div>
   );
