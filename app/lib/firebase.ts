@@ -1,12 +1,27 @@
-// lib/firebase.ts - VERSIÓN COMPLETA CORREGIDA
+// lib/firebase.ts - VERSIÓN COMPLETAMENTE CORREGIDA
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { ChatMessage } from './types';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 
-// ✅ VALIDACIÓN DE VARIABLES DE ENTORNO
-const requiredEnvVars = {
+// Importar tipos
+import type {
+  ChatWithAIInput,
+  ChatWithAIOutput,
+  GenerateImageInput,
+  GenerateImageOutput,
+  GetImageUsageStatusOutput,
+  CreateStripeCheckoutInput,
+  CreateStripeCheckoutOutput,
+  ManageSubscriptionOutput,
+  ConversationMetadataInput,
+  UserProfile,
+  PlanType
+} from './types';
+
+// Configuración de Firebase
+const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -16,209 +31,177 @@ const requiredEnvVars = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// ✅ VERIFICAR QUE TODAS LAS VARIABLES EXISTEN
-const missingVars = Object.entries(requiredEnvVars)
-  .filter(([_, value]) => !value)
-  .map(([key, _]) => key);
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
 
-if (missingVars.length > 0) {
-  throw new Error(
-    `Missing required Firebase environment variables: ${missingVars.join(', ')}\n` +
-    'Please check your .env.local file and ensure all NEXT_PUBLIC_FIREBASE_* variables are set.'
-  );
-}
-
-// ✅ CONFIGURACIÓN VALIDADA
-const firebaseConfig = {
-  apiKey: requiredEnvVars.apiKey!,
-  authDomain: requiredEnvVars.authDomain!,
-  projectId: requiredEnvVars.projectId!,
-  storageBucket: requiredEnvVars.storageBucket!,
-  messagingSenderId: requiredEnvVars.messagingSenderId!,
-  appId: requiredEnvVars.appId!,
-  measurementId: requiredEnvVars.measurementId!
-};
-
-// ✅ INICIALIZACIÓN SEGURA
-let app;
-try {
-  app = initializeApp(firebaseConfig);
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
-  throw new Error('Failed to initialize Firebase. Please check your configuration.');
-}
-
-// ✅ SERVICIOS FIREBASE
+// Servicios de Firebase
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const functions = getFunctions(app, 'us-central1');
+export const storage = getStorage(app);
+export const functions = getFunctions(app);
 
-// ✅ EMULADORES SOLO EN DESARROLLO
-if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-  // Conectar emuladores si están disponibles
+// Conectar a emuladores SOLO si están específicamente habilitados
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+  const hostname = 'localhost';
+  
+  console.log('🔧 Connecting to Firebase Emulators...');
+  
   try {
-    // Descomenta estas líneas si usas emulators
-    // connectAuthEmulator(auth, 'http://localhost:9099');
-    // connectFirestoreEmulator(db, 'localhost', 8080);
-    // connectFunctionsEmulator(functions, 'localhost', 5001);
-  } catch (error) {
-    console.log('Emulators not available or already connected');
+    if (!(auth as any)._config?.emulator) {
+      connectAuthEmulator(auth, `http://${hostname}:9099`);
+      console.log('✅ Auth Emulator connected');
+    }
+  } catch (e) {
+    console.warn('Auth Emulator connection failed:', e);
   }
+  
+  try {
+    if (!(db as any)._delegate?._databaseId?.projectId.includes('demo-')) {
+      connectFirestoreEmulator(db, hostname, 8080);
+      console.log('✅ Firestore Emulator connected');
+    }
+  } catch (e) {
+    console.warn('Firestore Emulator connection failed:', e);
+  }
+  
+  try {
+    if (!storage.app.options.projectId?.includes('demo-')) {
+      connectStorageEmulator(storage, hostname, 9199);
+      console.log('✅ Storage Emulator connected');
+    }
+  } catch (e) {
+    console.warn('Storage Emulator connection failed:', e);
+  }
+  
+  try {
+    if (!(functions as any)._delegate?.region) {
+      connectFunctionsEmulator(functions, hostname, 5001);
+      console.log('✅ Functions Emulator connected');
+    }
+  } catch (e) {
+    console.warn('Functions Emulator connection failed:', e);
+  }
+} else {
+  console.log('🔥 Using Firebase Production Services');
 }
 
-export default app;
-
-// ✅ AUTH FUNCTIONS CON MANEJO DE ERRORES MEJORADO
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup,
-  UserCredential
-} from 'firebase/auth';
-
-import { FirebaseError } from './types';
-
+// 🔐 FUNCIONES DE AUTENTICACIÓN
 export const authFunctions = {
-  async signUp(email: string, password: string, name: string): Promise<UserCredential> {
+  // Registro de usuario
+  async signUp(email: string, password: string, name: string) {
+    const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
+    
     try {
-      // Validar inputs
-      if (!email || !password || !name) {
-        throw new Error('Todos los campos son requeridos');
-      }
-      
-      if (password.length < 6) {
-        throw new Error('La contraseña debe tener al menos 6 caracteres');
-      }
-
-      const result = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
       // Actualizar perfil con nombre
-      if (result.user) {
-        await updateProfile(result.user, { displayName: name });
-      }
+      await updateProfile(user, { displayName: name });
       
-      return result;
-    } catch (error: any) {
-      console.error('Error in signUp:', error.message);
+      // Crear documento de usuario en Firestore
+      const { doc, setDoc } = await import('firebase/firestore');
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email: user.email,
+        name: name,
+        plan: 'free',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      return userCredential;
+    } catch (error: unknown) {
+      console.error('Error en signUp:', error);
       throw error;
     }
   },
 
-  async signIn(email: string, password: string): Promise<UserCredential> {
+  // Inicio de sesión
+  async signIn(email: string, password: string) {
+    const { signInWithEmailAndPassword } = await import('firebase/auth');
+    
     try {
-      if (!email || !password) {
-        throw new Error('Email y contraseña son requeridos');
-      }
-
-      return await signInWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
-      console.error('Error in signIn:', error.message);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return userCredential;
+    } catch (error: unknown) {
+      console.error('Error en signIn:', error);
       throw error;
     }
   },
 
-  async signInWithGoogle(): Promise<UserCredential> {
+  // Inicio de sesión con Google
+  async signInWithGoogle() {
+    const { signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
+    
     try {
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
       provider.addScope('profile');
       
-      return await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      console.error('Error in signInWithGoogle:', error.message);
-      throw error;
-    }
-  },
-
-  async resetPassword(email: string): Promise<void> {
-    try {
-      if (!email) {
-        throw new Error('Email es requerido');
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      // Crear o actualizar documento de usuario
+      const { doc, setDoc, getDoc } = await import('firebase/firestore');
+      const userDoc = doc(db, 'users', user.uid);
+      const userSnapshot = await getDoc(userDoc);
+      
+      if (!userSnapshot.exists()) {
+        await setDoc(userDoc, {
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName || user.email?.split('@')[0] || '',
+          plan: 'free',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
       }
-
-      await sendPasswordResetEmail(auth, email);
-    } catch (error: any) {
-      console.error('Error in resetPassword:', error.message);
+      
+      return result;
+    } catch (error: unknown) {
+      console.error('Error en signInWithGoogle:', error);
       throw error;
     }
   },
 
-  async signOut(): Promise<void> {
+  // Restablecer contraseña
+  async resetPassword(email: string) {
+    const { sendPasswordResetEmail } = await import('firebase/auth');
+    
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: unknown) {
+      console.error('Error en resetPassword:', error);
+      throw error;
+    }
+  },
+
+  // Cerrar sesión
+  async signOut() {
+    const { signOut } = await import('firebase/auth');
+    
     try {
       await signOut(auth);
-    } catch (error: any) {
-      console.error('Error in signOut:', error.message);
+    } catch (error: unknown) {
+      console.error('Error en signOut:', error);
       throw error;
     }
   }
 };
 
-// ✅ CLOUD FUNCTIONS CON VALIDACIÓN
-interface ChatWithAIInput {
-  message: string;
-  fileContext?: string;
-  chatHistory: ChatMessage[];
-  maxTokens?: number;
-}
-
-interface ChatWithAIOutput {
-  response: string;
-  tokensUsed: number;
-}
-
-interface CreateStripeCheckoutInput {
-  plan: string;
-  priceId: string;
-}
-
-interface CreateStripeCheckoutOutput {
-  url: string;
-}
-
-interface ManageSubscriptionOutput {
-  url: string;
-}
-
-interface ConversationMetadataInput {
-  userId: string;
-  conversationId: string;
-  title: string;
-  messageCount: number;
-  lastActivity: string; // ISO string
-  tags?: string[];
-}
-
-// Validar que las claves de API estén configuradas
-const validateAPIKeys = () => {
-  const geminiKeys = [
-    process.env.GEMINI_API_KEY_PRO,
-    process.env.GEMINI_API_KEY_BASIC,
-    process.env.GEMINI_API_KEY_FREE
-  ];
-
-  const hasValidGeminiKey = geminiKeys.some(key => key && key.length > 0);
-  
-  if (!hasValidGeminiKey) {
-    console.warn('Warning: No Gemini API keys configured. Chat functionality may not work.');
-  }
-};
-
-// Validar en inicialización
-if (typeof window === 'undefined') { // Solo en servidor
-  validateAPIKeys();
-}
-
+// 📞 CLOUD FUNCTIONS
 export const cloudFunctions = {
-  getUserProfile: httpsCallable(functions, 'getUserProfile'),
+  // Funciones existentes
+  getUserProfile: httpsCallable<{}, UserProfile>(functions, 'getUserProfile'),
   chatWithAI: httpsCallable<ChatWithAIInput, ChatWithAIOutput>(functions, 'chatWithAI'),
   createStripeCheckout: httpsCallable<CreateStripeCheckoutInput, CreateStripeCheckoutOutput>(functions, 'createStripeCheckout'),
   manageSubscription: httpsCallable<{}, ManageSubscriptionOutput>(functions, 'manageSubscription'),
 
-  // ✅ FUNCIÓN PERSONALIZADA PARA METADATOS
+  // 🎨 NUEVAS FUNCIONES PARA GENERACIÓN DE IMÁGENES
+  generateImage: httpsCallable<GenerateImageInput, GenerateImageOutput>(functions, 'generateImage'),
+  getImageUsageStatus: httpsCallable<{}, GetImageUsageStatusOutput>(functions, 'getImageUsageStatus'),
+  
+  // Función personalizada para metadatos de conversación
   async saveConversationMetadata(metadata: ConversationMetadataInput) {
     const user = auth.currentUser;
     if (!user) throw new Error('Usuario no autenticado');
@@ -242,11 +225,12 @@ export const cloudFunctions = {
   }
 };
 
-// ✅ HELPER FUNCTIONS COMPLETAS - TODAS LAS FUNCIONES FALTANTES AGREGADAS
+// 🛠️ FUNCIONES DE UTILIDAD
 export const helpers = {
   getErrorMessage(error: any): string {
-    if (error?.code) {
+    if (error && typeof error === 'object' && 'code' in error) {
       const errorMessages: { [key: string]: string } = {
+        // Errores de autenticación
         'auth/user-not-found': 'No se encontró ningún usuario con este email',
         'auth/wrong-password': 'Contraseña incorrecta',
         'auth/email-already-in-use': 'Este email ya está registrado',
@@ -254,133 +238,274 @@ export const helpers = {
         'auth/invalid-email': 'Email inválido',
         'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
         'auth/network-request-failed': 'Error de conexión. Verifica tu internet',
-        'auth/requires-recent-login': 'Debes volver a iniciar sesión para esta acción',
-        'auth/popup-closed-by-user': 'Inicio de sesión cancelado',
-        'auth/popup-blocked': 'Popup bloqueado. Permite popups para este sitio',
-        'auth/cancelled-popup-request': 'Múltiples popups detectados. Intenta nuevamente',
-        'auth/operation-not-allowed': 'Método de autenticación no permitido',
-        'auth/account-exists-with-different-credential': 'Ya existe una cuenta con este email usando un método diferente'
+        
+        // 🎨 Errores de generación de imágenes
+        'resource-exhausted': 'Has alcanzado tu límite de imágenes',
+        'invalid-argument': 'Parámetros inválidos para generar imagen',
+        'permission-denied': 'No tienes permisos para esta acción',
+        'unauthenticated': 'Debes iniciar sesión',
+        
+        // Errores de Firestore
+        'firestore/permission-denied': 'Sin permisos para acceder a este documento',
+        'firestore/not-found': 'Documento no encontrado',
+        'firestore/cancelled': 'Operación cancelada',
+        'firestore/unknown': 'Error desconocido',
+        'firestore/invalid-argument': 'Argumentos inválidos',
+        'firestore/deadline-exceeded': 'Tiempo de espera agotado',
+        'firestore/failed-precondition': 'Falló la precondición',
+        'firestore/aborted': 'Operación abortada',
+        'firestore/out-of-range': 'Fuera de rango',
+        'firestore/unimplemented': 'Función no implementada',
+        'firestore/internal': 'Error interno',
+        'firestore/unavailable': 'Servicio no disponible',
+        'firestore/data-loss': 'Pérdida de datos',
+        
+        // Errores de Storage
+        'storage/object-not-found': 'Archivo no encontrado',
+        'storage/bucket-not-found': 'Bucket de almacenamiento no encontrado',
+        'storage/quota-exceeded': 'Cuota de almacenamiento excedida',
+        'storage/unauthenticated': 'Usuario no autenticado para Storage',
+        'storage/unauthorized': 'Sin autorización para esta operación',
+        'storage/retry-limit-exceeded': 'Límite de reintentos excedido',
+        'storage/invalid-checksum': 'Checksum inválido del archivo',
+        'storage/canceled': 'Operación cancelada',
+        'storage/invalid-url': 'URL inválida',
+        'storage/invalid-argument': 'Argumento inválido para Storage',
+        'storage/no-default-bucket': 'No hay bucket por defecto configurado',
+        'storage/cannot-slice-blob': 'No se puede procesar el archivo',
+        'storage/server-file-wrong-size': 'Tamaño de archivo incorrecto'
       };
       
-      return errorMessages[error.code] || error.message || 'Ocurrió un error inesperado';
+      return errorMessages[error.code] || `Error: ${error.code}`;
     }
     
-    return error?.message || 'Ocurrió un error inesperado';
+    if (error && typeof error === 'object' && 'message' in error) {
+      return String(error.message);
+    }
+    
+    return 'Ha ocurrido un error inesperado';
   },
 
-  validateEmailFormat(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  },
-
-  validatePasswordStrength(password: string): { isValid: boolean; message: string } {
-    if (password.length < 6) {
-      return { isValid: false, message: 'La contraseña debe tener al menos 6 caracteres' };
-    }
-    
-    if (password.length < 8) {
-      return { isValid: true, message: 'Contraseña débil. Recomendamos al menos 8 caracteres' };
-    }
-    
-    const hasNumber = /\d/.test(password);
-    const hasUpper = /[A-Z]/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    
-    if (hasNumber && hasUpper && hasLower) {
-      return { isValid: true, message: 'Contraseña fuerte' };
-    }
-    
-    return { isValid: true, message: 'Contraseña moderada' };
-  },
-
-  // ✅ FUNCIONES FALTANTES QUE CAUSABAN ERRORES:
-  
+  // Formatear tokens para mostrar en UI
   formatTokens(tokens: number): string {
-    if (tokens === -1) return 'Ilimitado';
-    if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-    if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`;
-    return tokens.toString();
+    if (tokens < 0) return 'Ilimitado';
+    if (tokens < 1000) return `${tokens}`;
+    if (tokens < 1000000) return `${(tokens / 1000).toFixed(1)}K`;
+    return `${(tokens / 1000000).toFixed(1)}M`;
   },
 
+  // Calcular porcentaje de uso
   getUsagePercentage(used: number, limit: number): number {
-    if (limit === -1) return 0;
-    if (limit === 0) return 100;
-    return Math.min(Math.round((used / limit) * 100), 100);
+    if (limit <= 0) return 0;
+    if (limit === -1) return 0; // Ilimitado
+    return Math.min(100, (used / limit) * 100);
   },
 
-  getPlanDisplayName(plan: string): string {
-    const planNames: { [key: string]: string } = {
+  // Obtener nombre del plan para mostrar
+  getPlanDisplayName(plan: PlanType): string {
+    const names = {
       free: 'Gratis',
-      pro: 'Pro', 
+      pro: 'Pro',
       pro_max: 'Pro Max'
     };
-    return planNames[plan] || 'Gratis';
+    return names[plan] || 'Desconocido';
   },
 
-  getPlanColor(plan: string): string {
-    const planColors: { [key: string]: string } = {
-      free: 'text-gray-400',
-      pro: 'text-blue-400',
-      pro_max: 'text-yellow-400'
-    };
-    return planColors[plan] || 'text-gray-400';
-  },
+  // 🎨 NUEVAS FUNCIONES PARA IMÁGENES
 
-  // Función para validar tokens
-  hasTokensAvailable(userProfile: any): boolean {
-    if (!userProfile || !userProfile.usage) return false;
-    return userProfile.usage.daily.tokensRemaining > 0;
-  },
-
-  // Función para calcular el próximo reset de tokens
-  getNextTokenReset(): Date {
-    const now = new Date();
-    const nextMidnight = new Date(now);
-    nextMidnight.setDate(nextMidnight.getDate() + 1);
-    nextMidnight.setHours(0, 0, 0, 0);
-    return nextMidnight;
-  },
-
-  // Función para formatear tiempo restante hasta el reset
-  formatTimeUntilReset(): string {
-    const now = new Date();
-    const nextReset = helpers.getNextTokenReset();
-    const diff = nextReset.getTime() - now.getTime();
+  // Formatear tamaño de archivo
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
     
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
     
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  },
+
+  // Validar formato de imagen
+  isValidImageFormat(file: File): boolean {
+    const validFormats = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    return validFormats.includes(file.type);
+  },
+
+  // Comprimir imagen base64
+  compressImage(base64: string, quality: number = 0.8): Promise<string> {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        const ratio = Math.min(1920 / img.width, 1080 / img.height);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      
+      img.src = base64;
+    });
+  },
+
+  // Generar thumbnail
+  generateThumbnail(imageUrl: string, size: number = 200): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        canvas.width = size;
+        canvas.height = size;
+        
+        const ratio = Math.min(size / img.width, size / img.height);
+        const width = img.width * ratio;
+        const height = img.height * ratio;
+        const x = (size - width) / 2;
+        const y = (size - height) / 2;
+        
+        ctx?.drawImage(img, x, y, width, height);
+        const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(thumbnail);
+      };
+      
+      img.onerror = reject;
+      img.src = imageUrl;
+    });
+  },
+
+  // Descargar imagen
+  async downloadImage(imageUrl: string, filename?: string): Promise<void> {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || `nora-generated-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      throw new Error('Error descargando imagen');
     }
-    return `${minutes}m`;
+  },
+
+  // Compartir imagen
+  async shareImage(imageUrl: string, title?: string, text?: string): Promise<void> {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: title || 'Imagen generada con NORA AI',
+          text: text || 'Mira esta imagen que generé con NORA AI',
+          url: imageUrl
+        });
+      } else {
+        await navigator.clipboard.writeText(imageUrl);
+        throw new Error('URL copiada al portapapeles');
+      }
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error && 
+          String(error.message) === 'URL copiada al portapapeles') {
+        throw error; // Re-lanzar para mostrar mensaje correcto
+      }
+      throw new Error('Error compartiendo imagen');
+    }
+  },
+
+  // Validar prompt de imagen
+  validateImagePrompt(prompt: string, maxLength: number): { valid: boolean; error?: string } {
+    if (!prompt || prompt.trim().length === 0) {
+      return { valid: false, error: 'El prompt es requerido' };
+    }
+
+    if (prompt.length > maxLength) {
+      return { valid: false, error: `Prompt muy largo. Máximo ${maxLength} caracteres` };
+    }
+
+    // Palabras prohibidas (ejemplo básico)
+    const prohibitedWords = ['nsfw', 'nude', 'explicit', 'sexual'];
+    const lowerPrompt = prompt.toLowerCase();
+    
+    for (const word of prohibitedWords) {
+      if (lowerPrompt.includes(word)) {
+        return { valid: false, error: 'El prompt contiene contenido no permitido' };
+      }
+    }
+
+    return { valid: true };
+  },
+
+  // Formatear tiempo de generación
+  formatGenerationTime(milliseconds: number): string {
+    if (milliseconds < 1000) return `${milliseconds}ms`;
+    return `${(milliseconds / 1000).toFixed(1)}s`;
+  },
+
+  // Obtener color del plan
+  getPlanColor(plan: PlanType): string {
+    const colors = {
+      free: '#6B7280',     // Gris
+      pro: '#3B82F6',      // Azul
+      pro_max: '#F59E0B'   // Amarillo/Dorado
+    };
+    return colors[plan] || colors.free;
+  },
+
+  // Obtener icono del plan
+  getPlanIcon(plan: PlanType): string {
+    const icons = {
+      free: '📷',
+      pro: '⚡',
+      pro_max: '👑'
+    };
+    return icons[plan] || icons.free;
   }
 };
 
-// Constants actualizados con los nuevos precios
-export const PLANS = {
-  FREE: 'free',
-  PRO: 'pro', 
-  PRO_MAX: 'pro_max'
-} as const;
+// Validar configuración al importar (solo en servidor)
+if (typeof window === 'undefined') {
+  const requiredKeys = [
+    'NEXT_PUBLIC_FIREBASE_API_KEY',
+    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+    'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+    'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+    'NEXT_PUBLIC_FIREBASE_APP_ID'
+  ] as const;
 
-export const STRIPE_PRICES = {
-  pro: 'price_1S08CYPa2fV72c7wm3DC8M3y',
-  pro_max: 'price_1S12wKPa2fV72c7wX2NRAwQF'
-} as const;
-
-// Configuración de tokens optimizada por plan
-export const TOKEN_LIMITS = {
-  free: {
-    daily: 6600,
-    maxResponseTokens: 150
-  },
-  pro: {
-    daily: 333000,
-    maxResponseTokens: 500
-  },
-  pro_max: {
-    daily: 466000,
-    maxResponseTokens: 1000
+  let configValid = true;
+  for (const key of requiredKeys) {
+    if (!process.env[key]) {
+      console.error(`❌ Missing required environment variable: ${key}`);
+      configValid = false;
+    }
   }
-} as const;
+
+  if (configValid) {
+    console.log('✅ Firebase configuration is valid');
+  }
+
+  // Validar Gemini API keys
+  const geminiKeys = [
+    process.env.GEMINI_API_KEY_PRO,
+    process.env.GEMINI_API_KEY_BASIC,
+    process.env.GEMINI_API_KEY_FREE
+  ];
+
+  const hasValidGeminiKey = geminiKeys.some(key => key && key.length > 0);
+  
+  if (!hasValidGeminiKey) {
+    console.warn('⚠️ Warning: No Gemini API keys configured. Image generation may not work.');
+  } else {
+    console.log('✅ Gemini API keys configured');
+  }
+}
+
+export default app;

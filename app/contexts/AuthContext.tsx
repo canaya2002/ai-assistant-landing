@@ -1,4 +1,4 @@
-// contexts/AuthContext.tsx
+// contexts/AuthContext.tsx - ERRORES COMPLETAMENTE CORREGIDOS
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error: unknown) {
       console.error('Error fetching user profile:', error);
       setError('Error cargando perfil de usuario');
-      // Perfil por defecto mejorado para free con chat habilitado
+      // ✅ Perfil por defecto corregido con todas las propiedades
       setUserProfile({
         user: {
           uid: firebaseUser.uid,
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             analysesCount: 0, 
             analysesLimit: 2,
             analysesRemaining: 2,
-            chatMessagesCount: 0
+            chatMessagesCount: 0 // ✅ CORREGIDO: Añadido chatMessagesCount
           },
           monthly: { 
             tokensUsed: 0, 
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             analysesCount: 0, 
             analysesLimit: 50,
             analysesRemaining: 50,
-            chatMessagesCount: 0
+            chatMessagesCount: 0 // ✅ CORREGIDO: Añadido chatMessagesCount
           }
         },
         limits: {
@@ -105,7 +105,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             multimedia: false,
             code: false,
             pdf: false,
-            liveMode: false
+            liveMode: false,
+            imageGeneration: true // ✅ CORREGIDO: Añadido imageGeneration
           }
         }
       });

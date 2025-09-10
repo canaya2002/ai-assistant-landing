@@ -60,67 +60,64 @@ const AuthInput = ({
         )}
       </div>
       {error && (
-        <p className="mt-2 text-sm text-red-400 flex items-center space-x-2">
+        <div className="flex items-center space-x-2 mt-2 text-red-400 text-sm">
           <AlertTriangle className="w-4 h-4" />
           <span>{error}</span>
-        </p>
+        </div>
       )}
     </div>
   );
 };
 
-const SuccessMessage = ({ message }: { message: string }) => {
-  return (
-    <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-xl">
-      <div className="flex items-center space-x-2">
-        <CheckCircle className="w-5 h-5 text-green-400" />
-        <p className="text-green-400 text-sm">{message}</p>
-      </div>
-    </div>
-  );
-};
+// Success message component
+const SuccessMessage = ({ message }: { message: string }) => (
+  <div className="flex items-center space-x-3 p-4 bg-green-500/20 border border-green-500/30 rounded-xl">
+    <CheckCircle className="w-5 h-5 text-green-400" />
+    <p className="text-green-400 text-sm">{message}</p>
+  </div>
+);
 
-const SocialButton = ({ 
-  icon: Icon, 
-  provider, 
-  onClick, 
-  disabled 
-}: {
-  icon: LucideIcon;
-  provider: string;
-  onClick: () => void;
-  disabled: boolean;
-}) => {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      type="button"
-      className="w-full p-4 bg-white/10 hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 rounded-xl text-white transition-all duration-300 flex items-center justify-center space-x-3"
-    >
-      <Icon className="w-5 h-5" />
-      <span>Continuar con {provider}</span>
-    </button>
-  );
-};
+// Error message component
+const ErrorMessage = ({ message }: { message: string }) => (
+  <div className="flex items-center space-x-3 p-4 bg-red-500/20 border border-red-500/30 rounded-xl">
+    <AlertTriangle className="w-5 h-5 text-red-400" />
+    <p className="text-red-400 text-sm">{message}</p>
+  </div>
+);
+
+interface FormData {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface FormErrors {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  general: string;
+}
 
 export default function AuthForm() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const router = useRouter();
   
-  const [formData, setFormData] = useState({
+  // State
+  const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-  
-  const [errors, setErrors] = useState({
+
+  const [errors, setErrors] = useState<FormErrors>({
     name: '',
     email: '',
     password: '',
@@ -128,20 +125,43 @@ export default function AuthForm() {
     general: ''
   });
 
-  const validateForm = () => {
-    const newErrors = { name: '', email: '', password: '', confirmPassword: '', general: '' };
+  // Form handlers
+  const handleInputChange = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: e.target.value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      general: ''
+    };
     let isValid = true;
 
     // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
       newErrors.email = 'Email es requerido';
       isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Por favor ingresa un email válido';
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = 'Email no válido';
       isValid = false;
     }
 
-    // Password validation (skip for forgot password)
+    // Password validation (except for forgot password)
     if (!showForgotPassword) {
       if (!formData.password) {
         newErrors.password = 'Contraseña es requerida';
@@ -178,53 +198,36 @@ export default function AuthForm() {
 
     try {
       if (showForgotPassword) {
-        // ✅ CORRECCIÓN: Forgot password flow sin acceder a .error
-        try {
-          await authFunctions.resetPassword(formData.email);
-          setSuccessMessage('Se ha enviado un email para restablecer tu contraseña. Revisa tu bandeja de entrada.');
-          toast.success('Email de recuperación enviado');
-          setTimeout(() => {
-            setShowForgotPassword(false);
-            setSuccessMessage('');
-          }, 3000);
-        } catch (error: any) {
-          const errorMessage = helpers.getErrorMessage(error);
-          setErrors({ ...errors, general: errorMessage });
-          toast.error('Error al enviar email de recuperación');
-        }
+        // ✅ CORRECCIÓN: Forgot password flow
+        await authFunctions.resetPassword(formData.email);
+        setSuccessMessage('Se ha enviado un email para restablecer tu contraseña. Revisa tu bandeja de entrada.');
+        toast.success('Email de recuperación enviado');
+        setTimeout(() => {
+          setShowForgotPassword(false);
+          setSuccessMessage('');
+        }, 3000);
       } else if (isLogin) {
         // ✅ CORRECCIÓN: Login flow mejorado
-        try {
-          await authFunctions.signIn(formData.email, formData.password);
-          setSuccessMessage('¡Inicio de sesión exitoso! Redirigiendo...');
-          toast.success('¡Bienvenido a NORA!');
-          setTimeout(() => {
-            router.push('/chat');
-          }, 1500);
-        } catch (error: any) {
-          const errorMessage = helpers.getErrorMessage(error);
-          setErrors({ ...errors, general: errorMessage });
-          toast.error('Error al iniciar sesión');
-        }
+        await authFunctions.signIn(formData.email, formData.password);
+        setSuccessMessage('¡Inicio de sesión exitoso! Redirigiendo...');
+        toast.success('¡Bienvenido a NORA!');
+        setTimeout(() => {
+          router.push('/chat');
+        }, 1500);
       } else {
         // ✅ CORRECCIÓN: Registration flow mejorado
-        try {
-          await authFunctions.signUp(formData.email, formData.password, formData.name);
-          setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
-          toast.success('¡Bienvenido a NORA!');
-          setTimeout(() => {
-            router.push('/chat');
-          }, 1500);
-        } catch (error: any) {
-          const errorMessage = helpers.getErrorMessage(error);
-          setErrors({ ...errors, general: errorMessage });
-          toast.error('Error al crear cuenta');
-        }
+        await authFunctions.signUp(formData.email, formData.password, formData.name);
+        setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
+        toast.success('¡Bienvenido a NORA!');
+        setTimeout(() => {
+          router.push('/chat');
+        }, 1500);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage = helpers.getErrorMessage(error);
-      setErrors({ ...errors, general: errorMessage });
-      toast.error('Error inesperado');
+      setErrors(prev => ({ ...prev, general: errorMessage }));
+      toast.error(showForgotPassword ? 'Error al enviar email de recuperación' : 
+                  isLogin ? 'Error al iniciar sesión' : 'Error al crear cuenta');
     } finally {
       setIsLoading(false);
     }
@@ -241,57 +244,57 @@ export default function AuthForm() {
       setTimeout(() => {
         router.push('/chat');
       }, 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google sign in error:', error);
       
       // ✅ MANEJO ESPECÍFICO DE ERRORES GOOGLE
       let errorMessage = 'Error al iniciar sesión con Google';
       
-      if (error?.code === 'auth/unauthorized-domain') {
-        errorMessage = 'Dominio no autorizado. Contacta al administrador.';
-      } else if (error?.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Inicio de sesión cancelado';
-      } else if (error?.code === 'auth/popup-blocked') {
-        errorMessage = 'Popup bloqueado. Permite popups para este sitio';
-      } else {
-        errorMessage = helpers.getErrorMessage(error);
+      if (error && typeof error === 'object' && 'code' in error) {
+        const errorCode = error.code as string;
+        
+        if (errorCode === 'auth/unauthorized-domain') {
+          errorMessage = 'Dominio no autorizado. Contacta al administrador.';
+        } else if (errorCode === 'auth/popup-closed-by-user') {
+          errorMessage = 'Inicio de sesión cancelado';
+        } else if (errorCode === 'auth/popup-blocked') {
+          errorMessage = 'Popup bloqueado. Permite popups para este sitio.';
+        } else if (errorCode === 'auth/cancelled-popup-request') {
+          errorMessage = 'Solo se permite una ventana de inicio de sesión a la vez';
+        }
       }
-      
-      setErrors({ ...errors, general: errorMessage });
+
+      setErrors(prev => ({ ...prev, general: errorMessage }));
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleInputChange = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [field]: e.target.value });
-    if (errors[field as keyof typeof errors]) {
-      setErrors({ ...errors, [field]: '' });
-    }
-  };
-
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setShowForgotPassword(false);
+  const resetForm = () => {
     setFormData({ name: '', email: '', password: '', confirmPassword: '' });
     setErrors({ name: '', email: '', password: '', confirmPassword: '', general: '' });
     setSuccessMessage('');
   };
 
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setShowForgotPassword(false);
+    resetForm();
+  };
+
   const toggleForgotPassword = () => {
     setShowForgotPassword(!showForgotPassword);
-    setFormData({ ...formData, password: '', confirmPassword: '' });
-    setErrors({ name: '', email: '', password: '', confirmPassword: '', general: '' });
-    setSuccessMessage('');
+    setIsLogin(true);
+    resetForm();
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-black/60 backdrop-blur-2xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+      <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-2xl p-8 shadow-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-light text-white mb-2 font-lastica">
+          <h1 className="text-3xl font-bold text-white mb-2">
             {showForgotPassword ? 'Restablecer Contraseña' : isLogin ? 'Bienvenido de vuelta' : 'Crear Cuenta'}
           </h1>
           <p className="text-gray-400 font-light">
@@ -306,6 +309,9 @@ export default function AuthForm() {
 
         {/* Success Message */}
         {successMessage && <SuccessMessage message={successMessage} />}
+
+        {/* General Error */}
+        {errors.general && <ErrorMessage message={errors.general} />}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -357,110 +363,91 @@ export default function AuthForm() {
                   onChange={handleInputChange('confirmPassword')}
                   icon={Lock}
                   error={errors.confirmPassword}
-                  showPassword={showConfirmPassword}
-                  togglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+                  showPassword={showPassword}
                   disabled={isLoading}
                 />
               )}
             </>
           )}
 
-          {/* General error */}
-          {errors.general && (
-            <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-xl">
-              <p className="text-red-400 text-sm flex items-center space-x-2">
-                <AlertTriangle className="w-4 h-4" />
-                <span>{errors.general}</span>
-              </p>
-            </div>
-          )}
-
-          {/* Submit button */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 bg-nora-primary hover:bg-nora-primary/80 disabled:bg-nora-primary/50 disabled:cursor-not-allowed text-white rounded-xl font-light transition-all duration-300 flex items-center justify-center space-x-2"
+            className="w-full py-4 bg-gradient-to-r from-nora-primary to-nora-secondary text-white font-semibold rounded-xl hover:from-nora-primary/90 hover:to-nora-secondary/90 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center space-x-2"
           >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <span>
-                {showForgotPassword 
-                  ? 'Enviar email' 
+            {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            <span>
+              {isLoading 
+                ? 'Procesando...' 
+                : showForgotPassword 
+                  ? 'Enviar Email' 
                   : isLogin 
                     ? 'Iniciar Sesión' 
                     : 'Crear Cuenta'
-                }
-              </span>
-            )}
+              }
+            </span>
           </button>
 
-          {/* Social login (not for forgot password) */}
+          {/* Google Sign In (not for forgot password) */}
           {!showForgotPassword && (
             <>
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-600" />
+                  <div className="w-full border-t border-white/10"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-black/60 text-gray-400">o</span>
+                  <span className="px-4 bg-black/20 text-gray-400">o continúa con</span>
                 </div>
               </div>
 
-              <SocialButton
-                icon={Chrome}
-                provider="Google"
+              <button
+                type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isLoading}
-              />
+                className="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3"
+              >
+                <Chrome className="w-5 h-5" />
+                <span>Google</span>
+              </button>
             </>
           )}
 
-          {/* Forgot password & Toggle mode */}
-          <div className="space-y-4">
-            {/* Forgot password (login only) */}
-            {isLogin && !showForgotPassword && (
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={toggleForgotPassword}
-                  className="text-gray-400 hover:text-white text-sm transition-colors"
-                  disabled={isLoading}
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
-            )}
-
-            {/* Back to login (forgot password) */}
-            {showForgotPassword && (
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={toggleForgotPassword}
-                  className="text-gray-400 hover:text-white text-sm transition-colors"
-                  disabled={isLoading}
-                >
-                  ← Volver al inicio de sesión
-                </button>
-              </div>
-            )}
-
-            {/* Toggle between login/register */}
-            {!showForgotPassword && (
-              <div className="text-center">
-                <span className="text-gray-400 text-sm">
-                  {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
-                </span>
-                <button
-                  type="button"
-                  onClick={toggleMode}
-                  className="ml-2 text-nora-primary hover:text-nora-primary/80 text-sm font-medium transition-colors"
-                  disabled={isLoading}
-                >
-                  {isLogin ? 'Regístrate' : 'Inicia sesión'}
-                </button>
-              </div>
+          {/* Action Links */}
+          <div className="text-center space-y-2">
+            {showForgotPassword ? (
+              <button
+                type="button"
+                onClick={toggleForgotPassword}
+                className="text-nora-primary hover:text-nora-primary/80 transition-colors text-sm"
+              >
+                Volver al inicio de sesión
+              </button>
+            ) : (
+              <>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={toggleForgotPassword}
+                    className="text-gray-400 hover:text-white transition-colors text-sm block w-full"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                )}
+                
+                <div className="flex items-center justify-center space-x-1 text-sm">
+                  <span className="text-gray-400">
+                    {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="text-nora-primary hover:text-nora-primary/80 transition-colors font-medium"
+                  >
+                    {isLogin ? 'Crear una' : 'Iniciar sesión'}
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </form>

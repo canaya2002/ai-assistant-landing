@@ -89,6 +89,8 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
       messages: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      lastActivity: new Date(), // ✅ AÑADIDO - Propiedad faltante
+      messageCount: 0,          // ✅ AÑADIDO - Propiedad faltante  
       isArchived: false,
       tags: []
     };
