@@ -110,8 +110,8 @@ export default function ImageGenerator({
       return;
     }
 
-    if (usageStatus?.limits?.remainingDaily <= 0) {
-      toast.error('Has alcanzado tu límite diario de imágenes');
+    if (usageStatus.limits.remainingMonthly <= 0) {
+      toast.error('Has alcanzado tu límite mensual de imágenes');
       return;
     }
 
@@ -270,7 +270,7 @@ export default function ImageGenerator({
 
           <button
             onClick={generateImage}
-            disabled={!prompt.trim() || isGenerating || !usageStatus || (usageStatus?.limits?.remainingDaily ?? 0) <= 0}
+            disabled={!prompt.trim() || isGenerating || !usageStatus || (usageStatus?.limits?.remainingMonthly ?? 0) <= 0}
             className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
           >
             {isGenerating ? (

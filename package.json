@@ -80,7 +80,7 @@
     "@next/bundle-analyzer": "^15.5.0",
     "@playwright/test": "^1.40.0",
     "@testing-library/jest-dom": "^6.1.0",
-    "@testing-library/react": "^14.1.0",
+    "@testing-library/react": "^15.0.0",
     "@testing-library/user-event": "^14.5.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^18.15.13",
@@ -103,42 +103,10 @@
     "typescript": "^4.9.4"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md}": [
-      "prettier --write"
-    ]
-  },
-  "jest": {
-    "testEnvironment": "jsdom",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
-    "moduleNameMapping": {
-      "^@/(.*)$": "<rootDir>/app/$1"
-    },
-    "collectCoverageFrom": [
-      "app/**/*.{js,jsx,ts,tsx}",
-      "!app/**/*.d.ts",
-      "!app/**/layout.tsx",
-      "!app/**/loading.tsx",
-      "!app/**/not-found.tsx"
-    ]
+    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md}": ["prettier --write"]
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "node": ">=18.0.0"
   }
 }
