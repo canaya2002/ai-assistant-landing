@@ -3,7 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "description": "NORA AI - Asistente de IA con generación de imágenes",
-  "keywords": ["ai", "chat", "image-generation", "nextjs", "firebase", "gemini"],
+  "keywords": [
+    "ai",
+    "chat",
+    "image-generation",
+    "nextjs",
+    "firebase",
+    "gemini"
+  ],
   "author": "NORA AI Team",
   "license": "MIT",
   "homepage": "https://nora-ai.com",
@@ -23,43 +30,33 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    
     "setup": "./scripts/setup.sh",
     "setup:dev": "./scripts/dev-setup.sh",
-    
     "emulators": "firebase emulators:start",
     "emulators:import": "firebase emulators:start --import=./emulator-data",
     "emulators:export": "firebase emulators:export ./emulator-data",
-    
     "deploy": "npm run deploy:functions && npm run deploy:hosting",
     "deploy:functions": "./scripts/deploy-functions.sh",
     "deploy:hosting": "./scripts/deploy-hosting.sh",
     "deploy:rules": "firebase deploy --only firestore:rules,storage",
-    
     "functions:logs": "firebase functions:log",
     "functions:config": "firebase functions:config:get",
     "functions:shell": "cd functions && npm run shell",
-    
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
     "test:images": "./scripts/test-image-generation.sh",
-    
     "monitor": "./scripts/monitor-usage.sh",
     "analyze": "npm run build && npx @next/bundle-analyzer",
-    
     "db:seed": "node scripts/seed-database.js",
     "db:backup": "firebase firestore:export ./backups/$(date +%Y%m%d_%H%M%S)",
     "db:restore": "firebase firestore:import",
-    
     "security:audit": "npm audit && firebase firestore:rules:validate",
     "security:scan": "npx audit-ci --config audit-ci.json",
-    
     "clean": "rm -rf .next out node_modules/.cache",
     "clean:all": "npm run clean && rm -rf node_modules functions/node_modules",
     "reinstall": "npm run clean:all && npm install && cd functions && npm install",
-    
     "precommit": "npm run lint && npm run type-check",
     "prepare": "husky install"
   },
@@ -80,7 +77,7 @@
     "@next/bundle-analyzer": "^15.5.0",
     "@playwright/test": "^1.40.0",
     "@testing-library/jest-dom": "^6.1.0",
-    "@testing-library/react": "^15.0.0",
+    "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^18.15.13",
@@ -103,8 +100,13 @@
     "typescript": "^4.9.4"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
-    "*.{json,md}": ["prettier --write"]
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "engines": {
     "node": ">=18.0.0"
