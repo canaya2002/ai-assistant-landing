@@ -1,5 +1,5 @@
-// lib/ConversationStorage.ts
-import { Conversation, ChatMessage } from './types';
+// lib/ConversationStorage.ts - ARREGLADO CON TUS TIPOS ORIGINALES
+import { Conversation, ChatMessage, ConversationMetadataInput } from './types';
 import { cloudFunctions } from './firebase';
 
 export interface ConversationMetadata {
@@ -58,6 +58,7 @@ export class LocalConversationStorage {
         ...conv,
         createdAt: new Date(conv.createdAt),
         updatedAt: new Date(conv.updatedAt),
+        lastActivity: new Date(conv.lastActivity || conv.updatedAt),
         messages: conv.messages.map(msg => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
@@ -83,7 +84,7 @@ export class LocalConversationStorage {
     return conversations.filter(conv => 
       conv.title.toLowerCase().includes(lowerQuery) ||
       conv.messages.some(msg => 
-        msg.message.toLowerCase().includes(lowerQuery)
+        msg.message.toLowerCase().includes(lowerQuery) // ✅ CORREGIDO: usar TU 'message' no 'content'
       )
     ).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
@@ -106,68 +107,23 @@ export class LocalConversationStorage {
       .slice(0, limit);
   }
 
-  // Generar título automático para conversación
+  // ✅ FUNCIÓN GENERATETITLE COMPLETAMENTE ARREGLADA
   static generateTitle(firstMessage: string): string {
+    // ✅ VALIDACIÓN AGREGADA para evitar el error undefined
+    if (!firstMessage || typeof firstMessage !== 'string') {
+      return 'Nueva conversación';
+    }
+    
     const title = firstMessage.trim();
+    if (!title) {
+      return 'Nueva conversación';
+    }
+    
     if (title.length <= 50) return title;
     
     // Buscar punto de corte natural
     const cutPoint = title.lastIndexOf(' ', 47);
     return title.substring(0, cutPoint > 20 ? cutPoint : 47) + '...';
-  }
-
-  // Exportar todas las conversaciones
-  static exportAllConversations(): string {
-    const conversations = this.getConversations();
-    const backup = {
-      version: '1.0',
-      exportDate: new Date().toISOString(),
-      totalConversations: conversations.length,
-      data: conversations
-    };
-    return JSON.stringify(backup, null, 2);
-  }
-
-  // Importar conversaciones desde backup
-  static importConversations(backupData: string): { success: boolean; imported: number; errors: string[] } {
-    try {
-      const backup = JSON.parse(backupData);
-      const errors: string[] = [];
-      let imported = 0;
-      
-      if (!backup.version || !backup.data) {
-        return { success: false, imported: 0, errors: ['Formato de backup inválido'] };
-      }
-      
-      const existing = this.getConversations();
-      const existingIds = new Set(existing.map(c => c.id));
-      
-      const validConversations = backup.data.filter((conv: any) => {
-        if (!conv.id || !conv.messages || !Array.isArray(conv.messages)) {
-          errors.push(`Conversación inválida: ${conv.title || 'Sin título'}`);
-          return false;
-        }
-        return true;
-      });
-      
-      const newConversations = validConversations.filter((conv: Conversation) => 
-        !existingIds.has(conv.id)
-      );
-      
-      if (newConversations.length > 0) {
-        const merged = [...existing, ...newConversations];
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(merged));
-        imported = newConversations.length;
-      }
-      
-      return { success: true, imported, errors };
-    } catch (error) {
-      return { 
-        success: false, 
-        imported: 0, 
-        errors: [`Error procesando backup: ${error instanceof Error ? error.message : 'Error desconocido'}`] 
-      };
-    }
   }
 
   // Limpiar conversaciones antiguas
@@ -177,17 +133,18 @@ export class LocalConversationStorage {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysOld);
       
-      const filtered = conversations.filter(conv => 
-        new Date(conv.updatedAt) > cutoffDate
+      const oldConversations = conversations.filter(conv => 
+        new Date(conv.updatedAt) < cutoffDate
       );
       
-      const removed = conversations.length - filtered.length;
+      if (oldConversations.length === 0) return 0;
       
-      if (removed > 0) {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
-      }
+      const remainingConversations = conversations.filter(conv => 
+        new Date(conv.updatedAt) >= cutoffDate
+      );
       
-      return removed;
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(remainingConversations));
+      return oldConversations.length;
     } catch (error) {
       console.error('Error cleaning old conversations:', error);
       return 0;
@@ -195,16 +152,22 @@ export class LocalConversationStorage {
   }
 
   // Obtener estadísticas de uso
-  static getUsageStats(): {
-    totalConversations: number;
-    totalMessages: number;
-    avgMessagesPerConversation: number;
-    oldestConversation: Date | null;
-    newestConversation: Date | null;
-  } {
-    const conversations = this.getConversations();
-    
-    if (conversations.length === 0) {
+  static getUsageStats() {
+    try {
+      const conversations = this.getConversations();
+      const totalMessages = conversations.reduce((total, conv) => total + conv.messages.length, 0);
+      
+      return {
+        totalConversations: conversations.length,
+        totalMessages,
+        avgMessagesPerConversation: conversations.length > 0 ? Math.round(totalMessages / conversations.length) : 0,
+        oldestConversation: conversations.length > 0 ? 
+          new Date(Math.min(...conversations.map(c => new Date(c.createdAt).getTime()))) : null,
+        newestConversation: conversations.length > 0 ? 
+          new Date(Math.max(...conversations.map(c => new Date(c.updatedAt).getTime()))) : null
+      };
+    } catch (error) {
+      console.error('Error getting usage stats:', error);
       return {
         totalConversations: 0,
         totalMessages: 0,
@@ -213,132 +176,90 @@ export class LocalConversationStorage {
         newestConversation: null
       };
     }
-    
-    const totalMessages = conversations.reduce((sum, conv) => sum + conv.messages.length, 0);
-    const dates = conversations.map(conv => new Date(conv.createdAt));
-    
-    return {
-      totalConversations: conversations.length,
-      totalMessages,
-      avgMessagesPerConversation: Math.round(totalMessages / conversations.length),
-      oldestConversation: new Date(Math.min(...dates.map(d => d.getTime()))),
-      newestConversation: new Date(Math.max(...dates.map(d => d.getTime())))
-    };
   }
 
-  // Guardar metadatos en Firebase (async, no crítico)
+  // ✅ CORREGIDO: Guardar metadatos en Firebase (no crítico)
   private static async saveMetadataToFirebase(conversation: Conversation): Promise<void> {
     try {
-      // Solo metadatos mínimos para Firebase
-      const metadata = {
+      const metadata: ConversationMetadataInput = { // ✅ Usar ConversationMetadataInput
         userId: conversation.userId,
         conversationId: conversation.id,
         title: conversation.title,
         messageCount: conversation.messages.length,
-        lastActivity: conversation.updatedAt.toISOString(), // Convertir Date a string
+        lastActivity: (conversation.lastActivity || conversation.updatedAt).toISOString(), // ✅ Convertir Date a string
         tags: conversation.tags
       };
-      
-      // Enviar a Firebase (no crítico si falla)
-      await cloudFunctions.saveConversationMetadata(metadata);
-    } catch (error) {
-      // No mostrar error al usuario, es solo para analytics
-      console.debug('Metadata save failed (non-critical):', error);
-    }
-  }
-}
 
-// Utilidades para backup
-export class BackupManager {
-  private static readonly BACKUP_SETTINGS_KEY = 'nora_backup_settings';
-
-  // Configuración de backup automático
-  static getBackupSettings(): {
-    autoBackup: boolean;
-    backupInterval: number; // días
-    lastBackup: Date | null;
-    googleDriveEnabled: boolean;
-  } {
-    try {
-      const stored = localStorage.getItem(this.BACKUP_SETTINGS_KEY);
-      if (!stored) {
-        return {
-          autoBackup: false,
-          backupInterval: 7,
-          lastBackup: null,
-          googleDriveEnabled: false
-        };
+      // Llamada async no crítica
+      if (cloudFunctions.saveConversationMetadata) {
+        await cloudFunctions.saveConversationMetadata(metadata).catch((error: any) => {
+          console.warn('Failed to save metadata to Firebase:', error);
+        });
       }
-      
-      const settings = JSON.parse(stored);
-      return {
-        ...settings,
-        lastBackup: settings.lastBackup ? new Date(settings.lastBackup) : null
-      };
     } catch (error) {
-      console.error('Error loading backup settings:', error);
-      return {
-        autoBackup: false,
-        backupInterval: 7,
-        lastBackup: null,
-        googleDriveEnabled: false
-      };
+      console.warn('Error preparing metadata for Firebase:', error);
     }
   }
 
-  // Guardar configuración de backup
-  static saveBackupSettings(settings: {
-    autoBackup: boolean;
-    backupInterval: number;
-    lastBackup: Date | null;
-    googleDriveEnabled: boolean;
-  }): void {
+  // Exportar conversaciones
+  static exportToJSON(): string {
+    const conversations = this.getConversations();
+    return JSON.stringify(conversations, null, 2);
+  }
+
+  // Importar conversaciones desde JSON
+  static importFromJSON(jsonData: string): boolean {
     try {
-      localStorage.setItem(this.BACKUP_SETTINGS_KEY, JSON.stringify(settings));
+      const importedConversations = JSON.parse(jsonData) as Conversation[];
+      
+      if (!Array.isArray(importedConversations)) {
+        throw new Error('Invalid format');
+      }
+
+      // Validar estructura básica
+      const validConversations = importedConversations.filter(conv => 
+        conv.id && conv.userId && conv.messages && Array.isArray(conv.messages)
+      );
+
+      if (validConversations.length === 0) {
+        return false;
+      }
+
+      // Obtener conversaciones existentes
+      const existingConversations = this.getConversations();
+      const existingIds = new Set(existingConversations.map(c => c.id));
+
+      // Agregar solo las nuevas
+      const newConversations = validConversations.filter(conv => !existingIds.has(conv.id));
+      
+      if (newConversations.length > 0) {
+        const allConversations = [...existingConversations, ...newConversations];
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allConversations));
+      }
+
+      return true;
     } catch (error) {
-      console.error('Error saving backup settings:', error);
+      console.error('Error importing conversations:', error);
+      return false;
     }
   }
 
-  // Verificar si necesita backup
-  static needsBackup(): boolean {
-    const settings = this.getBackupSettings();
-    if (!settings.autoBackup || !settings.lastBackup) return settings.autoBackup;
-    
-    const daysSinceBackup = Math.floor(
-      (Date.now() - settings.lastBackup.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    
-    return daysSinceBackup >= settings.backupInterval;
+  // ✅ FUNCIÓN HELPER PARA VALIDAR MENSAJES USANDO TUS TIPOS
+  static validateMessage(message: any): message is ChatMessage {
+    return message && 
+           typeof message.id === 'string' &&
+           typeof message.message === 'string' && // ✅ TU PROPIEDAD 'message'
+           typeof message.type === 'string' &&
+           message.timestamp instanceof Date;
   }
 
-  // Crear archivo de backup para descarga
-  static createBackupFile(): { filename: string; content: string } {
-    const content = LocalConversationStorage.exportAllConversations();
-    const date = new Date().toISOString().split('T')[0];
-    const filename = `nora-backup-${date}.json`;
-    
-    return { filename, content };
-  }
-
-  // Descargar backup
-  static downloadBackup(): void {
-    const { filename, content } = this.createBackupFile();
-    const blob = new Blob([content], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    
-    URL.revokeObjectURL(url);
-    
-    // Actualizar fecha de último backup
-    const settings = this.getBackupSettings();
-    this.saveBackupSettings({
-      ...settings,
-      lastBackup: new Date()
-    });
+  // ✅ FUNCIÓN HELPER PARA VALIDAR CONVERSACIONES
+  static validateConversation(conversation: any): conversation is Conversation {
+    return conversation &&
+           typeof conversation.id === 'string' &&
+           typeof conversation.userId === 'string' &&
+           typeof conversation.title === 'string' &&
+           Array.isArray(conversation.messages) &&
+           conversation.messages.every((msg: any) => this.validateMessage(msg));
   }
 }

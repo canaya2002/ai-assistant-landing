@@ -1,23 +1,34 @@
-// lib/firebase.ts - VERSIÓN COMPLETAMENTE CORREGIDA
+// lib/firebase.ts - FIREBASE COMPLETO CORREGIDO
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 
-// Importar tipos
+// Importar todos los tipos necesarios
 import type {
   ChatWithAIInput,
   ChatWithAIOutput,
   GenerateImageInput,
   GenerateImageOutput,
   GetImageUsageStatusOutput,
+  GenerateVideoInput,
+  GenerateVideoOutput,
+  GetVideoUsageStatusOutput,
+  CheckVideoStatusInput,
+  CheckVideoStatusOutput,
   CreateStripeCheckoutInput,
   CreateStripeCheckoutOutput,
   ManageSubscriptionOutput,
   ConversationMetadataInput,
   UserProfile,
-  PlanType
+  PlanType,
+  // NUEVOS TIPOS PARA MODOS ESPECIALIZADOS
+  SpecialistModeLimits,
+  DeveloperModeChatInput,
+  DeveloperModeChatOutput,
+  SpecialistModeChatInput,
+  SpecialistModeChatOutput
 } from './types';
 
 // Configuración de Firebase
@@ -85,7 +96,9 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULAT
   console.log('🔥 Using Firebase Production Services');
 }
 
+// ========================================
 // 🔐 FUNCIONES DE AUTENTICACIÓN
+// ========================================
 export const authFunctions = {
   // Registro de usuario
   async signUp(email: string, password: string, name: string) {
@@ -189,19 +202,48 @@ export const authFunctions = {
   }
 };
 
-// 📞 CLOUD FUNCTIONS
+// ========================================
+// 📞 CLOUD FUNCTIONS - TODAS LAS FUNCIONES
+// ========================================
 export const cloudFunctions = {
-  // Funciones existentes
+  // ========================================
+  // FUNCIONES BÁSICAS (EXISTENTES)
+  // ========================================
   getUserProfile: httpsCallable<{}, UserProfile>(functions, 'getUserProfile'),
   chatWithAI: httpsCallable<ChatWithAIInput, ChatWithAIOutput>(functions, 'chatWithAI'),
   createStripeCheckout: httpsCallable<CreateStripeCheckoutInput, CreateStripeCheckoutOutput>(functions, 'createStripeCheckout'),
   manageSubscription: httpsCallable<{}, ManageSubscriptionOutput>(functions, 'manageSubscription'),
 
-  // 🎨 NUEVAS FUNCIONES PARA GENERACIÓN DE IMÁGENES
+  // ========================================
+  // 🎨 FUNCIONES PARA GENERACIÓN DE IMÁGENES
+  // ========================================
   generateImage: httpsCallable<GenerateImageInput, GenerateImageOutput>(functions, 'generateImage'),
   getImageUsageStatus: httpsCallable<{}, GetImageUsageStatusOutput>(functions, 'getImageUsageStatus'),
   
-  // Función personalizada para metadatos de conversación
+  // ========================================
+  // 🎥 FUNCIONES PARA GENERACIÓN DE VIDEOS
+  // ========================================
+  generateVideo: httpsCallable<GenerateVideoInput, GenerateVideoOutput>(functions, 'generateVideo'),
+  getVideoUsageStatus: httpsCallable<{}, GetVideoUsageStatusOutput>(functions, 'getVideoUsageStatus'),
+  checkVideoStatus: httpsCallable<CheckVideoStatusInput, CheckVideoStatusOutput>(functions, 'checkVideoStatus'),
+  getSignedVideoUrl: httpsCallable<{videoId: string}, {success: boolean, videoUrl: string, thumbnailUrl: string, expiresIn: number, status: string}>(functions, 'getSignedVideoUrl'),
+
+  // ========================================
+  // 🔧 NUEVAS FUNCIONES - MODOS ESPECIALIZADOS
+  // ========================================
+  
+  // Obtener límites de modos especializados
+  getSpecialistModeLimits: httpsCallable<{}, SpecialistModeLimits>(functions, 'getSpecialistModeLimits'),
+  
+  // Chat en Modo Desarrollador
+  developerModeChat: httpsCallable<DeveloperModeChatInput, DeveloperModeChatOutput>(functions, 'developerModeChat'),
+  
+  // Chat en Modo Especialista
+  specialistModeChat: httpsCallable<SpecialistModeChatInput, SpecialistModeChatOutput>(functions, 'specialistModeChat'),
+  
+  // ========================================
+  // FUNCIÓN PERSONALIZADA PARA METADATOS
+  // ========================================
   async saveConversationMetadata(metadata: ConversationMetadataInput) {
     const user = auth.currentUser;
     if (!user) throw new Error('Usuario no autenticado');
@@ -225,7 +267,9 @@ export const cloudFunctions = {
   }
 };
 
-// 🛠️ FUNCIONES DE UTILIDAD
+// ========================================
+// 🛠️ FUNCIONES DE UTILIDAD - COMPLETAS
+// ========================================
 export const helpers = {
   getErrorMessage(error: any): string {
     if (error && typeof error === 'object' && 'code' in error) {
@@ -238,37 +282,53 @@ export const helpers = {
         'auth/invalid-email': 'Email inválido',
         'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
         'auth/network-request-failed': 'Error de conexión. Verifica tu internet',
-        
-        // 🎨 Errores de generación de imágenes
-        'resource-exhausted': 'Has alcanzado tu límite de imágenes',
-        'invalid-argument': 'Parámetros inválidos para generar imagen',
-        'permission-denied': 'No tienes permisos para esta acción',
-        'unauthenticated': 'Debes iniciar sesión',
+        'auth/user-disabled': 'Esta cuenta ha sido deshabilitada',
+        'auth/operation-not-allowed': 'Operación no permitida',
+        'auth/requires-recent-login': 'Por seguridad, inicia sesión nuevamente',
         
         // Errores de Firestore
-        'firestore/permission-denied': 'Sin permisos para acceder a este documento',
+        'firestore/permission-denied': 'Sin permisos para acceder a este recurso',
         'firestore/not-found': 'Documento no encontrado',
-        'firestore/cancelled': 'Operación cancelada',
-        'firestore/unknown': 'Error desconocido',
-        'firestore/invalid-argument': 'Argumentos inválidos',
-        'firestore/deadline-exceeded': 'Tiempo de espera agotado',
-        'firestore/failed-precondition': 'Falló la precondición',
-        'firestore/aborted': 'Operación abortada',
-        'firestore/out-of-range': 'Fuera de rango',
-        'firestore/unimplemented': 'Función no implementada',
-        'firestore/internal': 'Error interno',
-        'firestore/unavailable': 'Servicio no disponible',
-        'firestore/data-loss': 'Pérdida de datos',
+        'firestore/already-exists': 'El documento ya existe',
+        'firestore/resource-exhausted': 'Límite de recursos excedido',
+        'firestore/failed-precondition': 'La condición previa falló',
+        'firestore/aborted': 'Operación cancelada debido a conflicto',
+        'firestore/out-of-range': 'Valor fuera de rango válido',
+        'firestore/unimplemented': 'Operación no implementada',
+        'firestore/internal': 'Error interno del servidor',
+        'firestore/unavailable': 'Servicio no disponible temporalmente',
+        'firestore/data-loss': 'Pérdida de datos irrecuperable',
+        
+        // Errores de Cloud Functions
+        'functions/cancelled': 'Operación cancelada',
+        'functions/unknown': 'Error desconocido en el servidor',
+        'functions/invalid-argument': 'Argumento inválido',
+        'functions/deadline-exceeded': 'Tiempo de espera agotado',
+        'functions/not-found': 'Función no encontrada',
+        'functions/already-exists': 'El recurso ya existe',
+        'functions/permission-denied': 'Sin permisos para esta operación',
+        'functions/resource-exhausted': 'Límite de recursos excedido',
+        'functions/failed-precondition': 'Condición previa no cumplida',
+        'functions/aborted': 'Operación cancelada',
+        'functions/out-of-range': 'Valor fuera de rango',
+        'functions/unimplemented': 'Función no implementada',
+        'functions/internal': 'Error interno del servidor',
+        'functions/unavailable': 'Servicio no disponible',
+        'functions/data-loss': 'Pérdida de datos',
+        'functions/unauthenticated': 'Usuario no autenticado',
         
         // Errores de Storage
+        'storage/unknown': 'Error desconocido de almacenamiento',
         'storage/object-not-found': 'Archivo no encontrado',
-        'storage/bucket-not-found': 'Bucket de almacenamiento no encontrado',
+        'storage/bucket-not-found': 'Bucket no encontrado',
+        'storage/project-not-found': 'Proyecto no encontrado',
         'storage/quota-exceeded': 'Cuota de almacenamiento excedida',
-        'storage/unauthenticated': 'Usuario no autenticado para Storage',
-        'storage/unauthorized': 'Sin autorización para esta operación',
+        'storage/unauthenticated': 'Usuario no autenticado para storage',
+        'storage/unauthorized': 'Sin autorización para acceder al archivo',
         'storage/retry-limit-exceeded': 'Límite de reintentos excedido',
-        'storage/invalid-checksum': 'Checksum inválido del archivo',
-        'storage/canceled': 'Operación cancelada',
+        'storage/invalid-checksum': 'Checksum inválida',
+        'storage/canceled': 'Operación cancelada por el usuario',
+        'storage/invalid-event-name': 'Nombre de evento inválido',
         'storage/invalid-url': 'URL inválida',
         'storage/invalid-argument': 'Argumento inválido para Storage',
         'storage/no-default-bucket': 'No hay bucket por defecto configurado',
@@ -283,229 +343,162 @@ export const helpers = {
       return String(error.message);
     }
     
-    return 'Ha ocurrido un error inesperado';
+    return 'Error desconocido';
   },
 
-  // Formatear tokens para mostrar en UI
-  formatTokens(tokens: number): string {
-    if (tokens < 0) return 'Ilimitado';
-    if (tokens < 1000) return `${tokens}`;
-    if (tokens < 1000000) return `${(tokens / 1000).toFixed(1)}K`;
-    return `${(tokens / 1000000).toFixed(1)}M`;
+  // Función para validar plan de usuario
+  isValidPlan(plan: any): plan is PlanType {
+    return plan === 'free' || plan === 'pro' || plan === 'pro_max';
   },
 
-  // Calcular porcentaje de uso
+  // ========================================
+  // 🆕 FUNCIONES QUE FALTABAN
+  // ========================================
+
+  // Función para formatear tokens (la que usan los componentes existentes)
+  formatTokens(count: number): string {
+    if (count === -1) return 'Ilimitado';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  },
+
+  // Función para formatear uso de tokens
+  formatTokenUsage(used: number, limit: number): string {
+    if (limit === -1) return `${used.toLocaleString()} (Ilimitado)`;
+    return `${used.toLocaleString()} / ${limit.toLocaleString()}`;
+  },
+
+  // Función para calcular porcentaje de uso
   getUsagePercentage(used: number, limit: number): number {
-    if (limit <= 0) return 0;
-    if (limit === -1) return 0; // Ilimitado
-    return Math.min(100, (used / limit) * 100);
+    if (limit === -1) return 0;
+    if (limit === 0) return 100;
+    return Math.min((used / limit) * 100, 100);
   },
 
-  // Obtener nombre del plan para mostrar
-  getPlanDisplayName(plan: PlanType): string {
-    const names = {
-      free: 'Gratis',
-      pro: 'Pro',
-      pro_max: 'Pro Max'
+  // Función para determinar si un modo está disponible
+  isModeAvailable(mode: 'developer' | 'specialist', plan: PlanType, dailyUsed: number, dailyLimit: number): boolean {
+    if (dailyLimit === -1) return true; // Ilimitado
+    return dailyUsed < dailyLimit;
+  },
+
+  // Función para obtener mensaje de límite alcanzado
+  getLimitMessage(mode: 'developer' | 'specialist', plan: PlanType): string {
+    const modeNames = {
+      developer: 'Modo Desarrollador',
+      specialist: 'Modo Especialista'
     };
-    return names[plan] || 'Desconocido';
-  },
 
-  // 🎨 NUEVAS FUNCIONES PARA IMÁGENES
-
-  // Formatear tamaño de archivo
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  },
-
-  // Validar formato de imagen
-  isValidImageFormat(file: File): boolean {
-    const validFormats = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    return validFormats.includes(file.type);
-  },
-
-  // Comprimir imagen base64
-  compressImage(base64: string, quality: number = 0.8): Promise<string> {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        const ratio = Math.min(1920 / img.width, 1080 / img.height);
-        canvas.width = img.width * ratio;
-        canvas.height = img.height * ratio;
-        
-        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedBase64);
-      };
-      
-      img.src = base64;
-    });
-  },
-
-  // Generar thumbnail
-  generateThumbnail(imageUrl: string, size: number = 200): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        canvas.width = size;
-        canvas.height = size;
-        
-        const ratio = Math.min(size / img.width, size / img.height);
-        const width = img.width * ratio;
-        const height = img.height * ratio;
-        const x = (size - width) / 2;
-        const y = (size - height) / 2;
-        
-        ctx?.drawImage(img, x, y, width, height);
-        const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(thumbnail);
-      };
-      
-      img.onerror = reject;
-      img.src = imageUrl;
-    });
-  },
-
-  // Descargar imagen
-  async downloadImage(imageUrl: string, filename?: string): Promise<void> {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || `nora-generated-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      throw new Error('Error descargando imagen');
+    if (plan === 'free') {
+      return `Has alcanzado el límite diario del ${modeNames[mode]} en el plan gratuito. Actualiza a Pro para mayor acceso.`;
+    } else if (plan === 'pro') {
+      return `Has alcanzado el límite diario del ${modeNames[mode]}. Se restablecerá mañana o actualiza a Pro Max para acceso ilimitado.`;
+    } else {
+      return `Límite técnico alcanzado. Por favor intenta más tarde.`;
     }
   },
 
-  // Compartir imagen
-  async shareImage(imageUrl: string, title?: string, text?: string): Promise<void> {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: title || 'Imagen generada con NORA AI',
-          text: text || 'Mira esta imagen que generé con NORA AI',
-          url: imageUrl
-        });
-      } else {
-        await navigator.clipboard.writeText(imageUrl);
-        throw new Error('URL copiada al portapapeles');
-      }
-    } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'message' in error && 
-          String(error.message) === 'URL copiada al portapapeles') {
-        throw error; // Re-lanzar para mostrar mensaje correcto
-      }
-      throw new Error('Error compartiendo imagen');
-    }
-  },
+  // ========================================
+  // 🆕 FUNCIONES DE VALIDACIÓN
+  // ========================================
 
   // Validar prompt de imagen
-  validateImagePrompt(prompt: string, maxLength: number): { valid: boolean; error?: string } {
+  validateImagePrompt(prompt: string, maxLength: number = 500): { valid: boolean; error?: string } {
     if (!prompt || prompt.trim().length === 0) {
-      return { valid: false, error: 'El prompt es requerido' };
+      return { valid: false, error: 'Por favor, describe la imagen que quieres generar' };
     }
 
     if (prompt.length > maxLength) {
-      return { valid: false, error: `Prompt muy largo. Máximo ${maxLength} caracteres` };
+      return { valid: false, error: `El prompt es muy largo. Máximo ${maxLength} caracteres.` };
     }
 
-    // Palabras prohibidas (ejemplo básico)
-    const prohibitedWords = ['nsfw', 'nude', 'explicit', 'sexual'];
+    // Verificar contenido inapropiado básico
+    const inappropriateWords = ['nsfw', 'nude', 'explicit', 'sexual', 'pornographic'];
     const lowerPrompt = prompt.toLowerCase();
     
-    for (const word of prohibitedWords) {
+    for (const word of inappropriateWords) {
       if (lowerPrompt.includes(word)) {
-        return { valid: false, error: 'El prompt contiene contenido no permitido' };
+        return { valid: false, error: 'El contenido no es apropiado para generación de imágenes' };
       }
     }
 
     return { valid: true };
   },
 
-  // Formatear tiempo de generación
-  formatGenerationTime(milliseconds: number): string {
-    if (milliseconds < 1000) return `${milliseconds}ms`;
-    return `${(milliseconds / 1000).toFixed(1)}s`;
+  // Validar prompt de video
+  validateVideoPrompt(prompt: string, maxLength: number = 500): { valid: boolean; error?: string } {
+    if (!prompt || prompt.trim().length === 0) {
+      return { valid: false, error: 'Por favor, describe el video que quieres generar' };
+    }
+
+    if (prompt.length > maxLength) {
+      return { valid: false, error: `El prompt es muy largo. Máximo ${maxLength} caracteres.` };
+    }
+
+    // Verificar contenido inapropiado básico
+    const inappropriateWords = ['nsfw', 'nude', 'explicit', 'sexual', 'pornographic', 'violence', 'violent'];
+    const lowerPrompt = prompt.toLowerCase();
+    
+    for (const word of inappropriateWords) {
+      if (lowerPrompt.includes(word)) {
+        return { valid: false, error: 'El contenido no es apropiado para generación de videos' };
+      }
+    }
+
+    return { valid: true };
   },
 
-  // Obtener color del plan
-  getPlanColor(plan: PlanType): string {
-    const colors = {
-      free: '#6B7280',     // Gris
-      pro: '#3B82F6',      // Azul
-      pro_max: '#F59E0B'   // Amarillo/Dorado
-    };
-    return colors[plan] || colors.free;
+  // ========================================
+  // 🆕 FUNCIONES DE DESCARGA Y COMPARTIR
+  // ========================================
+
+  // Descargar imagen
+  async downloadImage(imageUrl: string, filename: string = 'image.png'): Promise<void> {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // Crear enlace de descarga
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      // Simular clic para iniciar descarga
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error descargando imagen:', error);
+      throw new Error('Error al descargar la imagen');
+    }
   },
 
-  // Obtener icono del plan
-  getPlanIcon(plan: PlanType): string {
-    const icons = {
-      free: '📷',
-      pro: '⚡',
-      pro_max: '👑'
-    };
-    return icons[plan] || icons.free;
-  }
-};
+  // Compartir imagen (usando Web Share API si está disponible)
+  async shareImage(imageUrl: string, prompt: string): Promise<void> {
+    try {
+      // Verificar si Web Share API está disponible
+      if (navigator.share) {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'nora-generated-image.png', { type: blob.type });
 
-// Validar configuración al importar (solo en servidor)
-if (typeof window === 'undefined') {
-  const requiredKeys = [
-    'NEXT_PUBLIC_FIREBASE_API_KEY',
-    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-    'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-    'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-    'NEXT_PUBLIC_FIREBASE_APP_ID'
-  ] as const;
-
-  let configValid = true;
-  for (const key of requiredKeys) {
-    if (!process.env[key]) {
-      console.error(`❌ Missing required environment variable: ${key}`);
-      configValid = false;
+        await navigator.share({
+          title: 'Imagen generada con NORA AI',
+          text: `Creada con el prompt: "${prompt}"`,
+          files: [file]
+        });
+      } else {
+        // Fallback: copiar URL al portapapeles
+        await navigator.clipboard.writeText(imageUrl);
+        throw new Error('Función de compartir no disponible. URL copiada al portapapeles.');
+      }
+    } catch (error) {
+      console.error('Error compartiendo imagen:', error);
+      throw error;
     }
   }
-
-  if (configValid) {
-    console.log('✅ Firebase configuration is valid');
-  }
-
-  // Validar Gemini API keys
-  const geminiKeys = [
-    process.env.GEMINI_API_KEY_PRO,
-    process.env.GEMINI_API_KEY_BASIC,
-    process.env.GEMINI_API_KEY_FREE
-  ];
-
-  const hasValidGeminiKey = geminiKeys.some(key => key && key.length > 0);
-  
-  if (!hasValidGeminiKey) {
-    console.warn('⚠️ Warning: No Gemini API keys configured. Image generation may not work.');
-  } else {
-    console.log('✅ Gemini API keys configured');
-  }
-}
-
-export default app;
+};

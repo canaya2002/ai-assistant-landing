@@ -1,4 +1,3 @@
-// components/ImageGenerator.tsx - ERRORES CORREGIDOS
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -88,10 +87,23 @@ export default function ImageGenerator({
     try {
       setIsLoading(true);
       const result = await cloudFunctions.getImageUsageStatus();
-      setUsageStatus(result.data);
+      
+      // ✅ CORRECCIÓN: Convertir GetImageUsageStatusOutput a ImageUsageStatus
+      const convertedStatus: ImageUsageStatus = {
+        plan: result.data.plan,
+        limits: {
+          daily: result.data.limits.dailyLimit,
+          monthly: result.data.limits.monthlyLimit,
+          remainingDaily: result.data.limits.remainingDaily,
+          remainingMonthly: result.data.limits.remainingMonthly,
+        },
+        features: result.data.features,
+        history: result.data.history
+      };
+      
+      setUsageStatus(convertedStatus);
     } catch (error) {
       console.error('Error cargando estado:', error);
-      // ✅ CORRECCIÓN: Validar que error tenga message antes de usarlo
       const errorMessage = error instanceof Error ? error.message : 'Error cargando información de uso';
       toast.error(errorMessage);
     } finally {
@@ -133,21 +145,25 @@ export default function ImageGenerator({
 
       if (result.data?.success) {
         setGeneratedImage(result.data.imageUrl);
-        toast.success(`¡Imagen generada! (${result.data.cost.toFixed(3)}$ - ${result.data.quality})`);
+        toast.success(`¡Imagen generada! Quedan ${result.data.remainingDaily} usos hoy`);
         
-        await loadUsageStatus();
-
-        if (isEmbedded && onImageGenerated) {
+        // Callback para componente padre
+        if (onImageGenerated) {
           onImageGenerated({
             imageUrl: result.data.imageUrl,
             prompt: prompt.trim()
           });
         }
+
+        // Actualizar contadores
+        await loadUsageStatus();
+        setPrompt('');
+      } else {
+        toast.error('Error generando imagen');
       }
-    } catch (error: unknown) {
-      console.error('Error generando imagen:', error);
-      const errorMessage = helpers.getErrorMessage(error);
-      toast.error(errorMessage);
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(helpers.getErrorMessage(error));
     } finally {
       setIsGenerating(false);
     }
@@ -155,211 +171,302 @@ export default function ImageGenerator({
 
   const downloadImage = async () => {
     if (!generatedImage) return;
-
+    
     try {
       await helpers.downloadImage(generatedImage, `nora-generated-${Date.now()}.png`);
       toast.success('Imagen descargada');
     } catch (error) {
-      toast.error('Error descargando imagen');
+      console.error('Error descargando:', error);
+      toast.error('Error al descargar la imagen');
     }
   };
 
   const shareImage = async () => {
     if (!generatedImage) return;
-
+    
     try {
-      await helpers.shareImage(
-        generatedImage,
-        'Imagen generada con NORA AI',
-        `Mira esta imagen que generé: "${prompt}"`
-      );
+      // ✅ CORRECCIÓN: Cambiar de 3 argumentos a 2
+      await helpers.shareImage(generatedImage, `Mira esta imagen que generé: "${prompt}"`);
       toast.success('Imagen compartida');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error compartiendo imagen';
-      if (errorMessage === 'URL copiada al portapapeles') {
+    } catch (error: any) {
+      console.error('Error compartiendo:', error);
+      if (error.message.includes('portapapeles')) {
         toast.success('URL copiada al portapapeles');
       } else {
-        toast.error('Error compartiendo imagen');
+        toast.error('Error al compartir la imagen');
       }
     }
   };
 
-  const copyPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText(prompt);
-      toast.success('Prompt copiado');
-    } catch (error) {
-      toast.error('Error copiando prompt');
-    }
-  };
-
-  const clearImage = () => {
-    setGeneratedImage(null);
-    setPrompt('');
-  };
-
-  const regenerateImage = async () => {
-    if (!prompt.trim()) return;
-    await generateImage();
+  const copyPrompt = () => {
+    navigator.clipboard.writeText(prompt);
+    toast.success('Prompt copiado');
   };
 
   if (isLoading) {
     return (
-      <div className={`flex items-center justify-center h-64 ${className}`}>
-        <Loader2 className="w-8 h-8 animate-spin text-nora-primary" />
-        <span className="ml-2 text-gray-400">Cargando generador de imágenes...</span>
+      <div className={`flex items-center justify-center p-8 ${className}`}>
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-4" />
+          <p className="text-gray-400">Cargando generador de imágenes...</p>
+        </div>
       </div>
     );
   }
 
-  const availableAspectRatios = ASPECT_RATIOS.filter(ratio => 
-    plan !== 'free' || ratio.free
-  );
-
-  // Vista embedida (para chat)
-  if (isEmbedded) {
+  if (!usageStatus) {
     return (
-      <div className={`bg-white/5 rounded-xl p-4 border border-white/10 ${className}`}>
-        <div className="flex items-center space-x-2 mb-3">
-          <Sparkles className="w-5 h-5 text-purple-400" />
-          <span className="font-medium text-white">Generar Imagen</span>
-          {usageStatus && (
-            <span className="text-xs bg-white/10 px-2 py-1 rounded-full text-gray-300">
-              {usageStatus?.limits?.remainingMonthly ?? 0} restantes este mes
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe la imagen que quieres generar..."
-            className="w-full h-20 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
-            maxLength={usageStatus?.features.maxPromptLength || 100}
-            disabled={isGenerating}
-          />
-
-          <div className="flex space-x-2">
-            <select
-              value={selectedStyle}
-              onChange={(e) => setSelectedStyle(e.target.value)}
-              className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              disabled={isGenerating}
-            >
-              {STYLES.map((style) => (
-                <option key={style.value} value={style.value}>
-                  {style.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedAspectRatio}
-              onChange={(e) => setSelectedAspectRatio(e.target.value)}
-              className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              disabled={isGenerating}
-            >
-              {availableAspectRatios.map((ratio) => (
-                <option key={ratio.value} value={ratio.value}>
-                  {ratio.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={generateImage}
-            disabled={!prompt.trim() || isGenerating || !usageStatus || (usageStatus?.limits?.remainingMonthly ?? 0) <= 0}
-            className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Generando...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Generar</span>
-              </>
-            )}
-          </button>
-
-          {generatedImage && (
-            <div className="mt-3">
-              <div className="relative group">
-                <Image
-                  src={generatedImage}
-                  alt="Imagen generada"
-                  width={300}
-                  height={300}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={downloadImage}
-                    className="p-1.5 bg-black/50 hover:bg-black/70 rounded backdrop-blur-sm transition-colors"
-                    title="Descargar"
-                  >
-                    <Download className="w-3 h-3 text-white" />
-                  </button>
-                  <button
-                    onClick={shareImage}
-                    className="p-1.5 bg-black/50 hover:bg-black/70 rounded backdrop-blur-sm transition-colors"
-                    title="Compartir"
-                  >
-                    <Share2 className="w-3 h-3 text-white" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+      <div className={`text-center p-8 ${className}`}>
+        <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-white mb-2">Error cargando datos</h3>
+        <p className="text-gray-400 mb-4">No se pudo cargar la información de uso</p>
+        <button 
+          onClick={loadUsageStatus}
+          className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg transition-colors"
+        >
+          <RefreshCw className="w-4 h-4 inline mr-2" />
+          Reintentar
+        </button>
       </div>
     );
   }
 
-  // Vista completa simplificada para evitar más errores
+  const canGenerate = usageStatus.limits.remainingDaily > 0 && usageStatus.limits.remainingMonthly > 0;
+
   return (
-    <div className={`max-w-6xl mx-auto p-4 md:p-6 space-y-6 ${className}`}>
-      <div className="text-center">
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Generador de Imágenes</h1>
-        <p className="text-gray-400">Crea imágenes increíbles con IA</p>
+    <div className={`bg-gray-900 rounded-xl border border-gray-700 p-6 ${className}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-purple-500/20 rounded-lg">
+            <ImageIcon className="w-6 h-6 text-purple-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">Generador de Imágenes</h2>
+            <p className="text-gray-400 text-sm">Crea imágenes con IA</p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          {isPremium && (
+            <Crown className="w-5 h-5 text-yellow-400" />
+          )}
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <Settings className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
       </div>
-      
-      {/* Resto del componente simplificado */}
-      <div className="max-w-2xl mx-auto">
-        <div className="space-y-4">
+
+      {/* Límites de uso */}
+      <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-gray-400">Uso diario</span>
+          <span className="text-sm font-medium text-white">
+            {usageStatus.limits.remainingDaily} / {usageStatus.limits.daily}
+          </span>
+        </div>
+        <div className="w-full bg-gray-700 rounded-full h-2">
+          <div 
+            className="bg-purple-500 h-2 rounded-full transition-all"
+            style={{ 
+              width: `${Math.max(0, Math.min(100, ((usageStatus.limits.daily - usageStatus.limits.remainingDaily) / usageStatus.limits.daily) * 100))}%` 
+            }}
+          />
+        </div>
+        
+        <div className="flex items-center justify-between mt-3 mb-2">
+          <span className="text-sm text-gray-400">Uso mensual</span>
+          <span className="text-sm font-medium text-white">
+            {usageStatus.limits.remainingMonthly} / {usageStatus.limits.monthly}
+          </span>
+        </div>
+        <div className="w-full bg-gray-700 rounded-full h-2">
+          <div 
+            className="bg-blue-500 h-2 rounded-full transition-all"
+            style={{ 
+              width: `${Math.max(0, (usageStatus.limits.remainingMonthly / usageStatus.limits.monthly) * 100)}%` 
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Configuración avanzada */}
+      {showSettings && (
+        <div className="mb-6 p-4 bg-gray-800/30 rounded-lg border border-gray-600">
+          <h3 className="text-lg font-medium text-white mb-4">Configuración</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Estilo */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">
+                Estilo
+              </label>
+              <select
+                value={selectedStyle}
+                onChange={(e) => setSelectedStyle(e.target.value)}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+              >
+                {STYLES.map((style) => (
+                  <option key={style.value} value={style.value}>
+                    {style.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Proporción */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">
+                Proporción
+              </label>
+              <select
+                value={selectedAspectRatio}
+                onChange={(e) => setSelectedAspectRatio(e.target.value)}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+              >
+                {ASPECT_RATIOS.map((ratio) => (
+                  <option 
+                    key={ratio.value} 
+                    value={ratio.value}
+                    disabled={!ratio.free && !isPremium}
+                  >
+                    {ratio.label} {!ratio.free && !isPremium && '(Pro)'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prompt input */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-white text-sm font-medium">
+            Describe tu imagen
+          </label>
+          <button
+            onClick={copyPrompt}
+            disabled={!prompt.trim()}
+            className="p-1 hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Copy className="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
+        
+        <div className="relative">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe la imagen que quieres generar..."
-            className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            maxLength={usageStatus?.features?.maxPromptLength ?? 100}
+            placeholder="Una ciudad futurista con rascacielos brillantes al atardecer..."
+            disabled={isGenerating}
+            className="w-full p-4 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none h-24 disabled:opacity-50"
+            maxLength={usageStatus.features.maxPromptLength}
           />
           
-          <button
-            onClick={generateImage}
-            disabled={!prompt.trim() || isGenerating}
-            className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 text-white font-medium rounded-lg"
-          >
-            {isGenerating ? 'Generando...' : 'Generar Imagen'}
-          </button>
-          
-          {generatedImage && (
-            <div className="mt-6">
+          <div className="absolute bottom-2 right-2 text-xs text-gray-500">
+            {prompt.length}/{usageStatus.features.maxPromptLength}
+          </div>
+        </div>
+      </div>
+
+      {/* Botón generar */}
+      <div className="mb-6">
+        <button
+          onClick={generateImage}
+          disabled={!canGenerate || isGenerating || !prompt.trim()}
+          className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl text-white font-medium transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Generando imagen...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5" />
+              <span>Generar Imagen</span>
+            </>
+          )}
+        </button>
+
+        {!canGenerate && (
+          <p className="text-center text-red-400 text-sm mt-2">
+            {usageStatus.limits.remainingDaily <= 0 
+              ? 'Límite diario alcanzado' 
+              : 'Límite mensual alcanzado'
+            }
+          </p>
+        )}
+      </div>
+
+      {/* Imagen generada */}
+      {generatedImage && (
+        <div className="border border-gray-600 rounded-xl overflow-hidden">
+          <div className="relative">
+            {generatedImage && generatedImage.startsWith('http') ? (
               <Image
                 src={generatedImage}
                 alt="Imagen generada"
                 width={512}
                 height={512}
-                className="w-full rounded-lg"
+                className="w-full h-auto"
+                onError={() => setGeneratedImage(null)}
               />
+            ) : (
+              <div className="w-full aspect-square bg-gray-800 flex items-center justify-center">
+                <ImageIcon className="w-12 h-12 text-gray-400" />
+              </div>
+            )}
+            
+            {/* Overlay con acciones */}
+            <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center space-x-4">
+              <button
+                onClick={downloadImage}
+                className="p-3 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              >
+                <Download className="w-5 h-5 text-white" />
+              </button>
+              
+              <button
+                onClick={shareImage}
+                className="p-3 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              >
+                <Share2 className="w-5 h-5 text-white" />
+              </button>
+              
+              <button
+                onClick={() => setGeneratedImage(null)}
+                className="p-3 bg-red-500/20 hover:bg-red-500/30 rounded-full transition-colors"
+              >
+                <Trash2 className="w-5 h-5 text-white" />
+              </button>
             </div>
-          )}
+          </div>
+          
+          <div className="p-4 bg-gray-800">
+            <p className="text-sm text-gray-300 line-clamp-2">
+              "{prompt}"
+            </p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Info del plan */}
+      {!isPremium && (
+        <div className="mt-6 p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/20 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <Zap className="w-4 h-4 text-orange-400" />
+            <span className="text-orange-300 font-medium text-sm">Plan Gratuito</span>
+          </div>
+          <p className="text-gray-300 text-sm">
+            Actualiza a Pro para más imágenes, estilos premium y proporciones avanzadas.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

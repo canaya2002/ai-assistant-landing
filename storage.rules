@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// Reglas para Firebase Storage
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Imágenes generadas
+    match /images/{imageId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        resource == null; // Solo crear, no modificar existentes
+    }
+    
+    // Videos generados
+    match /videos/{videoId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        resource == null; // Solo crear, no modificar existentes
+    }
+    
+    // Archivos de usuario (avatares, etc.)
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == userId;
+    }
+    
+    // Archivos temporales (si los usas)
+    match /temp/{allPaths=**} {
+      allow read, write: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+    
+    // Archivos públicos (logos, etc.)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

@@ -414,3 +414,314 @@ input, textarea, select {
     color: black !important;
   }
 }
+
+/* Selector de modelo con gradientes animados */
+.model-selector-flash {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  position: relative;
+  overflow: hidden;
+}
+
+.model-selector-flash::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.model-selector-flash:hover::before {
+  left: 100%;
+}
+
+.model-selector-pro {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  position: relative;
+  overflow: hidden;
+}
+
+.model-selector-pro::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.model-selector-pro:hover::before {
+  left: 100%;
+}
+
+/* Indicadores de modelo con brillo sutil */
+.model-indicator {
+  animation: subtle-glow 3s ease-in-out infinite alternate;
+  transition: all 0.3s ease;
+}
+
+.model-indicator:hover {
+  transform: scale(1.05);
+  animation: none;
+  box-shadow: 0 0 15px currentColor;
+}
+
+@keyframes subtle-glow {
+  0% { 
+    box-shadow: 0 0 5px currentColor; 
+  }
+  100% { 
+    box-shadow: 0 0 12px currentColor; 
+  }
+}
+
+/* Efectos para botones de selección de modelo */
+.model-button {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.model-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.model-button:hover::after {
+  opacity: 1;
+}
+
+.model-button:active {
+  transform: scale(0.98);
+}
+
+/* Animación de aparición para el selector */
+.model-selector-container {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   TOOLTIP PERSONALIZADO
+   ======================================== */
+
+.model-tooltip {
+  position: relative;
+}
+
+.model-tooltip::before,
+.model-tooltip::after {
+  position: absolute;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease-in-out;
+  transform: translateX(-50%);
+}
+
+.model-tooltip::before {
+  content: attr(data-tooltip);
+  bottom: 120%;
+  left: 50%;
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.model-tooltip::after {
+  content: '';
+  bottom: 108%;
+  left: 50%;
+  border: 5px solid transparent;
+  border-top-color: rgba(17, 24, 39, 0.95);
+}
+
+.model-tooltip:hover::before,
+.model-tooltip:hover::after {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* ========================================
+   EFECTOS PREMIUM PARA PRO_MAX
+   ======================================== */
+
+.pro-max-badge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  animation: premium-shine 2s linear infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes premium-shine {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+.pro-max-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: premium-shine 2s linear infinite;
+}
+
+/* Efecto de partículas para PRO MAX (opcional) */
+.pro-max-particles {
+  position: relative;
+}
+
+.pro-max-particles::before,
+.pro-max-particles::after {
+  content: '✨';
+  position: absolute;
+  font-size: 12px;
+  animation: sparkle 1.5s ease-in-out infinite alternate;
+}
+
+.pro-max-particles::before {
+  top: -5px;
+  right: -5px;
+  animation-delay: 0s;
+}
+
+.pro-max-particles::after {
+  bottom: -5px;
+  left: -5px;
+  animation-delay: 0.75s;
+}
+
+@keyframes sparkle {
+  0% { 
+    opacity: 0.3; 
+    transform: scale(0.8);
+  }
+  100% { 
+    opacity: 1; 
+    transform: scale(1.2);
+  }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+  .model-selector-container {
+    margin: 0 -1rem;
+    padding: 1rem;
+  }
+  
+  .model-button {
+    font-size: 14px;
+    padding: 12px;
+  }
+  
+  .model-indicator {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+}
+
+/* ========================================
+   ESTADOS DE CARGA
+   ======================================== */
+
+.model-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.model-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg, 
+    transparent, 
+    rgba(59, 130, 246, 0.3), 
+    transparent
+  );
+  animation: loading-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes loading-sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* ========================================
+   MODO OSCURO MEJORADO
+   ======================================== */
+
+.dark .model-selector-container {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.dark .model-button {
+  background: rgba(55, 65, 81, 0.5);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.dark .model-button:hover {
+  background: rgba(75, 85, 99, 0.7);
+  border-color: rgba(156, 163, 175, 0.5);
+}
+
+/* ========================================
+   ACCESIBILIDAD
+   ======================================== */
+
+.model-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.model-indicator:focus {
+  outline: 1px solid currentColor;
+  outline-offset: 1px;
+}
+
+/* Reducir animaciones si el usuario las tiene deshabilitadas */
+@media (prefers-reduced-motion: reduce) {
+  .model-indicator,
+  .model-button,
+  .model-selector-container,
+  .pro-max-badge,
+  .pro-max-particles::before,
+  .pro-max-particles::after {
+    animation: none;
+    transition: none;
+  }
+}

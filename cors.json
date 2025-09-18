@@ -1,0 +1,14 @@
+[
+  {
+    "origin": [
+      "http://localhost:3000",
+      "https://localhost:3000",
+      "https://localhost:3001",
+      "https://ia-assistance-1fbcc.web.app",
+      "https://ia-assistance-1fbcc.firebaseapp.com"
+    ],
+    "method": ["GET", "HEAD", "OPTIONS"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin", "x-goog-resumable"]
+  }
+]

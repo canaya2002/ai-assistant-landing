@@ -1,34 +1,28 @@
-// contexts/AuthContext.tsx - ERRORES COMPLETAMENTE CORREGIDOS
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User as FirebaseUser, signOut as firebaseSignOut } from 'firebase/auth';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { 
+  User as FirebaseUser,
+  onAuthStateChanged,
+  signOut
+} from 'firebase/auth';
 import { auth, cloudFunctions } from '../lib/firebase';
-import { UserProfile } from '../lib/types';
-import toast from 'react-hot-toast';
+import { 
+  User, 
+  UserProfile, 
+  PlanType 
+} from '../lib/types';
 
 interface AuthContextType {
   user: FirebaseUser | null;
   userProfile: UserProfile | null;
+  plan: PlanType;
   loading: boolean;
-  error: string | null;
-  refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
-  isAuthenticated: boolean;
-  isPremium: boolean;
-  isPro: boolean;
-  isProMax: boolean;
-  plan: string;
-  usage: UserProfile['usage'] | null;
-  limits: UserProfile['limits'] | null;
-  planInfo: UserProfile['planInfo'] | null;
+  refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
-
-export function useAuth() {
-  return useContext(AuthContext);
-}
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -38,132 +32,228 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchUserProfile = async (firebaseUser: FirebaseUser | null) => {
-    if (!firebaseUser) {
-      setUserProfile(null);
-      return;
-    }
+  const plan: PlanType = userProfile?.user?.plan || 'free';
 
+  // Función para obtener perfil del usuario
+  const fetchUserProfile = async (firebaseUser: FirebaseUser): Promise<UserProfile | null> => {
     try {
-      const result = await cloudFunctions.getUserProfile();
-      setUserProfile(result.data as UserProfile);
-      setError(null);
-    } catch (error: unknown) {
-      console.error('Error fetching user profile:', error);
-      setError('Error cargando perfil de usuario');
-      // ✅ Perfil por defecto corregido con todas las propiedades
-      setUserProfile({
+      const response = await cloudFunctions.getUserProfile();
+      const profile = response.data;
+      
+      // ✅ CORRECCIÓN: Asegurar que el perfil tenga todas las propiedades requeridas
+      const completeProfile: UserProfile = {
+        user: profile.user,
+        usage: {
+          daily: {
+            ...profile.usage.daily,
+            // ✅ Agregar campos opcionales con valores por defecto
+            developerModeUsed: profile.usage.daily.developerModeUsed || 0,
+            developerModeLimit: profile.usage.daily.developerModeLimit || 0,
+            developerModeRemaining: profile.usage.daily.developerModeRemaining || 0,
+            specialistModeUsed: profile.usage.daily.specialistModeUsed || 0,
+            specialistModeLimit: profile.usage.daily.specialistModeLimit || 0,
+            specialistModeRemaining: profile.usage.daily.specialistModeRemaining || 0,
+          },
+          monthly: {
+            ...profile.usage.monthly,
+            // ✅ Agregar campos opcionales con valores por defecto
+            developerModeUsed: profile.usage.monthly.developerModeUsed || 0,
+            developerModeLimit: profile.usage.monthly.developerModeLimit || 0,
+            developerModeRemaining: profile.usage.monthly.developerModeRemaining || 0,
+            specialistModeUsed: profile.usage.monthly.specialistModeUsed || 0,
+            specialistModeLimit: profile.usage.monthly.specialistModeLimit || 0,
+            specialistModeRemaining: profile.usage.monthly.specialistModeRemaining || 0,
+          }
+        },
+        limits: {
+          ...profile.limits,
+          // ✅ Agregar campos opcionales con valores por defecto
+          developerModeEnabled: profile.limits.developerModeEnabled !== undefined ? profile.limits.developerModeEnabled : true,
+          specialistModeEnabled: profile.limits.specialistModeEnabled !== undefined ? profile.limits.specialistModeEnabled : true,
+          developerModeDaily: profile.limits.developerModeDaily || (plan === 'free' ? 1 : plan === 'pro' ? 15 : -1),
+          developerModeMonthly: profile.limits.developerModeMonthly || (plan === 'free' ? 5 : plan === 'pro' ? 200 : -1),
+          specialistModeDaily: profile.limits.specialistModeDaily || (plan === 'free' ? 1 : plan === 'pro' ? 10 : -1),
+          specialistModeMonthly: profile.limits.specialistModeMonthly || (plan === 'free' ? 3 : plan === 'pro' ? 150 : -1),
+          maxTokensPerSpecialistResponse: profile.limits.maxTokensPerSpecialistResponse || (plan === 'free' ? 1500 : plan === 'pro' ? 6000 : 12000),
+        },
+        planInfo: {
+          ...profile.planInfo,
+          availableFeatures: {
+            ...profile.planInfo.availableFeatures,
+            // ✅ Agregar nuevas características opcionales
+            developerMode: profile.planInfo.availableFeatures.developerMode !== undefined ? profile.planInfo.availableFeatures.developerMode : true,
+            specialistMode: profile.planInfo.availableFeatures.specialistMode !== undefined ? profile.planInfo.availableFeatures.specialistMode : true,
+            unlimitedSpecialist: profile.planInfo.availableFeatures.unlimitedSpecialist !== undefined ? profile.planInfo.availableFeatures.unlimitedSpecialist : plan === 'pro_max',
+            priorityProcessing: profile.planInfo.availableFeatures.priorityProcessing !== undefined ? profile.planInfo.availableFeatures.priorityProcessing : plan === 'pro_max',
+          }
+        },
+        subscription: profile.subscription,
+        preferences: profile.preferences,
+        createdAt: profile.createdAt,
+        lastLogin: profile.lastLogin,
+        totalConversations: profile.totalConversations
+      };
+
+      return completeProfile;
+    } catch (error) {
+      console.error('Error obteniendo perfil:', error);
+      
+      // ✅ Crear perfil por defecto si hay error
+      const defaultProfile: UserProfile = {
         user: {
           uid: firebaseUser.uid,
           email: firebaseUser.email || '',
-          name: firebaseUser.displayName || '',
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
           plan: 'free',
           isPremium: false,
           isPro: false,
           isProMax: false
         },
         usage: {
-          daily: { 
-            tokensUsed: 0, 
-            tokensLimit: 6600, 
-            tokensRemaining: 6600,
-            analysesCount: 0, 
-            analysesLimit: 2,
-            analysesRemaining: 2,
-            chatMessagesCount: 0 // ✅ CORREGIDO: Añadido chatMessagesCount
+          daily: {
+            tokensUsed: 0,
+            tokensLimit: 10000,
+            tokensRemaining: 10000,
+            imagesGenerated: 0,
+            imagesLimit: 0,
+            videosGenerated: 0,
+            videosLimit: 0,
+            analysesCount: 0,
+            analysesLimit: 5,
+            analysesRemaining: 5,
+            chatMessagesCount: 0,
+            // Nuevos campos para modos especializados
+            developerModeUsed: 0,
+            developerModeLimit: 1,
+            developerModeRemaining: 1,
+            specialistModeUsed: 0,
+            specialistModeLimit: 1,
+            specialistModeRemaining: 1,
           },
-          monthly: { 
-            tokensUsed: 0, 
-            tokensLimit: 200000, 
-            tokensRemaining: 200000,
-            analysesCount: 0, 
-            analysesLimit: 50,
-            analysesRemaining: 50,
-            chatMessagesCount: 0 // ✅ CORREGIDO: Añadido chatMessagesCount
+          monthly: {
+            tokensUsed: 0,
+            tokensLimit: 50000,
+            tokensRemaining: 50000,
+            imagesGenerated: 0,
+            imagesLimit: 0,
+            videosGenerated: 0,
+            videosLimit: 0,
+            analysesCount: 0,
+            analysesLimit: 20,
+            analysesRemaining: 20,
+            chatMessagesCount: 0,
+            // Nuevos campos para modos especializados
+            developerModeUsed: 0,
+            developerModeLimit: 5,
+            developerModeRemaining: 5,
+            specialistModeUsed: 0,
+            specialistModeLimit: 3,
+            specialistModeRemaining: 3,
           }
         },
         limits: {
-          dailyTokens: 6600,
-          monthlyTokens: 200000,
-          dailyAnalyses: 2,
-          monthlyAnalyses: 50,
-          chatEnabled: true, // Ahora habilitado para free
+          dailyTokens: 10000,
+          monthlyTokens: 50000,
+          dailyAnalyses: 5,
+          monthlyAnalyses: 20,
+          chatEnabled: true,
           voiceEnabled: false,
           multimediaEnabled: false,
           codeEnabled: false,
           pdfEnabled: false,
-          maxResponseTokens: 150 // Límite para plan free
+          maxResponseTokens: 1000,
+          imageGeneration: false,
+          videoGeneration: false,
+          maxVideoLength: 0,
+          // Nuevos campos para modos especializados
+          developerModeEnabled: true,
+          specialistModeEnabled: true,
+          developerModeDaily: 1,
+          developerModeMonthly: 5,
+          specialistModeDaily: 1,
+          specialistModeMonthly: 3,
+          maxTokensPerSpecialistResponse: 1500,
         },
         planInfo: {
           currentPlan: 'free',
           displayName: 'Gratis',
           availableFeatures: {
-            chat: true, // Habilitado para free
+            chat: true,
             voice: false,
             multimedia: false,
             code: false,
             pdf: false,
             liveMode: false,
-            imageGeneration: true // ✅ CORREGIDO: Añadido imageGeneration
+            imageGeneration: false,
+            videoGeneration: false,
+            // Nuevas características
+            developerMode: true,
+            specialistMode: true,
+            unlimitedSpecialist: false,
+            priorityProcessing: false,
           }
-        }
-      });
+        },
+        preferences: {
+          theme: 'dark',
+          notifications: true,
+          autoSave: true
+        },
+        createdAt: new Date(),
+        lastLogin: new Date(),
+        totalConversations: 0
+      };
+
+      return defaultProfile;
     }
   };
 
+  // Función para refrescar perfil
   const refreshProfile = async () => {
     if (user) {
-      await fetchUserProfile(user);
+      const profile = await fetchUserProfile(user);
+      setUserProfile(profile);
     }
   };
 
-  const signOut = async () => {
+  // Función para cerrar sesión
+  const handleSignOut = async () => {
     try {
-      await firebaseSignOut(auth);
+      await signOut(auth);
       setUser(null);
       setUserProfile(null);
-      setError(null);
-      toast.success('Sesión cerrada correctamente');
-    } catch (error: unknown) {
-      console.error('Error signing out:', error);
-      toast.error('Error al cerrar sesión. Intenta nuevamente.');
+    } catch (error) {
+      console.error('Error cerrando sesión:', error);
     }
   };
 
+  // Efecto para manejar cambios en autenticación
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
       setLoading(true);
       
       if (firebaseUser) {
-        await fetchUserProfile(firebaseUser);
+        setUser(firebaseUser);
+        const profile = await fetchUserProfile(firebaseUser);
+        setUserProfile(profile);
       } else {
+        setUser(null);
         setUserProfile(null);
       }
       
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   const value: AuthContextType = {
     user,
     userProfile,
+    plan,
     loading,
-    error,
-    refreshProfile,
-    signOut,
-    isAuthenticated: !!user,
-    isPremium: userProfile?.user?.isPremium || false,
-    isPro: userProfile?.user?.isPro || false,
-    isProMax: userProfile?.user?.isProMax || false,
-    plan: userProfile?.user?.plan || 'free',
-    usage: userProfile?.usage || null,
-    limits: userProfile?.limits || null,
-    planInfo: userProfile?.planInfo || null
+    signOut: handleSignOut,
+    refreshProfile
   };
 
   return (
@@ -171,4 +261,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
