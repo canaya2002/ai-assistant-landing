@@ -411,7 +411,7 @@ exports.generateImage = functions.runWith({
 
     // Configurar OpenAI
     const openai = new OpenAI({
-      apiKey: functions.config().openai?.api_key || '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'
+      apiKey: functions.config().openai?.api_key || process.env.OPENAI_API_KEY
     });
 
     const response = await openai.images.generate({
