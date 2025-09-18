@@ -161,7 +161,7 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
     setIsLoading(true);
 
     try {
-      let response;
+      let response: any;
       
       if (currentMode === 'developer') {
         const input: DeveloperModeChatInput = {
