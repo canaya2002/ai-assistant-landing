@@ -134,6 +134,162 @@ const ChatInterface = memo(function ChatInterface() {
   const messages = currentConversation?.messages || [];
   const validPlan: PlanType = isValidPlan(plan) ? plan : 'free';
 
+  // ✅ FUNCIONES DE MICRÓFONO MEJORADAS
+  const checkMicrophoneSupport = (): boolean => {
+    return !!(
+      typeof navigator !== 'undefined' &&
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function' &&
+      (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition))
+    );
+  };
+
+  const checkMicrophonePermissions = async (): Promise<boolean> => {
+    try {
+      if ('permissions' in navigator && navigator.permissions) {
+        const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        return permissionStatus.state === 'granted';
+      }
+      return true;
+    } catch (error) {
+      console.log('Cannot check microphone permissions:', error);
+      return true;
+    }
+  };
+
+  const requestMicrophonePermission = async (): Promise<boolean> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (error: any) {
+      console.error('Error requesting microphone permission:', error);
+      
+      if (error.name === 'NotAllowedError') {
+        toast.error('❌ Permisos del micrófono denegados. Por favor permite el acceso en la configuración del navegador.');
+      } else if (error.name === 'NotFoundError') {
+        toast.error('❌ No se encontró micrófono. Verifica que tengas un micrófono conectado.');
+      } else if (error.name === 'NotSupportedError') {
+        toast.error('❌ El micrófono no es compatible con este navegador.');
+      } else {
+        toast.error('❌ Error accediendo al micrófono. Revisa la configuración de tu navegador.');
+      }
+      
+      return false;
+    }
+  };
+
+  const initializeSpeechRecognition = (): any => {
+    if (typeof window === 'undefined') return null;
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      toast.error('❌ Reconocimiento de voz no disponible en este navegador.');
+      return null;
+    }
+
+    const recognitionInstance = new SpeechRecognition();
+    
+    recognitionInstance.continuous = false;
+    recognitionInstance.interimResults = false;
+    recognitionInstance.lang = 'es-ES';
+    recognitionInstance.maxAlternatives = 1;
+    
+    if ('webkitSpeechRecognition' in window) {
+      recognitionInstance.webkitServicePath = '/speech-api/v1/recognize';
+    }
+
+    return recognitionInstance;
+  };
+
+  const startVoiceRecording = async () => {
+    if (!checkMicrophoneSupport()) {
+      toast.error('❌ Tu navegador no soporta reconocimiento de voz.');
+      return;
+    }
+
+    if (!recognition) {
+      toast.error('❌ Reconocimiento de voz no disponible. Recarga la página.');
+      return;
+    }
+
+    try {
+      const hasPermission = await checkMicrophonePermissions();
+      
+      if (!hasPermission) {
+        const permissionGranted = await requestMicrophonePermission();
+        if (!permissionGranted) {
+          return;
+        }
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 16000
+        } 
+      });
+
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        toast.error('❌ No se pudo acceder al micrófono.');
+        return;
+      }
+
+      setIsRecording(true);
+      recognition.start();
+      
+      toast.success('🎤 Grabando... Habla ahora', {
+        duration: 2000,
+        icon: '🎤'
+      });
+
+      setTimeout(() => {
+        stream.getTracks().forEach(track => track.stop());
+      }, 100);
+
+    } catch (error: any) {
+      console.error('Error accessing microphone:', error);
+      setIsRecording(false);
+      
+      if (error.name === 'NotAllowedError') {
+        toast.error('❌ Permisos del micrófono denegados. Ve a la configuración del navegador y permite el acceso al micrófono para este sitio.');
+      } else if (error.name === 'NotFoundError') {
+        toast.error('❌ No se encontró micrófono. Verifica que tengas un micrófono conectado y funcionando.');
+      } else if (error.name === 'NotReadableError') {
+        toast.error('❌ El micrófono está siendo usado por otra aplicación. Cierra otras aplicaciones que puedan estar usando el micrófono.');
+      } else if (error.name === 'OverconstrainedError') {
+        toast.error('❌ Configuración de micrófono no compatible. Intenta con otro micrófono.');
+      } else if (error.name === 'SecurityError') {
+        toast.error('❌ Error de seguridad. Asegúrate de estar usando HTTPS.');
+      } else {
+        toast.error(`❌ Error accediendo al micrófono: ${error.message || 'Error desconocido'}`);
+      }
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+      }
+    }
+    setIsRecording(false);
+    toast.success('🛑 Grabación detenida');
+  };
+
   // Todos los efectos existentes - MANTENER EXACTO
   useEffect(() => {
     const checkMobile = () => {
@@ -173,37 +329,86 @@ const ChatInterface = memo(function ChatInterface() {
     }
   }, [input, isMobile]);
 
+  // ✅ USEEFFECT MEJORADO PARA SPEECH RECOGNITION
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
-      
-      recognitionInstance.continuous = false;
-      recognitionInstance.interimResults = false;
-      recognitionInstance.lang = 'es-ES';
+    if (typeof window === 'undefined') return;
 
+    const recognitionInstance = initializeSpeechRecognition();
+    
+    if (recognitionInstance) {
       recognitionInstance.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setVoiceText(transcript);
-        setShowVoiceText(true);
+        try {
+          const transcript = event.results[0][0].transcript;
+          const confidence = event.results[0][0].confidence;
+          
+          console.log(`Speech recognition result: "${transcript}" (confidence: ${confidence})`);
+          
+          if (transcript && transcript.trim().length > 0) {
+            setVoiceText(transcript);
+            setShowVoiceText(true);
+            toast.success(`✅ Texto reconocido: "${transcript.substring(0, 30)}${transcript.length > 30 ? '...' : ''}"`);
+          } else {
+            toast.error('❌ No se detectó texto. Intenta hablar más claro.');
+          }
+        } catch (error) {
+          console.error('Error processing speech result:', error);
+          toast.error('❌ Error procesando el resultado de voz.');
+        }
         setIsRecording(false);
       };
 
       recognitionInstance.onerror = (event: any) => {
-        console.error('Error de reconocimiento de voz:', event.error);
+        console.error('Speech recognition error:', event.error, event);
         setIsRecording(false);
-        toast.error('Error en el reconocimiento de voz');
+        
+        switch (event.error) {
+          case 'no-speech':
+            toast.error('❌ No se detectó voz. Intenta hablar más fuerte.');
+            break;
+          case 'audio-capture':
+            toast.error('❌ Error capturando audio. Verifica tu micrófono.');
+            break;
+          case 'not-allowed':
+            toast.error('❌ Permisos denegados. Permite el acceso al micrófono.');
+            break;
+          case 'network':
+            toast.error('❌ Error de red. Verifica tu conexión a internet.');
+            break;
+          case 'service-not-allowed':
+            toast.error('❌ Servicio de reconocimiento no permitido en este sitio.');
+            break;
+          case 'bad-grammar':
+            toast.error('❌ Error en la gramática del reconocimiento.');
+            break;
+          case 'language-not-supported':
+            toast.error('❌ Idioma no soportado.');
+            break;
+          default:
+            toast.error(`❌ Error de reconocimiento: ${event.error}`);
+        }
+      };
+
+      recognitionInstance.onstart = () => {
+        console.log('Speech recognition started');
+        setIsRecording(true);
       };
 
       recognitionInstance.onend = () => {
+        console.log('Speech recognition ended');
         setIsRecording(false);
       };
 
       setRecognition(recognitionInstance);
     }
-    
+
     return () => {
-      // Cleanup si es necesario
+      if (recognitionInstance) {
+        try {
+          recognitionInstance.abort();
+        } catch (error) {
+          console.log('Error during recognition cleanup:', error);
+        }
+      }
     };
   }, []);
 
@@ -314,9 +519,21 @@ const ChatInterface = memo(function ChatInterface() {
         processedMessage = `Analiza de forma exhaustiva: ${messageText}`;
       }
       
+      // ✅ PROCESAR ARCHIVOS SUBIDOS
       let fileContext = '';
       if (uploadedFiles.length > 0) {
-        fileContext = `Archivos adjuntos: ${uploadedFiles.map(f => f.name).join(', ')}`;
+        toast.loading('Procesando archivos...', { id: 'processing-files' });
+        
+        const fileContents = await Promise.all(
+          uploadedFiles.map(async (file) => {
+            const content = await processFileContent(file);
+            return `\n\n--- ARCHIVO: ${file.name} ---\n${content}\n--- FIN ARCHIVO ---\n`;
+          })
+        );
+        
+        fileContext = fileContents.join('\n');
+        toast.dismiss('processing-files');
+        toast.success('Archivos procesados');
       }
       
       const inputData = {
@@ -340,6 +557,10 @@ const ChatInterface = memo(function ChatInterface() {
 
         addMessage(aiMessage);
         await refreshProfile();
+        
+        // ✅ LIMPIAR ARCHIVOS DESPUÉS DEL ENVÍO EXITOSO
+        setUploadedFiles([]);
+        
         toast.success('Respuesta recibida');
       } else {
         throw new Error('Sin respuesta');
@@ -350,6 +571,7 @@ const ChatInterface = memo(function ChatInterface() {
     } finally {
       setIsLoading(false);
       setReportMode(false);
+      toast.dismiss('processing-files'); // Limpiar toast de procesamiento si hay error
     }
   };
 
@@ -417,31 +639,6 @@ const ChatInterface = memo(function ChatInterface() {
     return;
   };
 
-  // TUS FUNCIONES DE VOZ ORIGINALES
-  const startVoiceRecording = async () => {
-    if (!recognition) {
-      toast.error('Reconocimiento de voz no disponible');
-      return;
-    }
-
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      setIsRecording(true);
-      recognition.start();
-      toast.success('Grabando... Habla ahora');
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast.error('Error accediendo al micrófono. Verifica los permisos.');
-    }
-  };
-
-  const stopVoiceRecording = () => {
-    if (recognition) {
-      recognition.stop();
-    }
-    setIsRecording(false);
-  };
-
   const confirmVoiceText = () => {
     setInput(voiceText);
     setShowVoiceText(false);
@@ -451,6 +648,44 @@ const ChatInterface = memo(function ChatInterface() {
   const cancelVoiceText = () => {
     setShowVoiceText(false);
     setVoiceText('');
+  };
+
+  // ✅ FUNCIÓN PARA PROCESAR ARCHIVOS
+  const processFileContent = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const result = e.target?.result;
+          if (typeof result === 'string') {
+            // Archivo de texto
+            resolve(result);
+          } else if (result instanceof ArrayBuffer) {
+            // Archivo binario (PDF, etc.)
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(result)));
+            resolve(`[ARCHIVO_${file.type.toUpperCase()}] ${file.name} (${file.size} bytes)\nContenido en base64: ${base64.substring(0, 1000)}...`);
+          } else {
+            resolve(`[ARCHIVO] ${file.name} - No se pudo procesar el contenido`);
+          }
+        } catch (error) {
+          console.error('Error processing file:', error);
+          resolve(`[ARCHIVO] ${file.name} - Error al procesar`);
+        }
+      };
+      
+      reader.onerror = () => {
+        console.error('Error reading file:', file.name);
+        resolve(`[ARCHIVO] ${file.name} - Error al leer el archivo`);
+      };
+      
+      // Leer según el tipo de archivo
+      if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
+    });
   };
 
   // TUS FUNCIONES PRINCIPALES ORIGINALES
@@ -877,7 +1112,7 @@ const ChatInterface = memo(function ChatInterface() {
                         />
                       </div>
 
-                      {/* TU MICRÓFONO ORIGINAL */}
+                      {/* ✅ MICRÓFONO MEJORADO */}
                       <button
                         onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
                         disabled={shouldShowUpgradeWarning()}

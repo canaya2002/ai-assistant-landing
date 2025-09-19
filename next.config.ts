@@ -1,27 +1,58 @@
-// next.config.ts - COMPATIBLE CON NEXT.JS 15.5.2
-import type { NextConfig } from 'next'
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // ✅ CONFIGURACIÓN DE IMÁGENES OPTIMIZADA
+  // ✅ OPTIMIZACIONES BÁSICAS
+  poweredByHeader: false,
+  generateEtags: false,
+  compress: true,
+
+  // ✅ CONFIGURACIÓN DE IMÁGENES  
   images: {
-    domains: ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com'],
-    unoptimized: false,
-    dangerouslyAllowSVG: false,
+    domains: [
+      'firebasestorage.googleapis.com',
+      'storage.googleapis.com',
+      'images.unsplash.com',
+      'cdn.openai.com',
+      'oaidalleapiprodscus.blob.core.windows.net',
+      'replicate.delivery',
+      'pbxt.replicate.delivery'
+    ],
+    dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    
-    // ✅ FORMATOS OPTIMIZADOS PARA MÓVILES
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    
-    // ✅ CONFIGURACIÓN PARA PWA
     minimumCacheTTL: 60,
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  // ✅ CONFIGURACIÓN ACTUALIZADA PARA NEXT.JS 15
-  serverExternalPackages: ['firebase-admin'],
+  // ✅ CONFIGURACIÓN WEBPACK PARA MÓVILES (CON TIPADO CORRECTO)
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
 
-  // ✅ HEADERS DE SEGURIDAD Y PERFORMANCE
+    // ✅ OPTIMIZACIÓN PARA VIDEOS EN MÓVILES
+    config.module.rules.push({
+      test: /\.(mp4|webm|ogg|swf|ogv)$/,
+      use: {
+        loader: 'file-loader',
+        options: {
+          publicPath: '/_next/static/videos/',
+          outputPath: 'static/videos/',
+          name: '[name].[hash].[ext]',
+        },
+      },
+    });
+
+    return config;
+  },
+
+  // ✅ HEADERS DE SEGURIDAD CORREGIDOS - PERMITIR MICRÓFONO
   async headers() {
     return [
       {
@@ -48,9 +79,11 @@ const nextConfig: NextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload'
           },
+          
+          // 🎤 PERMISOS CORREGIDOS - PERMITIR MICRÓFONO
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+            value: 'camera=(), microphone=(self), geolocation=(), interest-cohort=()'
           },
           
           // ✅ PERFORMANCE Y MÓVILES
@@ -125,7 +158,6 @@ const nextConfig: NextConfig = {
   // ✅ CONFIGURACIÓN EXPERIMENTAL CORREGIDA PARA NEXT.JS 15
   experimental: {
     // ✅ OPTIMIZACIONES BÁSICAS - SIN optimizeCss QUE CAUSA ERROR
-    // optimizeCss: true, // REMOVIDO - causa error critters
     optimizeServerReact: true,
     
     // ✅ MEJORAR CARGA EN MÓVILES
@@ -140,102 +172,16 @@ const nextConfig: NextConfig = {
     } : false,
   },
 
-  // ✅ CONFIGURACIÓN DE WEBPACK PARA MÓVILES
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }) => {
-    // ✅ OPTIMIZACIONES PARA PERFORMANCE MÓVIL
-    if (!dev && !isServer) {
-      config.optimization = {
-        ...config.optimization,
-        
-        // ✅ SPLIT CHUNKS OPTIMIZADO PARA MÓVILES
-        splitChunks: {
-          ...config.optimization.splitChunks,
-          cacheGroups: {
-            ...config.optimization.splitChunks?.cacheGroups,
-            
-            // ✅ CHUNK SEPARADO PARA VENDORS GRANDES
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-              priority: 10,
-              maxSize: 244000, // 244KB - Óptimo para móviles
-            },
-            
-            // ✅ CHUNK PARA FIREBASE
-            firebase: {
-              test: /[\\/]node_modules[\\/](firebase|@firebase)[\\/]/,
-              name: 'firebase',
-              chunks: 'all',
-              priority: 20,
-            },
-            
-            // ✅ CHUNK PARA ICONOS
-            icons: {
-              test: /[\\/]node_modules[\\/](lucide-react)[\\/]/,
-              name: 'icons',
-              chunks: 'all',
-              priority: 15,
-            }
-          }
-        }
-      };
-    }
-
-    return config;
-  },
-
-  // ✅ CONFIGURACIÓN DE SALIDA OPTIMIZADA
-  output: 'standalone',
-  
-  // ✅ CONFIGURACIÓN DE TRANSPILACIÓN
-  transpilePackages: [
-    // ✅ TRANSPILE PARA MEJOR COMPATIBILIDAD MÓVIL
-    'lucide-react',
-  ],
-
-  // ✅ CONFIGURACIÓN DE COMPRESIÓN
-  compress: true,
-
-  // ✅ CONFIGURACIÓN DE DESARROLLO
-  ...(process.env.NODE_ENV === 'development' && {
-    // ✅ OPCIONES ESPECÍFICAS PARA DESARROLLO
-    devIndicators: {
-      buildActivity: true,
-      buildActivityPosition: 'bottom-right',
-    },
-  }),
-
-  // ✅ CONFIGURACIÓN PWA (PREPARACIÓN)
-  async rewrites() {
-    return [
-      // ✅ REWRITE PARA SERVICE WORKER
-      {
-        source: '/sw.js',
-        destination: '/_next/static/sw.js',
-      },
-      
-      // ✅ REWRITE PARA MANIFEST
-      {
-        source: '/manifest.json',
-        destination: '/api/manifest',
-      }
-    ];
-  },
-
-  // ✅ CONFIGURACIÓN DE AMBIENTE
+  // ✅ CONFIGURACIÓN DE ENV OPTIMIZADA
   env: {
-    // ✅ VARIABLES PARA DETECCIÓN MÓVIL
-    NEXT_PUBLIC_MOBILE_BREAKPOINT: '768',
-    NEXT_PUBLIC_ENABLE_PWA: process.env.NODE_ENV === 'production' ? 'true' : 'false',
+    CUSTOM_KEY: process.env.NODE_ENV,
   },
 
-  // ✅ CONFIGURACIÓN DE LOGGING
-  logging: {
-    fetches: {
-      fullUrl: process.env.NODE_ENV === 'development',
-    },
+  // ✅ CONFIGURACIÓN DE CACHÉ
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

@@ -20,10 +20,10 @@ import type {
 
 const STYLES: ImageStyle[] = [
   { value: 'realistic', label: 'Realista', icon: Camera },
-  { value: 'artistic', label: 'Artístico', icon: Palette },
+  { value: 'artistic', label: 'ArtÃ­stico', icon: Palette },
   { value: 'digital_art', label: 'Arte Digital', icon: Sparkles },
-  { value: 'illustration', label: 'Ilustración', icon: ImageIcon },
-  { value: 'photography', label: 'Fotografía', icon: Camera },
+  { value: 'illustration', label: 'IlustraciÃ³n', icon: ImageIcon },
+  { value: 'photography', label: 'FotografÃ­a', icon: Camera },
   { value: 'painting', label: 'Pintura', icon: Palette },
   { value: 'sketch', label: 'Boceto', icon: Grid3X3 },
   { value: 'cartoon', label: 'Caricatura', icon: Sparkles }
@@ -31,9 +31,9 @@ const STYLES: ImageStyle[] = [
 
 const ASPECT_RATIOS: AspectRatioOption[] = [
   { value: '1:1', label: 'Cuadrado (1:1)', free: true },
-  { value: '16:9', label: 'Panorámico (16:9)', free: false },
+  { value: '16:9', label: 'PanorÃ¡mico (16:9)', free: false },
   { value: '9:16', label: 'Vertical (9:16)', free: false },
-  { value: '4:3', label: 'Estándar (4:3)', free: false },
+  { value: '4:3', label: 'EstÃ¡ndar (4:3)', free: false },
   { value: '3:4', label: 'Retrato (3:4)', free: false },
   { value: '21:9', label: 'Ultra ancho (21:9)', free: false },
   { value: '1:2', label: 'Vertical largo (1:2)', free: false },
@@ -88,7 +88,7 @@ export default function ImageGenerator({
       setIsLoading(true);
       const result = await cloudFunctions.getImageUsageStatus();
       
-      // ✅ CORRECCIÓN: Convertir GetImageUsageStatusOutput a ImageUsageStatus
+      // âœ… CORRECCIÃ“N: Convertir GetImageUsageStatusOutput a ImageUsageStatus
       const convertedStatus: ImageUsageStatus = {
         plan: result.data.plan,
         limits: {
@@ -104,7 +104,7 @@ export default function ImageGenerator({
       setUsageStatus(convertedStatus);
     } catch (error) {
       console.error('Error cargando estado:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error cargando información de uso';
+      const errorMessage = error instanceof Error ? error.message : 'Error cargando informaciÃ³n de uso';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -118,12 +118,12 @@ export default function ImageGenerator({
     }
 
     if (!usageStatus) {
-      toast.error('Cargando información de límites...');
+      toast.error('Cargando informaciÃ³n de lÃ­mites...');
       return;
     }
 
     if (usageStatus.limits.remainingMonthly <= 0) {
-      toast.error('Has alcanzado tu límite mensual de imágenes');
+      toast.error('Has alcanzado tu lÃ­mite mensual de imÃ¡genes');
       return;
     }
 
@@ -145,7 +145,7 @@ export default function ImageGenerator({
 
       if (result.data?.success) {
         setGeneratedImage(result.data.imageUrl);
-        toast.success(`¡Imagen generada! Quedan ${result.data.remainingDaily} usos hoy`);
+        toast.success(`Â¡Imagen generada! Quedan ${result.data.remainingDaily} usos hoy`);
         
         // Callback para componente padre
         if (onImageGenerated) {
@@ -185,8 +185,8 @@ export default function ImageGenerator({
     if (!generatedImage) return;
     
     try {
-      // ✅ CORRECCIÓN: Cambiar de 3 argumentos a 2
-      await helpers.shareImage(generatedImage, `Mira esta imagen que generé: "${prompt}"`);
+      // âœ… CORRECCIÃ“N: Cambiar de 3 argumentos a 2
+      await helpers.shareImage(generatedImage, `Mira esta imagen que generÃ©: "${prompt}"`);
       toast.success('Imagen compartida');
     } catch (error: any) {
       console.error('Error compartiendo:', error);
@@ -208,7 +208,7 @@ export default function ImageGenerator({
       <div className={`flex items-center justify-center p-8 ${className}`}>
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-4" />
-          <p className="text-gray-400">Cargando generador de imágenes...</p>
+          <p className="text-gray-400">Cargando generador de imÃ¡genes...</p>
         </div>
       </div>
     );
@@ -219,7 +219,7 @@ export default function ImageGenerator({
       <div className={`text-center p-8 ${className}`}>
         <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-white mb-2">Error cargando datos</h3>
-        <p className="text-gray-400 mb-4">No se pudo cargar la información de uso</p>
+        <p className="text-gray-400 mb-4">No se pudo cargar la informaciÃ³n de uso</p>
         <button 
           onClick={loadUsageStatus}
           className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg transition-colors"
@@ -242,8 +242,8 @@ export default function ImageGenerator({
             <ImageIcon className="w-6 h-6 text-purple-400" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Generador de Imágenes</h2>
-            <p className="text-gray-400 text-sm">Crea imágenes con IA</p>
+            <h2 className="text-xl font-bold text-white">Generador de ImÃ¡genes</h2>
+            <p className="text-gray-400 text-sm">Crea imÃ¡genes con IA</p>
           </div>
         </div>
 
@@ -260,7 +260,7 @@ export default function ImageGenerator({
         </div>
       </div>
 
-      {/* Límites de uso */}
+      {/* LÃ­mites de uso */}
       <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-400">Uso diario</span>
@@ -293,10 +293,10 @@ export default function ImageGenerator({
         </div>
       </div>
 
-      {/* Configuración avanzada */}
+      {/* ConfiguraciÃ³n avanzada */}
       {showSettings && (
         <div className="mb-6 p-4 bg-gray-800/30 rounded-lg border border-gray-600">
-          <h3 className="text-lg font-medium text-white mb-4">Configuración</h3>
+          <h3 className="text-lg font-medium text-white mb-4">ConfiguraciÃ³n</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Estilo */}
@@ -317,10 +317,10 @@ export default function ImageGenerator({
               </select>
             </div>
 
-            {/* Proporción */}
+            {/* ProporciÃ³n */}
             <div>
               <label className="block text-white text-sm font-medium mb-2">
-                Proporción
+                ProporciÃ³n
               </label>
               <select
                 value={selectedAspectRatio}
@@ -373,7 +373,7 @@ export default function ImageGenerator({
         </div>
       </div>
 
-      {/* Botón generar */}
+      {/* BotÃ³n generar */}
       <div className="mb-6">
         <button
           onClick={generateImage}
@@ -396,8 +396,8 @@ export default function ImageGenerator({
         {!canGenerate && (
           <p className="text-center text-red-400 text-sm mt-2">
             {usageStatus.limits.remainingDaily <= 0 
-              ? 'Límite diario alcanzado' 
-              : 'Límite mensual alcanzado'
+              ? 'LÃ­mite diario alcanzado' 
+              : 'LÃ­mite mensual alcanzado'
             }
           </p>
         )}
@@ -463,7 +463,7 @@ export default function ImageGenerator({
             <span className="text-orange-300 font-medium text-sm">Plan Gratuito</span>
           </div>
           <p className="text-gray-300 text-sm">
-            Actualiza a Pro para más imágenes, estilos premium y proporciones avanzadas.
+            Actualiza a Pro para mÃ¡s imÃ¡genes, estilos premium y proporciones avanzadas.
           </p>
         </div>
       )}
