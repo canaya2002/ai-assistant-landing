@@ -1,4 +1,4 @@
-// lib/firebase.ts - FIREBASE COMPLETO CORREGIDO
+// app/lib/firebase.ts - COMPLETO CON BÚSQUEDA WEB
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
@@ -23,15 +23,19 @@ import type {
   ConversationMetadataInput,
   UserProfile,
   PlanType,
-  // NUEVOS TIPOS PARA MODOS ESPECIALIZADOS
+  // TIPOS EXISTENTES PARA MODOS ESPECIALIZADOS
   SpecialistModeLimits,
   DeveloperModeChatInput,
   DeveloperModeChatOutput,
   SpecialistModeChatInput,
-  SpecialistModeChatOutput
+  SpecialistModeChatOutput,
+  // ✅ NUEVOS TIPOS PARA BÚSQUEDA WEB
+  SearchWebInput,
+  SearchWebOutput,
+  WebSearchStatusOutput
 } from './types';
 
-// ConfiguraciÃ³n de Firebase
+// Configuración de Firebase
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -51,16 +55,16 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
-// Conectar a emuladores SOLO si estÃ¡n especÃ­ficamente habilitados
+// Conectar a emuladores SOLO si están específicamente habilitados
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
   const hostname = 'localhost';
   
-  console.log('ðŸ”§ Connecting to Firebase Emulators...');
+  console.log('🔧 Connecting to Firebase Emulators...');
   
   try {
     if (!(auth as any)._config?.emulator) {
       connectAuthEmulator(auth, `http://${hostname}:9099`);
-      console.log('âœ… Auth Emulator connected');
+      console.log('✅ Auth Emulator connected');
     }
   } catch (e) {
     console.warn('Auth Emulator connection failed:', e);
@@ -69,7 +73,7 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULAT
   try {
     if (!(db as any)._delegate?._databaseId?.projectId.includes('demo-')) {
       connectFirestoreEmulator(db, hostname, 8080);
-      console.log('âœ… Firestore Emulator connected');
+      console.log('✅ Firestore Emulator connected');
     }
   } catch (e) {
     console.warn('Firestore Emulator connection failed:', e);
@@ -78,7 +82,7 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULAT
   try {
     if (!storage.app.options.projectId?.includes('demo-')) {
       connectStorageEmulator(storage, hostname, 9199);
-      console.log('âœ… Storage Emulator connected');
+      console.log('✅ Storage Emulator connected');
     }
   } catch (e) {
     console.warn('Storage Emulator connection failed:', e);
@@ -87,17 +91,17 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULAT
   try {
     if (!(functions as any)._delegate?.region) {
       connectFunctionsEmulator(functions, hostname, 5001);
-      console.log('âœ… Functions Emulator connected');
+      console.log('✅ Functions Emulator connected');
     }
   } catch (e) {
     console.warn('Functions Emulator connection failed:', e);
   }
 } else {
-  console.log('ðŸ”¥ Using Firebase Production Services');
+  console.log('🔥 Using Firebase Production Services');
 }
 
 // ========================================
-// ðŸ” FUNCIONES DE AUTENTICACIÃ“N
+// 🔐 FUNCIONES DE AUTENTICACIÓN
 // ========================================
 export const authFunctions = {
   // Registro de usuario
@@ -129,7 +133,7 @@ export const authFunctions = {
     }
   },
 
-  // Inicio de sesiÃ³n
+  // Inicio de sesión
   async signIn(email: string, password: string) {
     const { signInWithEmailAndPassword } = await import('firebase/auth');
     
@@ -142,7 +146,7 @@ export const authFunctions = {
     }
   },
 
-  // Inicio de sesiÃ³n con Google
+  // Inicio de sesión con Google
   async signInWithGoogle() {
     const { signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
     
@@ -177,7 +181,7 @@ export const authFunctions = {
     }
   },
 
-  // Restablecer contraseÃ±a
+  // Restablecer contraseña
   async resetPassword(email: string) {
     const { sendPasswordResetEmail } = await import('firebase/auth');
     
@@ -189,7 +193,7 @@ export const authFunctions = {
     }
   },
 
-  // Cerrar sesiÃ³n
+  // Cerrar sesión
   async signOut() {
     const { signOut } = await import('firebase/auth');
     
@@ -203,11 +207,11 @@ export const authFunctions = {
 };
 
 // ========================================
-// ðŸ“ž CLOUD FUNCTIONS - TODAS LAS FUNCIONES
+// 📞 CLOUD FUNCTIONS - TODAS LAS FUNCIONES
 // ========================================
 export const cloudFunctions = {
   // ========================================
-  // FUNCIONES BÃSICAS (EXISTENTES)
+  // FUNCIONES BÁSICAS (EXISTENTES)
   // ========================================
   getUserProfile: httpsCallable<{}, UserProfile>(functions, 'getUserProfile'),
   chatWithAI: httpsCallable<ChatWithAIInput, ChatWithAIOutput>(functions, 'chatWithAI'),
@@ -215,13 +219,13 @@ export const cloudFunctions = {
   manageSubscription: httpsCallable<{}, ManageSubscriptionOutput>(functions, 'manageSubscription'),
 
   // ========================================
-  // ðŸŽ¨ FUNCIONES PARA GENERACIÃ“N DE IMÃGENES
+  // 🎨 FUNCIONES PARA GENERACIÓN DE IMÁGENES
   // ========================================
   generateImage: httpsCallable<GenerateImageInput, GenerateImageOutput>(functions, 'generateImage'),
   getImageUsageStatus: httpsCallable<{}, GetImageUsageStatusOutput>(functions, 'getImageUsageStatus'),
   
   // ========================================
-  // ðŸŽ¥ FUNCIONES PARA GENERACIÃ“N DE VIDEOS
+  // 🎥 FUNCIONES PARA GENERACIÓN DE VIDEOS
   // ========================================
   generateVideo: httpsCallable<GenerateVideoInput, GenerateVideoOutput>(functions, 'generateVideo'),
   getVideoUsageStatus: httpsCallable<{}, GetVideoUsageStatusOutput>(functions, 'getVideoUsageStatus'),
@@ -229,10 +233,10 @@ export const cloudFunctions = {
   getSignedVideoUrl: httpsCallable<{videoId: string}, {success: boolean, videoUrl: string, thumbnailUrl: string, expiresIn: number, status: string}>(functions, 'getSignedVideoUrl'),
 
   // ========================================
-  // ðŸ”§ NUEVAS FUNCIONES - MODOS ESPECIALIZADOS
+  // 🔧 FUNCIONES EXISTENTES - MODOS ESPECIALIZADOS
   // ========================================
   
-  // Obtener lÃ­mites de modos especializados
+  // Obtener límites de modos especializados
   getSpecialistModeLimits: httpsCallable<{}, SpecialistModeLimits>(functions, 'getSpecialistModeLimits'),
   
   // Chat en Modo Desarrollador
@@ -240,9 +244,19 @@ export const cloudFunctions = {
   
   // Chat en Modo Especialista
   specialistModeChat: httpsCallable<SpecialistModeChatInput, SpecialistModeChatOutput>(functions, 'specialistModeChat'),
+
+  // ========================================
+  // 🔍 NUEVAS FUNCIONES - BÚSQUEDA WEB
+  // ========================================
+  
+  // Búsqueda web directa
+  searchWeb: httpsCallable<SearchWebInput, SearchWebOutput>(functions, 'searchWeb'),
+  
+  // Obtener estado de búsquedas web
+  getWebSearchStatus: httpsCallable<{}, WebSearchStatusOutput>(functions, 'getWebSearchStatus'),
   
   // ========================================
-  // FUNCIÃ“N PERSONALIZADA PARA METADATOS
+  // FUNCIÓN PERSONALIZADA PARA METADATOS
   // ========================================
   async saveConversationMetadata(metadata: ConversationMetadataInput) {
     const user = auth.currentUser;
@@ -268,53 +282,53 @@ export const cloudFunctions = {
 };
 
 // ========================================
-// ðŸ› ï¸ FUNCIONES DE UTILIDAD - COMPLETAS
+// 🛠️ FUNCIONES DE UTILIDAD - COMPLETAS
 // ========================================
 export const helpers = {
   getErrorMessage(error: any): string {
     if (error && typeof error === 'object' && 'code' in error) {
       const errorMessages: { [key: string]: string } = {
-        // Errores de autenticaciÃ³n
-        'auth/user-not-found': 'No se encontrÃ³ ningÃºn usuario con este email',
-        'auth/wrong-password': 'ContraseÃ±a incorrecta',
-        'auth/email-already-in-use': 'Este email ya estÃ¡ registrado',
-        'auth/weak-password': 'La contraseÃ±a debe tener al menos 6 caracteres',
-        'auth/invalid-email': 'Email invÃ¡lido',
-        'auth/too-many-requests': 'Demasiados intentos. Intenta mÃ¡s tarde',
-        'auth/network-request-failed': 'Error de conexiÃ³n. Verifica tu internet',
+        // Errores de autenticación
+        'auth/user-not-found': 'No se encontró ningún usuario con este email',
+        'auth/wrong-password': 'Contraseña incorrecta',
+        'auth/email-already-in-use': 'Este email ya está registrado',
+        'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
+        'auth/invalid-email': 'Email inválido',
+        'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
+        'auth/network-request-failed': 'Error de conexión. Verifica tu internet',
         'auth/user-disabled': 'Esta cuenta ha sido deshabilitada',
-        'auth/operation-not-allowed': 'OperaciÃ³n no permitida',
-        'auth/requires-recent-login': 'Por seguridad, inicia sesiÃ³n nuevamente',
+        'auth/operation-not-allowed': 'Operación no permitida',
+        'auth/requires-recent-login': 'Por seguridad, inicia sesión nuevamente',
         
         // Errores de Firestore
         'firestore/permission-denied': 'Sin permisos para acceder a este recurso',
         'firestore/not-found': 'Documento no encontrado',
         'firestore/already-exists': 'El documento ya existe',
-        'firestore/resource-exhausted': 'LÃ­mite de recursos excedido',
-        'firestore/failed-precondition': 'La condiciÃ³n previa fallÃ³',
-        'firestore/aborted': 'OperaciÃ³n cancelada debido a conflicto',
-        'firestore/out-of-range': 'Valor fuera de rango vÃ¡lido',
-        'firestore/unimplemented': 'OperaciÃ³n no implementada',
+        'firestore/resource-exhausted': 'Límite de recursos excedido',
+        'firestore/failed-precondition': 'La condición previa falló',
+        'firestore/aborted': 'Operación cancelada debido a conflicto',
+        'firestore/out-of-range': 'Valor fuera de rango válido',
+        'firestore/unimplemented': 'Operación no implementada',
         'firestore/internal': 'Error interno del servidor',
         'firestore/unavailable': 'Servicio no disponible temporalmente',
-        'firestore/data-loss': 'PÃ©rdida de datos irrecuperable',
+        'firestore/data-loss': 'Pérdida de datos irrecuperable',
         
         // Errores de Cloud Functions
-        'functions/cancelled': 'OperaciÃ³n cancelada',
+        'functions/cancelled': 'Operación cancelada',
         'functions/unknown': 'Error desconocido en el servidor',
-        'functions/invalid-argument': 'Argumento invÃ¡lido',
+        'functions/invalid-argument': 'Argumento inválido',
         'functions/deadline-exceeded': 'Tiempo de espera agotado',
-        'functions/not-found': 'FunciÃ³n no encontrada',
+        'functions/not-found': 'Función no encontrada',
         'functions/already-exists': 'El recurso ya existe',
-        'functions/permission-denied': 'Sin permisos para esta operaciÃ³n',
-        'functions/resource-exhausted': 'LÃ­mite de recursos excedido',
-        'functions/failed-precondition': 'CondiciÃ³n previa no cumplida',
-        'functions/aborted': 'OperaciÃ³n cancelada',
+        'functions/permission-denied': 'Sin permisos para esta operación',
+        'functions/resource-exhausted': 'Límite de recursos excedido',
+        'functions/failed-precondition': 'Condición previa no cumplida',
+        'functions/aborted': 'Operación cancelada',
         'functions/out-of-range': 'Valor fuera de rango',
-        'functions/unimplemented': 'FunciÃ³n no implementada',
+        'functions/unimplemented': 'Función no implementada',
         'functions/internal': 'Error interno del servidor',
         'functions/unavailable': 'Servicio no disponible',
-        'functions/data-loss': 'PÃ©rdida de datos',
+        'functions/data-loss': 'Pérdida de datos',
         'functions/unauthenticated': 'Usuario no autenticado',
         
         // Errores de Storage
@@ -324,16 +338,16 @@ export const helpers = {
         'storage/project-not-found': 'Proyecto no encontrado',
         'storage/quota-exceeded': 'Cuota de almacenamiento excedida',
         'storage/unauthenticated': 'Usuario no autenticado para storage',
-        'storage/unauthorized': 'Sin autorizaciÃ³n para acceder al archivo',
-        'storage/retry-limit-exceeded': 'LÃ­mite de reintentos excedido',
-        'storage/invalid-checksum': 'Checksum invÃ¡lida',
-        'storage/canceled': 'OperaciÃ³n cancelada por el usuario',
-        'storage/invalid-event-name': 'Nombre de evento invÃ¡lido',
-        'storage/invalid-url': 'URL invÃ¡lida',
-        'storage/invalid-argument': 'Argumento invÃ¡lido para Storage',
+        'storage/unauthorized': 'Sin autorización para acceder al archivo',
+        'storage/retry-limit-exceeded': 'Límite de reintentos excedido',
+        'storage/invalid-checksum': 'Checksum inválida',
+        'storage/canceled': 'Operación cancelada por el usuario',
+        'storage/invalid-event-name': 'Nombre de evento inválido',
+        'storage/invalid-url': 'URL inválida',
+        'storage/invalid-argument': 'Argumento inválido para Storage',
         'storage/no-default-bucket': 'No hay bucket por defecto configurado',
         'storage/cannot-slice-blob': 'No se puede procesar el archivo',
-        'storage/server-file-wrong-size': 'TamaÃ±o de archivo incorrecto'
+        'storage/server-file-wrong-size': 'Tamaño de archivo incorrecto'
       };
       
       return errorMessages[error.code] || `Error: ${error.code}`;
@@ -346,16 +360,16 @@ export const helpers = {
     return 'Error desconocido';
   },
 
-  // FunciÃ³n para validar plan de usuario
+  // Función para validar plan de usuario
   isValidPlan(plan: any): plan is PlanType {
     return plan === 'free' || plan === 'pro' || plan === 'pro_max';
   },
 
   // ========================================
-  // ðŸ†• FUNCIONES QUE FALTABAN
+  // FUNCIONES EXISTENTES QUE USAN TUS COMPONENTES
   // ========================================
 
-  // FunciÃ³n para formatear tokens (la que usan los componentes existentes)
+  // Función para formatear tokens (la que usan los componentes existentes)
   formatTokens(count: number): string {
     if (count === -1) return 'Ilimitado';
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
@@ -363,26 +377,26 @@ export const helpers = {
     return count.toString();
   },
 
-  // FunciÃ³n para formatear uso de tokens
+  // Función para formatear uso de tokens
   formatTokenUsage(used: number, limit: number): string {
     if (limit === -1) return `${used.toLocaleString()} (Ilimitado)`;
     return `${used.toLocaleString()} / ${limit.toLocaleString()}`;
   },
 
-  // FunciÃ³n para calcular porcentaje de uso
+  // Función para calcular porcentaje de uso
   getUsagePercentage(used: number, limit: number): number {
     if (limit === -1) return 0;
     if (limit === 0) return 100;
     return Math.min((used / limit) * 100, 100);
   },
 
-  // FunciÃ³n para determinar si un modo estÃ¡ disponible
+  // Función para determinar si un modo está disponible
   isModeAvailable(mode: 'developer' | 'specialist', plan: PlanType, dailyUsed: number, dailyLimit: number): boolean {
     if (dailyLimit === -1) return true; // Ilimitado
     return dailyUsed < dailyLimit;
   },
 
-  // FunciÃ³n para obtener mensaje de lÃ­mite alcanzado
+  // Función para obtener mensaje de límite alcanzado
   getLimitMessage(mode: 'developer' | 'specialist', plan: PlanType): string {
     const modeNames = {
       developer: 'Modo Desarrollador',
@@ -390,16 +404,135 @@ export const helpers = {
     };
 
     if (plan === 'free') {
-      return `Has alcanzado el lÃ­mite diario del ${modeNames[mode]} en el plan gratuito. Actualiza a Pro para mayor acceso.`;
+      return `Has alcanzado el límite diario del ${modeNames[mode]} en el plan gratuito. Actualiza a Pro para mayor acceso.`;
     } else if (plan === 'pro') {
-      return `Has alcanzado el lÃ­mite diario del ${modeNames[mode]}. Se restablecerÃ¡ maÃ±ana o actualiza a Pro Max para acceso ilimitado.`;
+      return `Has alcanzado el límite diario del ${modeNames[mode]}. Se restablecerá mañana o actualiza a Pro Max para acceso ilimitado.`;
     } else {
-      return `LÃ­mite tÃ©cnico alcanzado. Por favor intenta mÃ¡s tarde.`;
+      return `Límite técnico alcanzado. Por favor intenta más tarde.`;
     }
   },
 
   // ========================================
-  // ðŸ†• FUNCIONES DE VALIDACIÃ“N
+  // ✅ NUEVAS FUNCIONES PARA BÚSQUEDA WEB
+  // ========================================
+  
+  /**
+   * Obtiene el color del indicador de búsquedas web según el uso
+   */
+  getSearchUsageColor(used: number, limit: number): string {
+    const percentage = this.getUsagePercentage(used, limit);
+    if (percentage >= 90) return 'text-red-400';
+    if (percentage >= 70) return 'text-yellow-400';
+    return 'text-green-400';
+  },
+
+  /**
+   * Formatea el límite de búsquedas web para mostrar
+   */
+  formatSearchLimit(used: number, limit: number): string {
+    return `${used.toLocaleString()}/${limit.toLocaleString()}`;
+  },
+
+  /**
+   * Determina si se debe mostrar advertencia de límite de búsquedas
+   */
+  shouldShowSearchWarning(used: number, limit: number): boolean {
+    return this.getUsagePercentage(used, limit) >= 80;
+  },
+
+  /**
+   * Obtiene el mensaje de estado de búsquedas web
+   */
+  getSearchStatusMessage(used: number, limit: number, plan: string): string {
+    const remaining = limit - used;
+    const percentage = this.getUsagePercentage(used, limit);
+    
+    if (remaining === 0) {
+      return `Límite de búsquedas web agotado para el plan ${this.getPlanDisplayName(plan)}`;
+    }
+    
+    if (percentage >= 90) {
+      return `¡Atención! Solo te quedan ${remaining} búsquedas web este mes`;
+    }
+    
+    if (percentage >= 70) {
+      return `Te quedan ${remaining} búsquedas web de ${limit} este mes`;
+    }
+    
+    return `${remaining} búsquedas web disponibles este mes`;
+  },
+
+  /**
+   * Valida si una respuesta incluye búsqueda web
+   */
+  hasWebSearchData(response: ChatWithAIOutput): boolean {
+    return Boolean(response.searchUsed && response.searchResults?.results?.length);
+  },
+
+  /**
+   * Extrae las fuentes de una respuesta con búsqueda web
+   */
+  extractSearchSources(response: ChatWithAIOutput): string[] {
+    if (!this.hasWebSearchData(response)) return [];
+    return response.searchResults?.results?.map(r => r.displayLink) || [];
+  },
+
+  /**
+   * Genera un resumen de la búsqueda web realizada
+   */
+  getSearchSummary(response: ChatWithAIOutput): string {
+    if (!this.hasWebSearchData(response)) return '';
+    
+    const results = response.searchResults!;
+    const sources = results.results.length;
+    const time = results.searchTime;
+    
+    return `Búsqueda: "${results.query}" (${sources} fuentes en ${time}s)`;
+  },
+
+  /**
+   * Obtiene el nombre mostrable del plan
+   */
+  getPlanDisplayName(plan: string): string {
+    const planNames: { [key: string]: string } = {
+      'free': 'Gratis',
+      'pro': 'Pro',
+      'pro_max': 'Pro Max'
+    };
+    return planNames[plan] || 'Desconocido';
+  },
+
+  /**
+   * Formatea números grandes con sufijos
+   */
+  formatNumber(num: number): string {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  },
+
+  /**
+   * Calcula el porcentaje de uso
+   */
+  calculateUsagePercentage(used: number, limit: number): number {
+    if (limit === -1 || limit === 0) return 0;
+    return Math.min(Math.round((used / limit) * 100), 100);
+  },
+
+  /**
+   * Verifica si está cerca del límite (>80%)
+   */
+  isNearLimit(used: number, limit: number): boolean {
+    if (limit === -1) return false;
+    return (used / limit) >= 0.8;
+  },
+
+  // ========================================
+  // FUNCIONES DE VALIDACIÓN EXISTENTES
   // ========================================
 
   // Validar prompt de imagen
@@ -409,16 +542,16 @@ export const helpers = {
     }
 
     if (prompt.length > maxLength) {
-      return { valid: false, error: `El prompt es muy largo. MÃ¡ximo ${maxLength} caracteres.` };
+      return { valid: false, error: `El prompt es muy largo. Máximo ${maxLength} caracteres.` };
     }
 
-    // Verificar contenido inapropiado bÃ¡sico
+    // Verificar contenido inapropiado básico
     const inappropriateWords = ['nsfw', 'nude', 'explicit', 'sexual', 'pornographic'];
     const lowerPrompt = prompt.toLowerCase();
     
     for (const word of inappropriateWords) {
       if (lowerPrompt.includes(word)) {
-        return { valid: false, error: 'El contenido no es apropiado para generaciÃ³n de imÃ¡genes' };
+        return { valid: false, error: 'El contenido no es apropiado para generación de imágenes' };
       }
     }
 
@@ -432,16 +565,16 @@ export const helpers = {
     }
 
     if (prompt.length > maxLength) {
-      return { valid: false, error: `El prompt es muy largo. MÃ¡ximo ${maxLength} caracteres.` };
+      return { valid: false, error: `El prompt es muy largo. Máximo ${maxLength} caracteres.` };
     }
 
-    // Verificar contenido inapropiado bÃ¡sico
+    // Verificar contenido inapropiado básico
     const inappropriateWords = ['nsfw', 'nude', 'explicit', 'sexual', 'pornographic', 'violence', 'violent'];
     const lowerPrompt = prompt.toLowerCase();
     
     for (const word of inappropriateWords) {
       if (lowerPrompt.includes(word)) {
-        return { valid: false, error: 'El contenido no es apropiado para generaciÃ³n de videos' };
+        return { valid: false, error: 'El contenido no es apropiado para generación de videos' };
       }
     }
 
@@ -449,7 +582,7 @@ export const helpers = {
   },
 
   // ========================================
-  // ðŸ†• FUNCIONES DE DESCARGA Y COMPARTIR
+  // FUNCIONES DE DESCARGA Y COMPARTIR EXISTENTES
   // ========================================
 
   // Descargar imagen
@@ -477,10 +610,10 @@ export const helpers = {
     }
   },
 
-  // Compartir imagen (usando Web Share API si estÃ¡ disponible)
+  // Compartir imagen (usando Web Share API si está disponible)
   async shareImage(imageUrl: string, prompt: string): Promise<void> {
     try {
-      // Verificar si Web Share API estÃ¡ disponible
+      // Verificar si Web Share API está disponible
       if (navigator.share) {
         const response = await fetch(imageUrl);
         const blob = await response.blob();
@@ -494,11 +627,167 @@ export const helpers = {
       } else {
         // Fallback: copiar URL al portapapeles
         await navigator.clipboard.writeText(imageUrl);
-        throw new Error('FunciÃ³n de compartir no disponible. URL copiada al portapapeles.');
+        throw new Error('Función de compartir no disponible. URL copiada al portapapeles.');
       }
     } catch (error) {
       console.error('Error compartiendo imagen:', error);
       throw error;
     }
+  },
+
+  /**
+   * Convierte Date a string ISO para Firebase
+   */
+  dateToISOString(date: Date): string {
+    return date.toISOString();
+  },
+
+  /**
+   * Convierte string ISO a Date desde Firebase
+   */
+  isoStringToDate(isoString: string): Date {
+    return new Date(isoString);
+  },
+
+  /**
+   * Valida configuración de Firebase
+   */
+  validateFirebaseConfig(): boolean {
+    const requiredFields = [
+      'NEXT_PUBLIC_FIREBASE_API_KEY',
+      'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+      'NEXT_PUBLIC_FIREBASE_PROJECT_ID'
+    ];
+
+    return requiredFields.every(field => {
+      const value = process.env[field];
+      return value && value.length > 0;
+    });
+  },
+
+  /**
+   * Maneja errores de red de manera inteligente
+   */
+  isNetworkError(error: any): boolean {
+    return error?.code === 'auth/network-request-failed' ||
+           error?.message?.includes('network') ||
+           error?.message?.includes('fetch');
+  },
+
+  /**
+   * Reintenta una operación con backoff exponencial
+   */
+  async retryOperation<T>(
+    operation: () => Promise<T>, 
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        
+        if (attempt === maxRetries || !this.isNetworkError(error)) {
+          throw error;
+        }
+        
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError;
+  },
+
+  /**
+   * Genera ID único para mensajes
+   */
+  generateMessageId(): string {
+    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  },
+
+  /**
+   * Genera ID único para conversaciones
+   */
+  generateConversationId(): string {
+    return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 };
+
+// ========================================
+// 🎯 CONSTANTES Y CONFIGURACIONES EXISTENTES + NUEVAS
+// ========================================
+export const PLAN_LIMITS = {
+  free: {
+    tokensPerDay: 66666,
+    tokensPerMonth: 2000000,
+    imagesPerMonth: 15,
+    videosPerMonth: 0,
+    webSearchesPerMonth: 50, // ✅ NUEVO LÍMITE
+    maxFileSize: 10, // MB
+    maxResponseTokens: 2000
+  },
+  pro: {
+    tokensPerDay: 333333,
+    tokensPerMonth: 10000000,
+    imagesPerMonth: 50,
+    videosPerMonth: 50,
+    webSearchesPerMonth: 500, // ✅ NUEVO LÍMITE
+    maxFileSize: 50, // MB
+    maxResponseTokens: 4000
+  },
+  pro_max: {
+    tokensPerDay: 666666,
+    tokensPerMonth: 20000000,
+    imagesPerMonth: 200,
+    videosPerMonth: 150,
+    webSearchesPerMonth: 2000, // ✅ NUEVO LÍMITE
+    maxFileSize: 100, // MB
+    maxResponseTokens: 10000
+  }
+};
+
+export const SUPPORTED_FILE_TYPES = {
+  images: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
+  documents: ['.pdf', '.doc', '.docx', '.txt', '.md'],
+  spreadsheets: ['.csv', '.xlsx', '.xls'],
+  presentations: ['.ppt', '.pptx'],
+  code: ['.js', '.ts', '.py', '.java', '.cpp', '.html', '.css'],
+  videos: ['.mp4', '.avi', '.mov', '.wmv'],
+  audio: ['.mp3', '.wav', '.ogg', '.m4a']
+};
+
+export const PLAN_FEATURES = {
+  free: [
+    'Chat básico con IA',
+    '50 búsquedas web por mes', // ✅ NUEVO
+    'Análisis de archivos básico',
+    'Historial limitado',
+    'Soporte por email'
+  ],
+  pro: [
+    'Chat avanzado con IA',
+    '500 búsquedas web por mes', // ✅ NUEVO
+    'Generación de imágenes',
+    'Análisis multimedia completo',
+    'Historial completo',
+    'Modos especializados',
+    'Soporte prioritario'
+  ],
+  pro_max: [
+    'Chat premium con IA',
+    '2000 búsquedas web por mes', // ✅ NUEVO
+    'Generación de videos',
+    'Procesamiento con GPU',
+    'Análisis en tiempo real',
+    'Integraciones avanzadas',
+    'Soporte 24/7',
+    'Acceso anticipado a funciones'
+  ]
+};
+
+// Exportar configuración por defecto
+export default app;

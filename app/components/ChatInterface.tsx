@@ -13,7 +13,7 @@ import {
   Plus,
   MessageCircle,
   X,
-  ImageIcon, // ✅ CAMBIAR NOMBRE
+  ImageIcon,
   Sparkles,
   Mic,
   MicOff,
@@ -23,7 +23,12 @@ import {
   Bot,
   FileText,
   Upload,
-  Video
+  Video,
+  Globe,
+  AlertTriangle,
+  Wifi,
+  WifiOff,
+  UserCircle // ✅ NUEVO ICONO DE PERFIL
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConversations } from '../contexts/ConversationContext';
@@ -85,6 +90,125 @@ const VideoBackground = memo(function VideoBackground() {
   );
 });
 
+// ✅ NUEVO COMPONENTE: Pantalla de bienvenida animada
+const WelcomeScreen = memo(function WelcomeScreen({ onStartChat }: { onStartChat: () => void }) {
+  return (
+    <div className="flex-1 flex items-center justify-center text-center px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Título animado con efecto de typewriter */}
+        <div className="mb-8">
+          <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-wide animate-fade-up" 
+              style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+            Bienvenido a Nora
+          </h2>
+          <p className="text-xl md:text-2xl text-white/90 mb-12 animate-fade-up leading-relaxed font-light" 
+             style={{ animationDelay: '0.5s' }}>
+            ¿En qué puedo ayudarte el día de hoy?
+          </p>
+        </div>
+
+        {/* Botón estilo main page */}
+        <div className="animate-fade-up" style={{ animationDelay: '1s' }}>
+          <button
+            onClick={onStartChat}
+            className="group relative px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300 text-lg flex items-center space-x-3 mx-auto"
+          >
+            <span>Empezar conversación</span>
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all duration-300">
+              <Bot className="w-4 h-4" />
+            </div>
+          </button>
+        </div>
+
+        {/* Indicador de scroll */}
+        <div className="mt-16 animate-fade-up" style={{ animationDelay: '1.5s' }}>
+          <div className="w-6 h-10 border-2 border-white/30 rounded-full mx-auto flex items-start justify-center p-1">
+            <div className="w-1 h-3 bg-white/60 rounded-full animate-bounce"></div>
+          </div>
+          <p className="text-white/60 text-sm mt-3 font-light">Desplázate para explorar</p>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ✅ COMPONENTE: Indicador de búsqueda web
+const WebSearchIndicator = ({ message }: { message: ChatMessage }) => {
+  if (!message.searchUsed && !message.limitReached) return null;
+
+  return (
+    <div className="flex items-center gap-2 mb-2 text-xs">
+      {message.searchUsed && !message.limitReached && (
+        <div className="flex items-center gap-1 text-blue-400 bg-blue-400/10 px-2 py-1 rounded">
+          <Search className="w-3 h-3" />
+          <span>Información actualizada de internet</span>
+          {message.searchResults && (
+            <span className="text-gray-400">
+              ({message.searchResults.results.length} fuentes)
+            </span>
+          )}
+        </div>
+      )}
+      
+      {message.limitReached && (
+        <div className="flex items-center gap-1 text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded">
+          <AlertTriangle className="w-3 h-3" />
+          <span>Límite de búsquedas web alcanzado</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ✅ COMPONENTE: Límites de búsqueda web
+const WebSearchLimits = ({ userProfile }: { userProfile: any }) => {
+  const webSearchesUsed = userProfile?.usage?.monthly?.webSearchesUsed || 0;
+  const webSearchesLimit = userProfile?.usage?.monthly?.webSearchesLimit || 0;
+  const webSearchesRemaining = userProfile?.usage?.monthly?.webSearchesRemaining || 0;
+  
+  if (!userProfile?.limits?.webSearchEnabled) return null;
+
+  const percentage = webSearchesLimit > 0 ? (webSearchesUsed / webSearchesLimit) * 100 : 0;
+  const isNearLimit = percentage >= 80;
+  const isAtLimit = webSearchesRemaining === 0;
+
+  return (
+    <div className="px-4 py-2 border-t border-gray-700">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
+          <Globe className="w-3 h-3 text-blue-400" />
+          <span className="text-gray-400">Búsquedas web</span>
+        </div>
+        <div className={`font-medium ${
+          isAtLimit ? 'text-red-400' : isNearLimit ? 'text-yellow-400' : 'text-green-400'
+        }`}>
+          {webSearchesUsed.toLocaleString()}/{webSearchesLimit.toLocaleString()}
+        </div>
+      </div>
+      
+      {/* Barra de progreso */}
+      <div className="mt-1 w-full bg-gray-700 rounded-full h-1">
+        <div 
+          className={`h-1 rounded-full transition-all duration-300 ${
+            isAtLimit ? 'bg-red-400' : isNearLimit ? 'bg-yellow-400' : 'bg-green-400'
+          }`}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
+        />
+      </div>
+      
+      {/* Mensaje de estado */}
+      {(isNearLimit || isAtLimit) && (
+        <div className={`mt-1 text-xs ${isAtLimit ? 'text-red-400' : 'text-yellow-400'}`}>
+          {isAtLimit 
+            ? `Límite agotado - ${userProfile.planInfo.displayName}` 
+            : `${webSearchesRemaining} búsquedas restantes`
+          }
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ChatInterface = memo(function ChatInterface() {
   const { userProfile, refreshProfile, plan, user } = useAuth();
   const { 
@@ -124,6 +248,9 @@ const ChatInterface = memo(function ChatInterface() {
   // ✅ ESTADOS PARA TUS COMPONENTES ESPECIALISTAS EXISTENTES
   const [currentMode, setCurrentMode] = useState<'normal' | 'developer' | 'specialist'>('normal');
   const [currentSpecialty, setCurrentSpecialty] = useState<SpecialtyType | undefined>();
+
+  // ✅ ESTADO PARA BÚSQUEDA WEB MANUAL
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -134,7 +261,7 @@ const ChatInterface = memo(function ChatInterface() {
   const messages = currentConversation?.messages || [];
   const validPlan: PlanType = isValidPlan(plan) ? plan : 'free';
 
-  // ✅ FUNCIONES DE MICRÓFONO MEJORADAS
+  // ✅ FUNCIONES DE MICRÓFONO MEJORADAS - TUS FUNCIONES EXISTENTES
   const checkMicrophoneSupport = (): boolean => {
     return !!(
       typeof navigator !== 'undefined' &&
@@ -288,6 +415,59 @@ const ChatInterface = memo(function ChatInterface() {
     }
     setIsRecording(false);
     toast.success('🛑 Grabación detenida');
+  };
+
+  // ✅ FUNCIÓN CORREGIDA - ENVIAR PDF COMPLETO AL BACKEND
+  const processFileContent = async (file: File): Promise<string> => {
+    console.log('Procesando archivo:', file.name, file.type, Math.round(file.size/1024) + 'KB');
+    
+    return new Promise(async (resolve) => {
+      if (file.type === 'application/pdf') {
+        try {
+          // Convertir PDF a base64 para enviar al backend
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1]); // Quitar prefijo data:application/pdf;base64,
+            };
+            reader.readAsDataURL(file);
+          });
+          
+          // ✅ CAMBIO CRÍTICO: ENVIAR EL BASE64 COMPLETO, NO SOLO 100 CARACTERES
+          const pdfData = `[PDF PARA PROCESAR EN BACKEND]: ${file.name}
+Tamaño: ${Math.round(file.size / 1024)} KB
+Base64: ${base64}
+
+INSTRUCCIÓN PARA EL BACKEND: Este es un PDF en base64. Extrae el texto completo y analízalo para responder la pregunta del usuario.`;
+          
+          console.log('PDF convertido a base64 para backend - Longitud:', base64.length);
+          resolve(pdfData);
+          
+        } catch (error) {
+          console.error('Error procesando PDF:', error);
+          resolve(`[ARCHIVO PDF]: ${file.name}
+Tamaño: ${Math.round(file.size / 1024)} KB
+Estado: Error procesando archivo
+
+INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error procesándolo.`);
+        }
+      } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
+        // Archivos de texto
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result;
+          resolve(typeof result === 'string' ? 
+            `[ARCHIVO DE TEXTO]: ${file.name}\n\nContenido:\n${result}` : 
+            `[ARCHIVO]: ${file.name} - Error leyendo`);
+        };
+        reader.onerror = () => resolve(`[ARCHIVO]: ${file.name} - Error`);
+        reader.readAsText(file);
+      } else {
+        // Otros archivos
+        resolve(`[ARCHIVO]: ${file.name}\nTipo: ${file.type}\nTamaño: ${Math.round(file.size / 1024)} KB`);
+      }
+    });
   };
 
   // Todos los efectos existentes - MANTENER EXACTO
@@ -455,11 +635,24 @@ const ChatInterface = memo(function ChatInterface() {
     setCurrentSpecialty(specialty);
   };
 
-  // TU FUNCIÓN SENDMESSAGE ORIGINAL PARA CHAT NORMAL
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading || shouldShowUpgradeWarning()) return;
+  // ✅ NUEVA FUNCIÓN PARA TOGGLE DE BÚSQUEDA WEB
+  const toggleWebSearch = () => {
+    setWebSearchEnabled(!webSearchEnabled);
+    toast.success(
+      !webSearchEnabled 
+        ? '🔍 Búsqueda web activada - Las consultas buscarán información actualizada' 
+        : '🚫 Búsqueda web desactivada - Respuestas basadas en conocimiento interno'
+    );
+  };
 
-    const messageText = input.trim();
+  // ✅ TU FUNCIÓN SENDMESSAGE ACTUALIZADA CON BÚSQUEDA WEB MANUAL
+  const sendMessage = async () => {
+    // Permitir envío si hay archivos aunque no haya texto
+    const hasContent = input.trim() || uploadedFiles.length > 0;
+    
+    if (!hasContent || isLoading || shouldShowUpgradeWarning()) return;
+
+    const messageText = input.trim() || "Analiza los archivos adjuntos";
     setInput('');
 
     if (!currentConversation) {
@@ -519,59 +712,105 @@ const ChatInterface = memo(function ChatInterface() {
         processedMessage = `Analiza de forma exhaustiva: ${messageText}`;
       }
       
-      // ✅ PROCESAR ARCHIVOS SUBIDOS
+      // Procesar archivos subidos con debugging mejorado
       let fileContext = '';
       if (uploadedFiles.length > 0) {
-        toast.loading('Procesando archivos...', { id: 'processing-files' });
+        console.log('📁 Iniciando procesamiento de', uploadedFiles.length, 'archivo(s)');
+        toast.loading(`Procesando ${uploadedFiles.length} archivo(s)...`, { id: 'processing-files' });
         
-        const fileContents = await Promise.all(
-          uploadedFiles.map(async (file) => {
-            const content = await processFileContent(file);
-            return `\n\n--- ARCHIVO: ${file.name} ---\n${content}\n--- FIN ARCHIVO ---\n`;
-          })
-        );
-        
-        fileContext = fileContents.join('\n');
-        toast.dismiss('processing-files');
-        toast.success('Archivos procesados');
+        try {
+          const fileContents = await Promise.all(
+            uploadedFiles.map(async (file, index) => {
+              console.log(`📄 Procesando archivo ${index + 1}/${uploadedFiles.length}:`, file.name);
+              const content = await processFileContent(file);
+              return `\n\n--- ARCHIVO ${index + 1}: ${file.name} ---\n${content}\n--- FIN ARCHIVO ${index + 1} ---\n`;
+            })
+          );
+          
+          fileContext = fileContents.join('\n');
+          console.log('✅ Todos los archivos procesados. Contexto total length:', fileContext.length);
+          toast.dismiss('processing-files');
+          toast.success(`${uploadedFiles.length} archivo(s) procesados correctamente`);
+        } catch (fileError) {
+          console.error('❌ Error procesando archivos:', fileError);
+          toast.dismiss('processing-files');
+          toast.error('Error procesando algunos archivos, pero se intentará enviar');
+          fileContext = `Error procesando archivos: ${uploadedFiles.map(f => f.name).join(', ')}`;
+        }
       }
       
+      // ✅ MODIFICADO: Incluir enableWebSearch en el input
       const inputData = {
         message: processedMessage,
         fileContext,
         chatHistory: recentMessages.slice(0, -1),
-        maxTokens: validPlan === 'free' ? 150 : validPlan === 'pro' ? 500 : 1000
+        maxTokens: validPlan === 'free' ? 150 : validPlan === 'pro' ? 500 : 1000,
+        enableWebSearch: webSearchEnabled // ✅ NUEVO PARÁMETRO
       };
 
+      console.log('🚀 Enviando datos al backend:', {
+        messageLength: processedMessage.length,
+        fileContextLength: fileContext.length,
+        hasFiles: uploadedFiles.length > 0,
+        fileNames: uploadedFiles.map(f => f.name),
+        webSearchEnabled: webSearchEnabled // ✅ NUEVO LOG
+      });
+
+      console.log('📡 Llamando a cloudFunctions.chatWithAI...');
       const result = await cloudFunctions.chatWithAI(inputData);
+      console.log('📡 Respuesta del backend:', result);
       
-      if (result.data?.response) {
+      if (result?.data?.response) {
+        console.log('✅ Respuesta válida recibida:', result.data.response.substring(0, 100) + '...');
+        
+        // ✅ NUEVO: Mostrar indicadores específicos de búsqueda web
+        if (result.data.searchUsed) {
+          console.log('🔍 La respuesta incluyó búsqueda en internet');
+          if (result.data.limitReached) {
+            toast.error('⚠️ Límite de búsquedas web alcanzado - respuesta basada en conocimiento general');
+          } else {
+            toast.success('🔍 Respuesta con información actualizada de internet');
+          }
+        }
+        
         const aiMessage: ChatMessage = {
           id: `msg_${Date.now()}_ai`,
           type: 'ai',
           message: result.data.response,
           timestamp: new Date(),
           tokensUsed: result.data.tokensUsed,
-          conversationId: updatedConversation.id
+          conversationId: updatedConversation.id,
+          // ✅ NUEVO: Agregar metadata de búsqueda
+          searchUsed: result.data.searchUsed || false,
+          searchResults: result.data.searchResults,
+          limitReached: result.data.limitReached || false
         };
 
         addMessage(aiMessage);
         await refreshProfile();
         
-        // ✅ LIMPIAR ARCHIVOS DESPUÉS DEL ENVÍO EXITOSO
+        console.log('✅ Mensaje enviado exitosamente, limpiando archivos');
         setUploadedFiles([]);
         
-        toast.success('Respuesta recibida');
+        const toastMessage = result.data.searchUsed 
+          ? (result.data.limitReached ? 'Respuesta generada (límite de búsquedas alcanzado)' : 'Respuesta con información actualizada')
+          : uploadedFiles.length > 0 
+            ? 'Respuesta recibida - Archivo analizado'
+            : 'Respuesta recibida';
+            
+        toast.success(toastMessage);
       } else {
-        throw new Error('Sin respuesta');
+        console.error('❌ Respuesta inválida del backend:', result);
+        throw new Error(`Sin respuesta válida del servidor. Recibido: ${JSON.stringify(result)}`);
       }
     } catch (error: any) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error enviando mensaje:', error);
       toast.error('Error al enviar mensaje');
+      console.log('⚠️ Manteniendo archivos debido al error');
     } finally {
       setIsLoading(false);
       setReportMode(false);
-      toast.dismiss('processing-files'); // Limpiar toast de procesamiento si hay error
+      toast.dismiss('processing-files');
     }
   };
 
@@ -604,11 +843,13 @@ const ChatInterface = memo(function ChatInterface() {
     try {
       const recentMessages = messages.slice(0, index - 1);
       
+      // ✅ MODIFICADO: Incluir enableWebSearch en regeneración
       const inputData = {
         message: userMessage.message,
         fileContext: '',
         chatHistory: recentMessages,
-        maxTokens: validPlan === 'free' ? 150 : validPlan === 'pro' ? 500 : 1000
+        maxTokens: validPlan === 'free' ? 150 : validPlan === 'pro' ? 500 : 1000,
+        enableWebSearch: webSearchEnabled // ✅ NUEVO PARÁMETRO
       };
 
       const result = await cloudFunctions.chatWithAI(inputData);
@@ -620,7 +861,11 @@ const ChatInterface = memo(function ChatInterface() {
           message: result.data.response,
           timestamp: new Date(),
           tokensUsed: result.data.tokensUsed,
-          conversationId: currentConversation?.id || ''
+          conversationId: currentConversation?.id || '',
+          // ✅ NUEVO: Agregar metadata de búsqueda para regeneración
+          searchUsed: result.data.searchUsed || false,
+          searchResults: result.data.searchResults,
+          limitReached: result.data.limitReached || false
         };
 
         addMessage(aiMessage);
@@ -650,53 +895,22 @@ const ChatInterface = memo(function ChatInterface() {
     setVoiceText('');
   };
 
-  // ✅ FUNCIÓN PARA PROCESAR ARCHIVOS
-  const processFileContent = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = async (e) => {
-        try {
-          const result = e.target?.result;
-          if (typeof result === 'string') {
-            // Archivo de texto
-            resolve(result);
-          } else if (result instanceof ArrayBuffer) {
-            // Archivo binario (PDF, etc.)
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(result)));
-            resolve(`[ARCHIVO_${file.type.toUpperCase()}] ${file.name} (${file.size} bytes)\nContenido en base64: ${base64.substring(0, 1000)}...`);
-          } else {
-            resolve(`[ARCHIVO] ${file.name} - No se pudo procesar el contenido`);
-          }
-        } catch (error) {
-          console.error('Error processing file:', error);
-          resolve(`[ARCHIVO] ${file.name} - Error al procesar`);
-        }
-      };
-      
-      reader.onerror = () => {
-        console.error('Error reading file:', file.name);
-        resolve(`[ARCHIVO] ${file.name} - Error al leer el archivo`);
-      };
-      
-      // Leer según el tipo de archivo
-      if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
-        reader.readAsText(file);
-      } else {
-        reader.readAsArrayBuffer(file);
-      }
-    });
-  };
-
   // TUS FUNCIONES PRINCIPALES ORIGINALES
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    console.log('📁 Archivos subidos:', files.map(f => ({name: f.name, type: f.type, size: f.size})));
     setUploadedFiles(prev => [...prev, ...files]);
     toast.success(`${files.length} archivo(s) agregado(s)`);
     setShowToolsMenu(false);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const removeFile = (index: number) => {
+    const removedFile = uploadedFiles[index];
+    console.log('🗑️ Removiendo archivo:', removedFile?.name);
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -735,49 +949,50 @@ const ChatInterface = memo(function ChatInterface() {
       {/* TU VIDEO DE FONDO ORIGINAL */}
       {showVideoBackground && <VideoBackground />}
       
-      {/* TU NAVEGACIÓN SUPERIOR MINIMALISTA ORIGINAL */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-gray-800">
-        <div className="flex items-center justify-between px-6 py-3">
-          {/* Logo minimalista */}
-          <div className="flex items-center space-x-3">
+      {/* ✅ NAVEGACIÓN SUPERIOR REDISEÑADA - HEADER QUE SE DESPLAZA */}
+      <div className={`fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-gray-800 transition-all duration-300 ${
+        showConversationList && !isMobile ? 'ml-80' : ''
+      }`}>
+        <div className="flex items-center justify-between px-6 py-4">
+          {/* ✅ Logo separado con hamburguesa más delgada */}
+          <div className="flex items-center space-x-8">
+            {/* ✅ Menú hamburguesa MÁS DELGADA con hover scale */}
             <button
-              onClick={() => setShowConversationList(true)}
-              className="lg:hidden p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+              onClick={() => setShowConversationList(!showConversationList)}
+              className="group transition-transform duration-200 hover:scale-110"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-6 h-6 text-gray-400 stroke-1" />
             </button>
             
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-lg font-medium text-white">NORA</h1>
+            {/* ✅ Logo de NORA más separado */}
+            <div className="flex items-center">
+              <Image 
+                src="/images/nora.png" 
+                alt="NORA Logo" 
+                width={50}
+                height={50}
+                className="hover:scale-105 transition-transform duration-300"
+                priority
+              />
             </div>
           </div>
 
-          {/* Controles */}
-          <div className="flex items-center space-x-2">
+          {/* ✅ Icono de perfil MÁS DELGADO con hover scale */}
+          <div className="flex items-center">
             <button
-              onClick={() => setShowConversationList(true)}
-              className="hidden lg:flex p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+              onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+              className="group transition-transform duration-200 hover:scale-110"
             >
-              <MessageCircle className="w-5 h-5" />
-            </button>
-            
-            <button
-              onClick={() => setShowSettingsMenu(true)}
-              className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-            >
-              <Settings className="w-5 h-5" />
+              <UserCircle className="w-6 h-6 text-gray-400 stroke-1" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* TUS SIDEBARS ORIGINALES */}
+      {/* ✅ SIDEBARS SIN NEBLINA - CHAT SIGUE VISIBLE */}
       {showConversationList && (
-        <div className="fixed inset-0 z-40 flex">
-          <div className="w-80">
+        <div className={`fixed inset-0 z-40 flex transition-all duration-300 ${isMobile ? '' : 'transform'}`}>
+          <div className={`w-80 transition-transform duration-300 ${showConversationList ? 'translate-x-0' : '-translate-x-full'}`}>
             <ConversationList 
               isOpen={showConversationList}
               onClose={() => setShowConversationList(false)}
@@ -787,10 +1002,13 @@ const ChatInterface = memo(function ChatInterface() {
               }}
             />
           </div>
-          <div 
-            className="flex-1 bg-black/50 backdrop-blur-sm" 
-            onClick={() => setShowConversationList(false)}
-          />
+          {/* ✅ SIN NEBLINA EN DESKTOP - CHAT SIGUE VISIBLE */}
+          {isMobile && (
+            <div 
+              className="flex-1 bg-black/50 backdrop-blur-sm" 
+              onClick={() => setShowConversationList(false)}
+            />
+          )}
         </div>
       )}
 
@@ -800,11 +1018,15 @@ const ChatInterface = memo(function ChatInterface() {
             className="flex-1 bg-black/50 backdrop-blur-sm" 
             onClick={() => setShowSettingsMenu(false)}
           />
-          <div className="w-96">
+          {/* ✅ SETTINGS MENU QUE SE DESPLAZA CON HEADER */}
+          <div className={`w-96 transition-all duration-300 ${
+            showConversationList && !isMobile ? 'mr-80' : ''
+          }`}>
             <SettingsMenu 
               isOpen={showSettingsMenu}
               onClose={() => setShowSettingsMenu(false)} 
             />
+            {userProfile && <WebSearchLimits userProfile={userProfile} />}
           </div>
         </div>
       )}
@@ -839,29 +1061,16 @@ const ChatInterface = memo(function ChatInterface() {
       )}
 
       {/* Chat principal */}
-      <div className="h-full flex flex-col pt-16 relative z-10">
+      <div className={`h-full flex flex-col pt-20 relative z-10 transition-all duration-300 ${
+        showConversationList && !isMobile ? 'ml-80' : ''
+      }`}>
         {!chatStarted && !currentConversation?.messages.length ? (
-          // Pantalla de inicio con video
-          <div className="flex-1 flex items-center justify-center text-center px-4">
-            <div className="max-w-md">
-              <h2 className="text-3xl font-bold mb-4">
-                ¡Hola! Soy NORA
-              </h2>
-              <p className="text-gray-400 mb-8">
-                Tu asistente de IA personalizado. ¿En qué puedo ayudarte hoy?
-              </p>
-              <button
-                onClick={handleStartChat}
-                className="px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-gray-100 transition-colors"
-              >
-                Empezar conversación
-              </button>
-            </div>
-          </div>
+          // ✅ Pantalla de bienvenida rediseñada
+          <WelcomeScreen onStartChat={handleStartChat} />
         ) : (
           // Chat activo
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* ✅ TU SELECTOR DE MODO ESPECIALISTA EXISTENTE */}
+            {/* TU SELECTOR DE MODO ESPECIALISTA EXISTENTE */}
             <div className="px-6 py-3 border-b border-gray-800">
               <SpecialistModeSelector
                 userProfile={userProfile!}
@@ -871,35 +1080,40 @@ const ChatInterface = memo(function ChatInterface() {
               />
             </div>
 
-            {/* ✅ DECIDIR QUÉ INTERFAZ DE CHAT USAR */}
+            {/* DECIDIR QUÉ INTERFAZ DE CHAT USAR */}
             {currentMode === 'normal' ? (
-              // TU CHAT NORMAL ORIGINAL
+              // TU CHAT NORMAL ORIGINAL CON BÚSQUEDA WEB
               <>
-                {/* Mensajes */}
-                <div className="flex-1 overflow-y-auto px-6 py-4">
+                {/* ✅ MENSAJES MÁS COMPACTOS Y MENOS GORDITOS */}
+                <div className="flex-1 overflow-y-auto px-4 py-4 max-w-4xl mx-auto">
                   {messages.map((message: ChatMessage, index: number) => (
-                    <div key={message.id} className="mb-6 group">
-                      <div className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
+                    <div key={message.id} className="mb-4 group">
+                      <div className="flex items-start space-x-2">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center">
                           {message.type === 'user' ? (
-                            <User className="w-4 h-4 text-white" />
+                            <User className="w-3 h-3 text-white" />
                           ) : (
-                            <Bot className="w-4 h-4 text-white" />
+                            <Bot className="w-3 h-3 text-white" />
                           )}
                         </div>
 
-                        <div className={`flex-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
-                          <div className={`inline-block max-w-full p-4 rounded-xl ${
+                        <div className={`flex-1 max-w-3xl ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
+                          {/* ✅ INDICADOR DE BÚSQUEDA WEB */}
+                          {message.type === 'ai' && (
+                            <WebSearchIndicator message={message} />
+                          )}
+                          
+                          <div className={`inline-block p-3 rounded-2xl ${
                             message.type === 'user'
-                              ? 'bg-gray-800 text-white'
-                              : 'bg-gray-900 text-white'
+                              ? 'bg-gray-800 text-white max-w-md'
+                              : 'bg-gray-900 text-white max-w-2xl'
                           }`}>
-                            <div className="whitespace-pre-wrap leading-relaxed">
+                            <div className="whitespace-pre-wrap leading-relaxed text-sm">
                               {message.message}
                             </div>
 
                             {message.type === 'ai' && (
-                              <div className="mt-3 pt-3 border-t border-gray-700">
+                              <div className="mt-2 pt-2 border-t border-gray-700">
                                 <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={() => handleCopy(message.message)}
@@ -939,7 +1153,8 @@ const ChatInterface = memo(function ChatInterface() {
                               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                             </div>
                             <span className="text-gray-400 text-sm">
-                              {deepThinkingMode || reportMode ? 'Analizando profundamente...' : 'Escribiendo...'}
+                              {deepThinkingMode || reportMode ? 'Analizando profundamente...' : 
+                               webSearchEnabled ? 'Buscando información actualizada...' : 'Escribiendo...'}
                             </span>
                           </div>
                         </div>
@@ -1018,8 +1233,8 @@ const ChatInterface = memo(function ChatInterface() {
                     </div>
                   )}
 
-                  {/* TUS INDICADORES DE MODO ACTIVO ORIGINALES */}
-                  {(reportMode || deepThinkingMode) && (
+                  {/* ✅ INDICADORES DE MODO ACTIVO CON BÚSQUEDA WEB */}
+                  {(reportMode || deepThinkingMode || webSearchEnabled) && (
                     <div className="mb-4 flex space-x-2">
                       {reportMode && (
                         <div className="bg-blue-900/50 border border-blue-700 rounded-lg px-3 py-1 text-blue-300 text-sm">
@@ -1031,26 +1246,31 @@ const ChatInterface = memo(function ChatInterface() {
                           Deep Search
                         </div>
                       )}
+                      {webSearchEnabled && (
+                        <div className="bg-green-900/50 border border-green-700 rounded-lg px-3 py-1 text-green-300 text-sm">
+                          🔍 Búsqueda Web Activada
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* TU ÁREA DE INPUT COMPACTA ORIGINAL */}
-                  <div className="bg-gray-900 border border-gray-700 rounded-xl p-3">
-                    <div className="flex items-end space-x-3">
-                      {/* TU MENÚ DE HERRAMIENTAS DESPLEGABLE ORIGINAL CON + */}
+                  {/* ✅ ÁREA DE INPUT REDISEÑADA - CIRCULAR/OVALADA CON EFECTO NEBLINA */}
+                  <div className="bg-gray-800/30 backdrop-blur-xl rounded-full p-3 border border-gray-700/30">
+                    <div className="flex items-center space-x-3">
+                      {/* ✅ MENÚ DE HERRAMIENTAS SIN MARGEN NI FONDO */}
                       <div className="relative">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowToolsMenu(!showToolsMenu);
                           }}
-                          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+                          className="hover:bg-gray-700/30 rounded-full p-1 transition-colors"
                           title="Herramientas"
                         >
-                          <Plus className={`w-4 h-4 transition-transform ${showToolsMenu ? 'rotate-45' : ''}`} />
+                          <Plus className={`w-5 h-5 text-gray-400 transition-transform ${showToolsMenu ? 'rotate-45' : ''}`} />
                         </button>
 
-                        {/* TU MENÚ DESPLEGABLE ORIGINAL CON VIDEOS */}
+                        {/* MENÚ DESPLEGABLE */}
                         {showToolsMenu && (
                           <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-2 w-48">
                             <button
@@ -1087,6 +1307,23 @@ const ChatInterface = memo(function ChatInterface() {
                               <FileText className="w-4 h-4" />
                               <span className="text-sm">Generar reporte</span>
                             </button>
+
+                            {/* BOTÓN DE BÚSQUEDA WEB EN EL MENÚ */}
+                            <button
+                              onClick={toggleWebSearch}
+                              className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 text-left ${
+                                webSearchEnabled ? 'text-green-400' : 'text-gray-300'
+                              }`}
+                            >
+                              {webSearchEnabled ? (
+                                <Wifi className="w-4 h-4" />
+                              ) : (
+                                <WifiOff className="w-4 h-4" />
+                              )}
+                              <span className="text-sm">
+                                {webSearchEnabled ? 'Desactivar búsqueda' : 'Activar búsqueda web'}
+                              </span>
+                            </button>
                             
                             <button
                               onClick={() => fileInputRef.current?.click()}
@@ -1099,43 +1336,49 @@ const ChatInterface = memo(function ChatInterface() {
                         )}
                       </div>
 
-                      {/* Textarea */}
+                      {/* ✅ TEXTAREA MÁS COMPACTA */}
                       <div className="flex-1 relative">
                         <textarea
                           ref={textareaRef}
                           value={input}
                           onChange={(e) => setInput(e.target.value)}
                           onKeyDown={handleKeyPress}
-                          placeholder={shouldShowUpgradeWarning() ? "Mejora tu plan para continuar..." : "Escribe tu mensaje..."}
+                          placeholder={
+                            shouldShowUpgradeWarning() 
+                              ? "Mejora tu plan para continuar..." 
+                              : webSearchEnabled 
+                                ? "Escribe tu mensaje (búsqueda web activada)..." 
+                                : "Escribe tu mensaje..."
+                          }
                           disabled={isLoading || shouldShowUpgradeWarning()}
-                          className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none leading-relaxed min-h-[40px] max-h-24 py-2"
+                          className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none leading-relaxed min-h-[32px] max-h-20 py-1 text-sm"
                         />
                       </div>
 
-                      {/* ✅ MICRÓFONO MEJORADO */}
+                      {/* ✅ MICRÓFONO SIN MARGEN NI FONDO */}
                       <button
                         onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
                         disabled={shouldShowUpgradeWarning()}
-                        className={`p-2 rounded-lg transition-colors ${
-                          isRecording 
-                            ? 'bg-red-600 hover:bg-red-700' 
-                            : 'bg-gray-800 hover:bg-gray-700'
+                        className={`hover:bg-gray-700/30 rounded-full p-1 transition-colors ${
+                          isRecording ? 'text-red-400' : 'text-gray-400'
                         }`}
                         title={isRecording ? "Detener" : "Grabar"}
                       >
-                        {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                       </button>
 
-                      {/* Botón de envío */}
+                      {/* ✅ BOTÓN DE ENVÍO CON ESTILO */}
                       <button
                         onClick={sendMessage}
-                        disabled={isLoading || !input.trim() || shouldShowUpgradeWarning()}
-                        className={`p-2 rounded-lg transition-colors ${
-                          input.trim() && !isLoading && !shouldShowUpgradeWarning()
-                            ? 'bg-white text-black hover:bg-gray-200' 
+                        disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || shouldShowUpgradeWarning()}
+                        className={`p-2 rounded-full transition-all duration-300 ${
+                          (input.trim() || uploadedFiles.length > 0) && !isLoading && !shouldShowUpgradeWarning()
+                            ? webSearchEnabled 
+                              ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg' 
+                              : 'bg-white text-black hover:bg-gray-200 shadow-lg'
                             : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                         }`}
-                        title="Enviar"
+                        title={webSearchEnabled ? "Enviar con búsqueda web" : "Enviar"}
                       >
                         {isLoading ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -1148,7 +1391,7 @@ const ChatInterface = memo(function ChatInterface() {
                 </div>
               </>
             ) : (
-              // ✅ TUS COMPONENTES ESPECIALISTAS EXISTENTES
+              // TUS COMPONENTES ESPECIALISTAS EXISTENTES
               <div className="flex-1 overflow-hidden">
                 <SpecialistChatInterface
                   userProfile={userProfile!}
@@ -1173,6 +1416,55 @@ const ChatInterface = memo(function ChatInterface() {
         className="hidden"
         accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.csv,.xlsx"
       />
+
+      {/* ✅ ESTILOS CSS PARA ANIMACIONES */}
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
+        
+        @keyframes fade-up {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes typewriter {
+          from { width: 0; }
+          to { width: 100%; }
+        }
+        
+        @keyframes blink {
+          50% { border-color: transparent; }
+        }
+        
+        .animate-fade-up { 
+          animation: fade-up 0.8s ease-out forwards; 
+          opacity: 0; 
+        }
+
+        /* Ensure smooth scrolling */
+        html {
+          scroll-behavior: smooth;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #4b5563;
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #6b7280;
+        }
+
+        /* Lastica font fallbacks */
+        body {
+          font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+      `}</style>
     </div>
   );
 });
