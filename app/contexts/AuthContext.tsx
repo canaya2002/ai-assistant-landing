@@ -35,19 +35,81 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const plan: PlanType = userProfile?.user?.plan || 'free';
 
+  // Función auxiliar para obtener límites de especialista
+  const safeGetSpecialistLimits = async (uid: string, plan: string) => {
+    try {
+      const response = await cloudFunctions.getSpecialistModeLimits();
+      return response.data;
+    } catch (error) {
+      console.error('⚠️ Error obteniendo límites de especialista, usando valores por defecto:', error);
+      // RETORNAR LÍMITES POR DEFECTO BASADOS EN EL PLAN
+      return {
+        limits: {
+          developerMode: {
+            daily: { 
+              limit: plan === 'free' ? 1 : plan === 'pro' ? 15 : -1, 
+              used: 0, 
+              remaining: plan === 'free' ? 1 : plan === 'pro' ? 15 : -1 
+            },
+            monthly: { 
+              limit: plan === 'free' ? 5 : plan === 'pro' ? 200 : -1, 
+              used: 0, 
+              remaining: plan === 'free' ? 5 : plan === 'pro' ? 200 : -1 
+            }
+          },
+          specialistMode: {
+            daily: { 
+              limit: plan === 'free' ? 1 : plan === 'pro' ? 10 : -1, 
+              used: 0, 
+              remaining: plan === 'free' ? 1 : plan === 'pro' ? 10 : -1 
+            },
+            monthly: { 
+              limit: plan === 'free' ? 3 : plan === 'pro' ? 150 : -1, 
+              used: 0, 
+              remaining: plan === 'free' ? 3 : plan === 'pro' ? 150 : -1 
+            }
+          }
+        },
+        specialties: {},
+        maxTokensPerResponse: plan === 'free' ? 1500 : plan === 'pro' ? 6000 : 12000
+      };
+    }
+  };
+
   // Función para obtener perfil del usuario
   const fetchUserProfile = async (firebaseUser: FirebaseUser): Promise<UserProfile | null> => {
     try {
       const response = await cloudFunctions.getUserProfile();
       const profile = response.data;
       
-      // ✅ CORRECCIÓN: Asegurar que el perfil tenga todas las propiedades requeridas
+      // Crear objeto base de availableFeatures para evitar undefined
+      const baseAvailableFeatures = {
+        chat: true,
+        voice: false,
+        multimedia: false,
+        code: false,
+        pdf: false,
+        liveMode: false,
+        imageGeneration: false,
+        videoGeneration: false,
+        developerMode: true,
+        specialistMode: true,
+        unlimitedSpecialist: false,
+        priorityProcessing: false,
+        webSearch: false,
+        webSearchLimit: 0,
+      };
+
+      // Verificar que availableFeatures existe antes de usarlo
+      const existingFeatures = profile.planInfo?.availableFeatures || {};
+
+      // Asegurar que el perfil tenga todas las propiedades requeridas
       const completeProfile: UserProfile = {
         user: profile.user,
         usage: {
           daily: {
             ...profile.usage.daily,
-            // ✅ Agregar campos opcionales con valores por defecto
+            // Agregar campos opcionales con valores por defecto
             developerModeUsed: profile.usage.daily.developerModeUsed || 0,
             developerModeLimit: profile.usage.daily.developerModeLimit || 0,
             developerModeRemaining: profile.usage.daily.developerModeRemaining || 0,
@@ -57,7 +119,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           },
           monthly: {
             ...profile.usage.monthly,
-            // ✅ Agregar campos opcionales con valores por defecto
+            // Agregar campos opcionales con valores por defecto
             developerModeUsed: profile.usage.monthly.developerModeUsed || 0,
             developerModeLimit: profile.usage.monthly.developerModeLimit || 0,
             developerModeRemaining: profile.usage.monthly.developerModeRemaining || 0,
@@ -68,24 +130,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
         limits: {
           ...profile.limits,
-          // ✅ Agregar campos opcionales con valores por defecto
-          developerModeEnabled: profile.limits.developerModeEnabled !== undefined ? profile.limits.developerModeEnabled : true,
-          specialistModeEnabled: profile.limits.specialistModeEnabled !== undefined ? profile.limits.specialistModeEnabled : true,
-          developerModeDaily: profile.limits.developerModeDaily || (plan === 'free' ? 1 : plan === 'pro' ? 15 : -1),
-          developerModeMonthly: profile.limits.developerModeMonthly || (plan === 'free' ? 5 : plan === 'pro' ? 200 : -1),
-          specialistModeDaily: profile.limits.specialistModeDaily || (plan === 'free' ? 1 : plan === 'pro' ? 10 : -1),
-          specialistModeMonthly: profile.limits.specialistModeMonthly || (plan === 'free' ? 3 : plan === 'pro' ? 150 : -1),
-          maxTokensPerSpecialistResponse: profile.limits.maxTokensPerSpecialistResponse || (plan === 'free' ? 1500 : plan === 'pro' ? 6000 : 12000),
+          // Agregar campos opcionales con valores por defecto
+          developerModeEnabled: profile.limits?.developerModeEnabled !== undefined ? profile.limits.developerModeEnabled : true,
+          specialistModeEnabled: profile.limits?.specialistModeEnabled !== undefined ? profile.limits.specialistModeEnabled : true,
+          developerModeDaily: profile.limits?.developerModeDaily || (plan === 'free' ? 1 : plan === 'pro' ? 15 : -1),
+          developerModeMonthly: profile.limits?.developerModeMonthly || (plan === 'free' ? 5 : plan === 'pro' ? 200 : -1),
+          specialistModeDaily: profile.limits?.specialistModeDaily || (plan === 'free' ? 1 : plan === 'pro' ? 10 : -1),
+          specialistModeMonthly: profile.limits?.specialistModeMonthly || (plan === 'free' ? 3 : plan === 'pro' ? 150 : -1),
+          maxTokensPerSpecialistResponse: profile.limits?.maxTokensPerSpecialistResponse || (plan === 'free' ? 1500 : plan === 'pro' ? 6000 : 12000),
         },
         planInfo: {
           ...profile.planInfo,
           availableFeatures: {
-            ...profile.planInfo.availableFeatures,
-            // ✅ Agregar nuevas características opcionales
-            developerMode: profile.planInfo.availableFeatures.developerMode !== undefined ? profile.planInfo.availableFeatures.developerMode : true,
-            specialistMode: profile.planInfo.availableFeatures.specialistMode !== undefined ? profile.planInfo.availableFeatures.specialistMode : true,
-            unlimitedSpecialist: profile.planInfo.availableFeatures.unlimitedSpecialist !== undefined ? profile.planInfo.availableFeatures.unlimitedSpecialist : plan === 'pro_max',
-            priorityProcessing: profile.planInfo.availableFeatures.priorityProcessing !== undefined ? profile.planInfo.availableFeatures.priorityProcessing : plan === 'pro_max',
+            ...baseAvailableFeatures, // Usar objeto base como fallback
+            ...existingFeatures, // Solo aplicar spread si existe
+            // Agregar nuevas características opcionales con verificación segura
+            developerMode: existingFeatures.developerMode !== undefined ? existingFeatures.developerMode : true,
+            specialistMode: existingFeatures.specialistMode !== undefined ? existingFeatures.specialistMode : true,
+            unlimitedSpecialist: existingFeatures.unlimitedSpecialist !== undefined ? existingFeatures.unlimitedSpecialist : plan === 'pro_max',
+            priorityProcessing: existingFeatures.priorityProcessing !== undefined ? existingFeatures.priorityProcessing : plan === 'pro_max',
+            webSearch: existingFeatures.webSearch !== undefined ? existingFeatures.webSearch : plan !== 'free',
           }
         },
         subscription: profile.subscription,
@@ -99,7 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       console.error('Error obteniendo perfil:', error);
       
-      // ✅ Crear perfil por defecto si hay error
+      // Crear perfil por defecto si hay error
       const defaultProfile: UserProfile = {
         user: {
           uid: firebaseUser.uid,
@@ -123,7 +187,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             analysesLimit: 5,
             analysesRemaining: 5,
             chatMessagesCount: 0,
-            // Nuevos campos para modos especializados
             developerModeUsed: 0,
             developerModeLimit: 1,
             developerModeRemaining: 1,
@@ -143,7 +206,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             analysesLimit: 20,
             analysesRemaining: 20,
             chatMessagesCount: 0,
-            // Nuevos campos para modos especializados
             developerModeUsed: 0,
             developerModeLimit: 5,
             developerModeRemaining: 5,
@@ -166,7 +228,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           imageGeneration: false,
           videoGeneration: false,
           maxVideoLength: 0,
-          // Nuevos campos para modos especializados
           developerModeEnabled: true,
           specialistModeEnabled: true,
           developerModeDaily: 1,
@@ -187,13 +248,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
             liveMode: false,
             imageGeneration: false,
             videoGeneration: false,
-            // Nuevas características
             developerMode: true,
             specialistMode: true,
             unlimitedSpecialist: false,
             priorityProcessing: false,
+            webSearch: false,
           }
         },
+        subscription: undefined,
         preferences: {
           theme: 'dark',
           notifications: true,
@@ -232,16 +294,127 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        const profile = await fetchUserProfile(firebaseUser);
-        setUserProfile(profile);
-      } else {
-        setUser(null);
-        setUserProfile(null);
+      try {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          const profile = await fetchUserProfile(firebaseUser);
+          setUserProfile(profile);
+        } else {
+          setUser(null);
+          setUserProfile(null);
+        }
+      } catch (error) {
+        console.error('Error en AuthProvider:', error);
+        // SI HAY ERROR TOTAL, AL MENOS MANTENER EL USUARIO
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          // CREAR PERFIL MÍNIMO EN CASO DE ERROR CRÍTICO
+          const fallbackProfile: UserProfile = {
+            user: {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+              plan: 'free',
+              isPremium: false,
+              isPro: false,
+              isProMax: false
+            },
+            usage: {
+              daily: {
+                tokensUsed: 0,
+                tokensLimit: 10000,
+                tokensRemaining: 10000,
+                imagesGenerated: 0,
+                imagesLimit: 0,
+                videosGenerated: 0,
+                videosLimit: 0,
+                analysesCount: 0,
+                analysesLimit: 5,
+                analysesRemaining: 5,
+                chatMessagesCount: 0,
+                developerModeUsed: 0,
+                developerModeLimit: 1,
+                developerModeRemaining: 1,
+                specialistModeUsed: 0,
+                specialistModeLimit: 1,
+                specialistModeRemaining: 1,
+              },
+              monthly: {
+                tokensUsed: 0,
+                tokensLimit: 50000,
+                tokensRemaining: 50000,
+                imagesGenerated: 0,
+                imagesLimit: 0,
+                videosGenerated: 0,
+                videosLimit: 0,
+                analysesCount: 0,
+                analysesLimit: 20,
+                analysesRemaining: 20,
+                chatMessagesCount: 0,
+                developerModeUsed: 0,
+                developerModeLimit: 5,
+                developerModeRemaining: 5,
+                specialistModeUsed: 0,
+                specialistModeLimit: 3,
+                specialistModeRemaining: 3,
+              }
+            },
+            limits: {
+              dailyTokens: 10000,
+              monthlyTokens: 50000,
+              dailyAnalyses: 5,
+              monthlyAnalyses: 20,
+              chatEnabled: true,
+              voiceEnabled: false,
+              multimediaEnabled: false,
+              codeEnabled: false,
+              pdfEnabled: false,
+              maxResponseTokens: 1000,
+              imageGeneration: false,
+              videoGeneration: false,
+              maxVideoLength: 0,
+              developerModeEnabled: true,
+              specialistModeEnabled: true,
+              developerModeDaily: 1,
+              developerModeMonthly: 5,
+              specialistModeDaily: 1,
+              specialistModeMonthly: 3,
+              maxTokensPerSpecialistResponse: 1500,
+            },
+            planInfo: {
+              currentPlan: 'free',
+              displayName: 'Gratis',
+              availableFeatures: {
+                chat: true,
+                voice: false,
+                multimedia: false,
+                code: false,
+                pdf: false,
+                liveMode: false,
+                imageGeneration: false,
+                videoGeneration: false,
+                developerMode: true,
+                specialistMode: true,
+                unlimitedSpecialist: false,
+                priorityProcessing: false,
+                webSearch: false,
+              }
+            },
+            subscription: undefined,
+            preferences: {
+              theme: 'dark',
+              notifications: true,
+              autoSave: true
+            },
+            createdAt: new Date(),
+            lastLogin: new Date(),
+            totalConversations: 0
+          };
+          setUserProfile(fallbackProfile);
+        }
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => unsubscribe();

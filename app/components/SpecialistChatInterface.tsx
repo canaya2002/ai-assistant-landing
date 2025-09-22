@@ -52,29 +52,51 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Cargar informaciÃ³n de usos restantes
+  // Cargar información de usos restantes
   useEffect(() => {
     const loadRemainingUses = async () => {
+      // ✅ VERIFICAR QUE EL USUARIO ESTÉ AUTENTICADO
+      if (!userProfile?.user?.uid) {
+        return;
+      }
+
       try {
         const response = await cloudFunctions.getSpecialistModeLimits();
         const limits = response.data;
         setRemainingUses({
           developer: {
-            daily: limits.limits.developerMode.dailyRemaining,
-            monthly: limits.limits.developerMode.monthlyRemaining
+            // ✅ USAR LAS PROPIEDADES CORRECTAS DEL TIPO
+            daily: limits.limits.developerMode.dailyRemaining || 0,
+            monthly: limits.limits.developerMode.monthlyRemaining || 0
           },
           specialist: {
-            daily: limits.limits.specialistMode.dailyRemaining,
-            monthly: limits.limits.specialistMode.monthlyRemaining
+            // ✅ USAR LAS PROPIEDADES CORRECTAS DEL TIPO
+            daily: limits.limits.specialistMode.dailyRemaining || 0,
+            monthly: limits.limits.specialistMode.monthlyRemaining || 0
           }
         });
       } catch (error) {
         console.error('Error cargando usos restantes:', error);
+        // ✅ USAR VALORES POR DEFECTO BASADOS EN EL PLAN
+        const plan = userProfile.user.plan || 'free';
+        const defaultDaily = plan === 'free' ? 1 : plan === 'pro' ? 10 : -1;
+        const defaultMonthly = plan === 'free' ? 3 : plan === 'pro' ? 150 : -1;
+        
+        setRemainingUses({
+          developer: {
+            daily: defaultDaily,
+            monthly: defaultMonthly
+          },
+          specialist: {
+            daily: defaultDaily,
+            monthly: defaultMonthly
+          }
+        });
       }
     };
 
     loadRemainingUses();
-  }, [currentMode]);
+  }, [currentMode, userProfile?.user?.uid, userProfile?.user?.plan]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -89,7 +111,7 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
       return {
         icon: <Code className="w-4 h-4 text-blue-400" />,
         name: 'NORA CODE',
-        description: 'Experto en programaciÃ³n y desarrollo',
+        description: 'Experto en programación y desarrollo',
         color: 'blue',
         gradient: 'from-blue-500/20 to-cyan-500/20'
       };
@@ -128,14 +150,14 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
     if (currentMode === 'developer') {
       if (remainingUses?.developer.daily === 0) {
         return plan === 'free' 
-          ? 'LÃ­mite diario del Modo Desarrollador alcanzado. Actualiza a Pro para mÃ¡s acceso.'
-          : 'LÃ­mite diario alcanzado. Se restablece maÃ±ana.';
+          ? 'Límite diario del Modo Desarrollador alcanzado. Actualiza a Pro para más acceso.'
+          : 'Límite diario alcanzado. Se restablece mañana.';
       }
     } else if (currentMode === 'specialist') {
       if (remainingUses?.specialist.daily === 0) {
         return plan === 'free'
-          ? 'LÃ­mite diario del Modo Especialista alcanzado. Actualiza a Pro para mÃ¡s acceso.'
-          : 'LÃ­mite diario alcanzado. Se restablece maÃ±ana.';
+          ? 'Límite diario del Modo Especialista alcanzado. Actualiza a Pro para más acceso.'
+          : 'Límite diario alcanzado. Se restablece mañana.';
       }
     }
     return null;
@@ -181,7 +203,7 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
         const result = await cloudFunctions.specialistModeChat(input);
         response = result.data;
       } else {
-        // Chat normal - usar la funciÃ³n existente
+        // Chat normal - usar la función existente
         const result = await cloudFunctions.chatWithAI({
           message: message.trim(),
           chatHistory: chatHistory.slice(-10),
@@ -204,7 +226,7 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
 
       onNewMessage(aiMessage);
 
-      // âœ… CORRECCIÃ“N: Actualizar usos restantes solo para modos especializados
+      // Actualizar usos restantes solo para modos especializados
       if ('remainingDaily' in response && 'remainingMonthly' in response) {
         setRemainingUses(prev => {
           if (!prev) return null;
@@ -289,7 +311,7 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
           )}
         </div>
 
-        {/* CaracterÃ­sticas del Modo Actual */}
+        {/* Características del Modo Actual */}
         {currentMode === 'specialist' && currentSpecialty && (
           <div className="mt-3 flex flex-wrap gap-2">
             {SPECIALIST_MODES.find(s => s.id === currentSpecialty)?.features?.map((feature: string) => (
@@ -304,13 +326,13 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
         )}
       </div>
 
-      {/* Mensaje de LÃ­mite */}
+      {/* Mensaje de Límite */}
       {limitMessage && (
         <div className="mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
           <div className="flex items-start space-x-2">
             <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
             <div>
-              <div className="text-sm text-orange-300 font-medium">LÃ­mite Alcanzado</div>
+              <div className="text-sm text-orange-300 font-medium">Límite Alcanzado</div>
               <div className="text-xs text-orange-200 mt-1">{limitMessage}</div>
             </div>
           </div>
@@ -326,7 +348,7 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
             onChange={(e) => setMessage(e.target.value)}
             placeholder={
               currentMode === 'developer' 
-                ? "Describe tu problema de programaciÃ³n, comparte cÃ³digo o haz preguntas tÃ©cnicas..."
+                ? "Describe tu problema de programación, comparte código o haz preguntas técnicas..."
                 : currentMode === 'specialist'
                   ? `Haz tu consulta especializada en ${SPECIALIST_MODES.find(s => s.id === currentSpecialty)?.name}...`
                   : "Escribe tu mensaje..."
@@ -368,7 +390,7 @@ const SpecialistChatInterface: React.FC<SpecialistChatInterfaceProps> = ({
           </button>
         </div>
 
-        {/* InformaciÃ³n Adicional */}
+        {/* Información Adicional */}
         <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center space-x-4">
             {(currentMode === 'developer' || currentMode === 'specialist') && (

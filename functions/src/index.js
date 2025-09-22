@@ -1,7 +1,8 @@
-// functions/src/index.js - ARCHIVO PRINCIPAL CON BÚSQUEDA MANUAL
+// functions/src/index.js - ARCHIVO PRINCIPAL CON SEGURIDAD MEJORADA
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+// ✅ CONFIGURACIÓN SEGURA DE STRIPE
 const stripe = require('stripe')(functions.config().stripe?.secret_key || process.env.STRIPE_SECRET_KEY);
 const OpenAI = require('openai');
 
@@ -23,10 +24,11 @@ const {
   specialistModeChat
 } = require('./specialistFunctions');
 
-// ✅ IMPORTAR FUNCIONES DE BÚSQUEDA WEB (MODIFICADAS)
+// ✅ IMPORTAR FUNCIONES DE BÚSQUEDA WEB
 const {
   searchInternet,
-  generateResponseWithSearch, // Ahora acepta parámetro forceSearch
+  shouldSearchInternet,
+  generateResponseWithSearch,
   extractTextFromPDF,
   checkSearchLimits,
   updateSearchUsage,
@@ -34,7 +36,73 @@ const {
 } = require('./searchFunctions');
 
 // ========================================
-// LÍMITES ACTUALIZADOS
+// 🔒 FUNCIÓN DE VERIFICACIÓN DE SUSCRIPCIÓN SEGURA
+// ========================================
+async function verifyUserSubscription(uid, requiredPlan = null) {
+  try {
+    const userDoc = await admin.firestore().collection('users').doc(uid).get();
+    
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Usuario no encontrado');
+    }
+
+    const userData = userDoc.data();
+    const currentPlan = userData.plan || 'free';
+
+    // ✅ VERIFICACIÓN BÁSICA DE PLAN
+    if (requiredPlan && currentPlan !== requiredPlan) {
+      return { 
+        isValid: false, 
+        plan: currentPlan, 
+        error: `Plan requerido: ${requiredPlan}, plan actual: ${currentPlan}` 
+      };
+    }
+
+    // ✅ VERIFICACIÓN ADICIONAL PARA PLANES PREMIUM
+    if (currentPlan !== 'free') {
+      // Verificar que tenga datos de Stripe
+      if (!userData.stripeSubscriptionId || !userData.stripeCustomerId) {
+        console.warn(`⚠️ Usuario ${uid} tiene plan ${currentPlan} pero faltan datos de Stripe`);
+        // En producción, esto debería downgrade a free
+        // Por ahora solo advertencia para no romper funcionalidad existente
+      }
+
+      // Verificar que la suscripción no esté vencida
+      if (userData.currentPeriodEnd) {
+        const endDate = userData.currentPeriodEnd.toDate ? userData.currentPeriodEnd.toDate() : new Date(userData.currentPeriodEnd);
+        if (endDate < new Date()) {
+          console.warn(`⚠️ Suscripción vencida para usuario ${uid}`);
+          // En producción, downgrade a free
+        }
+      }
+
+      // ✅ VERIFICACIÓN CON STRIPE (OPCIONAL - COSTOSA)
+      if (userData.stripeSubscriptionId && Math.random() < 0.1) { // 10% de verificaciones aleatorias
+        try {
+          const subscription = await stripe.subscriptions.retrieve(userData.stripeSubscriptionId);
+          if (subscription.status !== 'active') {
+            console.error(`❌ Suscripción inactiva en Stripe para usuario ${uid}: ${subscription.status}`);
+            // En producción, actualizar a free
+          }
+        } catch (stripeError) {
+          console.error(`❌ Error verificando suscripción Stripe:`, stripeError);
+        }
+      }
+    }
+
+    return {
+      isValid: true,
+      plan: currentPlan,
+      userData
+    };
+  } catch (error) {
+    console.error('❌ Error verificando suscripción:', error);
+    throw new functions.https.HttpsError('internal', 'Error verificando suscripción');
+  }
+}
+
+// ========================================
+// LÍMITES ACTUALIZADOS (MANTENER EXISTENTES)
 // ========================================
 const TOKEN_LIMITS = {
   'free': {
@@ -64,7 +132,7 @@ const IMAGE_LIMITS = {
 };
 
 // ========================================
-// FUNCIONES DE VIDEO (EXISTENTES)
+// FUNCIONES DE VIDEO (EXISTENTES) - CON VERIFICACIÓN
 // ========================================
 exports.getVideoUsageStatus = getVideoUsageStatus;
 exports.generateVideo = generateVideo;
@@ -72,14 +140,14 @@ exports.checkVideoStatus = checkVideoStatus;
 exports.getSignedVideoUrl = getSignedVideoUrl;
 
 // ========================================
-// NUEVAS FUNCIONES - MODOS ESPECIALIZADOS
+// NUEVAS FUNCIONES - MODOS ESPECIALIZADOS - CON VERIFICACIÓN
 // ========================================
 exports.getSpecialistModeLimits = getSpecialistModeLimits;
 exports.developerModeChat = developerModeChat;
 exports.specialistModeChat = specialistModeChat;
 
 // ========================================
-// FUNCIÓN PERFIL ACTUALIZADA CON BÚSQUEDA WEB
+// FUNCIÓN PERFIL ACTUALIZADA CON BÚSQUEDA WEB Y SEGURIDAD
 // ========================================
 exports.getUserProfile = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -89,13 +157,13 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
   const uid = context.auth.uid;
 
   try {
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    if (!userDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Usuario no encontrado');
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
     }
 
-    const userData = userDoc.data();
-    const plan = userData.plan || 'free';
+    const { plan, userData } = verification;
 
     // Obtener uso actual
     const today = new Date();
@@ -109,279 +177,284 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
     const dailyUsage = usageData.daily || { tokensUsed: 0, date: todayStr };
     const monthlyUsage = usageData.monthly || { tokensUsed: 0, month: monthStr };
 
-    // ✅ OBTENER USO DE BÚSQUEDAS WEB
-    const searchUsageDoc = await admin.firestore().collection('search_usage').doc(uid).get();
-    const searchUsageData = searchUsageDoc.data() || {};
-    const monthlySearchUsage = searchUsageData.monthly || { searchesUsed: 0, month: monthStr };
-
-    // Reset si cambió el mes
-    if (monthlySearchUsage.month !== monthStr) {
-      monthlySearchUsage.searchesUsed = 0;
-      monthlySearchUsage.month = monthStr;
+    // Reset automático si cambió el día/mes
+    if (dailyUsage.date !== todayStr) {
+      dailyUsage.tokensUsed = 0;
+      dailyUsage.date = todayStr;
+    }
+    if (monthlyUsage.month !== monthStr) {
+      monthlyUsage.tokensUsed = 0;
+      monthlyUsage.month = monthStr;
     }
 
-    // Obtener uso de modos especializados
-    const specialistUsageDoc = await admin.firestore().collection('specialist_usage').doc(uid).get();
-    const specialistUsageData = specialistUsageDoc.data() || {};
+    // ✅ OBTENER LÍMITES DE BÚSQUEDA WEB SEGUROS
+    const searchLimits = await checkSearchLimits(uid, plan);
 
-    const dailyDevUsage = specialistUsageData.dailyDeveloper || { count: 0, date: todayStr };
-    const monthlyDevUsage = specialistUsageData.monthlyDeveloper || { count: 0, month: monthStr };
-    const dailySpecUsage = specialistUsageData.dailySpecialist || { count: 0, date: todayStr };
-    const monthlySpecUsage = specialistUsageData.monthlySpecialist || { count: 0, month: monthStr };
-
-    // Configurar límites según el plan
+    // Calcular límites
     const limits = TOKEN_LIMITS[plan] || TOKEN_LIMITS['free'];
-    const searchLimits = SEARCH_LIMITS[plan] || SEARCH_LIMITS['free'];
+    const dailyRemaining = Math.max(0, limits.daily - dailyUsage.tokensUsed);
+    const monthlyRemaining = Math.max(0, limits.monthly - monthlyUsage.tokensUsed);
 
     return {
       user: {
-        uid: uid,
+        uid: userData.uid,
         email: userData.email,
         name: userData.name,
         plan: plan,
-        isPremium: plan !== 'free',
-        isPro: plan === 'pro',
-        isProMax: plan === 'pro_max'
+        // ✅ INCLUIR DATOS DE VERIFICACIÓN (OPCIONAL)
+        verified: userData.verified || false,
+        subscriptionStatus: userData.subscriptionStatus || 'unknown',
+        currentPeriodEnd: userData.currentPeriodEnd,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt
       },
       usage: {
         daily: {
           tokensUsed: dailyUsage.tokensUsed,
-          tokensLimit: limits.daily,
-          tokensRemaining: limits.daily === -1 ? -1 : Math.max(0, limits.daily - dailyUsage.tokensUsed),
-          imagesGenerated: 0,
-          imagesLimit: plan === 'free' ? 0 : (plan === 'pro' ? 10 : 50),
-          videosGenerated: 0,
-          videosLimit: plan === 'free' ? 0 : (plan === 'pro' ? 5 : 15),
-          analysesCount: 0,
-          analysesLimit: plan === 'free' ? 5 : -1,
-          analysesRemaining: plan === 'free' ? 5 : -1,
-          chatMessagesCount: 0,
-          developerModeUsed: dailyDevUsage.count,
-          developerModeLimit: plan === 'free' ? 1 : (plan === 'pro' ? 15 : -1),
-          developerModeRemaining: plan === 'free' ? Math.max(0, 1 - dailyDevUsage.count) : (plan === 'pro' ? Math.max(0, 15 - dailyDevUsage.count) : -1),
-          specialistModeUsed: dailySpecUsage.count,
-          specialistModeLimit: plan === 'free' ? 1 : (plan === 'pro' ? 10 : -1),
-          specialistModeRemaining: plan === 'free' ? Math.max(0, 1 - dailySpecUsage.count) : (plan === 'pro' ? Math.max(0, 10 - dailySpecUsage.count) : -1)
+          remainingTokens: dailyRemaining,
+          date: dailyUsage.date
         },
         monthly: {
           tokensUsed: monthlyUsage.tokensUsed,
-          tokensLimit: limits.monthly,
-          tokensRemaining: limits.monthly === -1 ? -1 : Math.max(0, limits.monthly - monthlyUsage.tokensUsed),
-          imagesGenerated: 0,
-          imagesLimit: IMAGE_LIMITS[plan]?.monthly || 0,
-          videosGenerated: 0,
-          videosLimit: plan === 'free' ? 0 : (plan === 'pro' ? 50 : 150),
-          analysesCount: 0,
-          analysesLimit: plan === 'free' ? 20 : -1,
-          analysesRemaining: plan === 'free' ? 20 : -1,
-          chatMessagesCount: 0,
-          // ✅ NUEVOS CAMPOS - BÚSQUEDAS WEB
-          webSearchesUsed: monthlySearchUsage.searchesUsed,
-          webSearchesLimit: searchLimits.monthly,
-          webSearchesRemaining: Math.max(0, searchLimits.monthly - monthlySearchUsage.searchesUsed)
+          remainingTokens: monthlyRemaining,
+          month: monthlyUsage.month
         }
       },
       limits: {
-        dailyTokens: limits.daily,
-        monthlyTokens: limits.monthly,
-        dailyAnalyses: plan === 'free' ? 5 : -1,
-        monthlyAnalyses: plan === 'free' ? 20 : -1,
-        chatEnabled: true,
-        voiceEnabled: plan !== 'free',
-        multimediaEnabled: plan !== 'free',
-        codeEnabled: plan !== 'free',
-        pdfEnabled: plan !== 'free',
-        maxResponseTokens: plan === 'free' ? 2000 : (plan === 'pro' ? 4000 : 10000),
-        imageGeneration: plan !== 'free',
-        videoGeneration: plan !== 'free',
-        maxVideoLength: plan === 'free' ? 0 : (plan === 'pro' ? 7 : 8),
-        developerModeEnabled: true,
-        specialistModeEnabled: true,
-        developerModeDaily: plan === 'free' ? 1 : (plan === 'pro' ? 15 : -1),
-        developerModeMonthly: plan === 'free' ? 5 : (plan === 'pro' ? 200 : -1),
-        specialistModeDaily: plan === 'free' ? 1 : (plan === 'pro' ? 10 : -1),
-        specialistModeMonthly: plan === 'free' ? 3 : (plan === 'pro' ? 150 : -1),
-        maxTokensPerSpecialistResponse: plan === 'free' ? 2500 : (plan === 'pro' ? 6000 : 10000),
-        // ✅ NUEVOS LÍMITES - BÚSQUEDA WEB
-        webSearchEnabled: true,
-        webSearchMonthly: searchLimits.monthly,
-        webSearchRemaining: Math.max(0, searchLimits.monthly - monthlySearchUsage.searchesUsed)
+        daily: limits.daily,
+        monthly: limits.monthly,
+        maxTokensPerResponse: limits.maxTokensPerResponse
       },
-      planInfo: {
-        currentPlan: plan,
-        displayName: plan === 'free' ? 'Gratis' : (plan === 'pro' ? 'Pro' : 'Pro Max'),
-        availableFeatures: {
-          chat: true,
-          voice: plan !== 'free',
-          multimedia: plan !== 'free',
-          code: plan !== 'free',
-          pdf: plan !== 'free',
-          liveMode: plan !== 'free',
-          imageGeneration: plan !== 'free',
-          videoGeneration: plan !== 'free',
-          developerMode: true,
-          specialistMode: true,
-          unlimitedSpecialist: plan === 'pro_max',
-          priorityProcessing: plan === 'pro_max',
-          // ✅ NUEVA CARACTERÍSTICA
-          webSearch: true,
-          webSearchLimit: searchLimits.monthly
-        }
-      },
-      preferences: {
-        theme: 'dark',
-        notifications: true,
-        autoSave: true
-      },
-      createdAt: userData.createdAt?.toDate() || new Date(),
-      lastLogin: new Date(),
-      totalConversations: 0
+      // ✅ INCLUIR ESTADO DE BÚSQUEDA WEB
+      searchLimits: {
+        monthly: searchLimits.limit,
+        used: searchLimits.used,
+        remaining: searchLimits.remaining,
+        canSearch: searchLimits.canSearch
+      }
     };
 
   } catch (error) {
-    console.error('Error obteniendo perfil:', error);
-    throw new functions.https.HttpsError('internal', 'Error obteniendo perfil de usuario');
+    console.error('Error obteniendo perfil del usuario:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', 'Error obteniendo perfil del usuario');
   }
 });
 
-// ✅ CHAT CON AI MODIFICADO - CON BÚSQUEDA MANUAL
-exports.chatWithAI = functions.runWith({ 
-  timeoutSeconds: 540, 
-  memory: '1GB' 
-}).https.onCall(async (data, context) => {
+// ========================================
+// ✅ FUNCIÓN CHAT MEJORADA CON SEGURIDAD Y BÚSQUEDA WEB
+// ========================================
+exports.chatWithAI = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
   }
 
-  // 🔄 MODIFICADO: Extraer enableWebSearch del input
-  const { 
-    message, 
-    chatHistory, 
-    maxTokens, 
-    fileContext,
-    enableWebSearch = false // ✅ NUEVO PARÁMETRO
-  } = data;
-  
+  const { message, fileContext = '', chatHistory = [], maxTokens } = data;
   const uid = context.auth.uid;
-  
-  if (!message) {
+
+  if (!message || typeof message !== 'string') {
     throw new functions.https.HttpsError('invalid-argument', 'Mensaje requerido');
   }
 
   try {
-    // Obtener plan del usuario
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const plan = userData?.plan || 'free';
-    
-    console.log(`👤 Usuario ${uid} con plan ${plan}`);
-    console.log(`🔍 Búsqueda web: ${enableWebSearch ? 'ACTIVADA' : 'DESACTIVADA'}`);
-    
-    // Usar API key según el plan
-    const apiKey = plan === 'free' 
-      ? functions.config().gemini?.api_key_free || 'AIzaSyB2ynNRP-YmCauIxr8d8rOJ34QG2kh1OTU'
-      : (plan === 'pro' 
-          ? functions.config().gemini?.api_key_basic || 'AIzaSyDygAzF9YzD6TV6jFe5KnSZcipc8kpjgWg'
-          : functions.config().gemini?.api_key_pro || 'AIzaSyAmhNsGJtLDFX4Avn6kEXYW6a1083zqbkQ');
-    
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    // ✅ PROCESAMIENTO DE PDFs (MANTENER EXISTENTE)
-    if (fileContext && fileContext.includes('Base64:')) {
-      try {
-        console.log('📄 Procesando PDF en backend...');
-        console.log('📄 FileContext detectado:', fileContext.substring(0, 200) + '...');
-        
-        const base64Match = fileContext.match(/Base64:\s*([A-Za-z0-9+/=\s]+)/);
-        if (base64Match) {
-          const base64Data = base64Match[1].replace(/\s/g, '');
-          console.log('📄 Base64 extraído y limpiado, longitud:', base64Data.length);
-          
-          let extractedText = null;
-          try {
-            extractedText = await extractTextFromPDF(base64Data);
-            console.log('📄 Texto extraído del PDF:', extractedText ? extractedText.substring(0, 200) + '...' : 'null');
-          } catch (extractError) {
-            console.log('📄 Error extrayendo texto, continuando sin extracción:', extractError.message);
-          }
-          
-          let conversationContext = '';
-          if (chatHistory && chatHistory.length > 0) {
-            conversationContext = chatHistory.slice(-5).map(msg => 
-              `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
-            ).join('\n');
-          }
-          
-          let pdfPrompt;
-          
-          if (extractedText && extractedText.trim().length > 0) {
-            pdfPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
-
-CONTENIDO DEL PDF EXTRAÍDO:
-${extractedText}
-
-${conversationContext ? `Contexto de conversación:\n${conversationContext}\n` : ''}
-
-Usuario: ${message}
-
-Respuesta (analiza el contenido del PDF y responde directamente):`;
-          } else {
-            pdfPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
-
-ARCHIVO PDF DETECTADO: He detectado que enviaste un PDF llamado "${fileContext.match(/--- ARCHIVO \d+: (.+?) ---/)?.[1] || 'documento.pdf'}". 
-
-Aunque detecté el archivo correctamente, no pude extraer automáticamente el texto del documento. Para poder ayudarte a analizar el contenido y responder a "${message}", necesito que copies y pegues el texto específico del PDF que quieres que analice.
-
-${conversationContext ? `Contexto de conversación:\n${conversationContext}\n` : ''}
-
-Usuario: ${message}
-
-Respuesta (explica que detectaste el PDF pero necesitas el contenido copiado):`;
-          }
-          
-          const model = genAI.getGenerativeModel({ 
-            model: 'gemini-2.0-flash',
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.8,
-              maxOutputTokens: maxTokens || TOKEN_LIMITS[plan]?.maxTokensPerResponse || 2000
-            }
-          });
-          
-          const result = await model.generateContent(pdfPrompt);
-          const text = result.response.text();
-          
-          console.log('✅ Respuesta generada para PDF:', text.substring(0, 100) + '...');
-          
-          return {
-            response: text,
-            tokensUsed: Math.floor(text.length / 4),
-            searchUsed: false
-          };
-        } else {
-          console.log('❌ No se pudo extraer base64 del fileContext');
-        }
-      } catch (pdfError) {
-        console.error('❌ Error procesando PDF:', pdfError);
-      }
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN SEGURA
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
     }
 
-    // ✅ NUEVA LÓGICA: PROCESAMIENTO CON BÚSQUEDA MANUAL
-    console.log('🤖 Procesando consulta regular...');
+    const { plan } = verification;
+
+    // Verificar límites de tokens
+    const limits = TOKEN_LIMITS[plan] || TOKEN_LIMITS['free'];
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+    const usageDoc = await admin.firestore().collection('usage').doc(uid).get();
+    const usageData = usageDoc.data() || {};
+
+    const dailyUsage = usageData.daily || { tokensUsed: 0, date: todayStr };
+    const monthlyUsage = usageData.monthly || { tokensUsed: 0, month: monthStr };
+
+    if (dailyUsage.date !== todayStr) {
+      dailyUsage.tokensUsed = 0;
+      dailyUsage.date = todayStr;
+    }
+    if (monthlyUsage.month !== monthStr) {
+      monthlyUsage.tokensUsed = 0;
+      monthlyUsage.month = monthStr;
+    }
+
+    if (dailyUsage.tokensUsed >= limits.daily) {
+      throw new functions.https.HttpsError('resource-exhausted', `Límite diario de tokens alcanzado para el plan ${plan}`);
+    }
+    if (monthlyUsage.tokensUsed >= limits.monthly) {
+      throw new functions.https.HttpsError('resource-exhausted', `Límite mensual de tokens alcanzado para el plan ${plan}`);
+    }
+
+    // ✅ CONFIGURAR GEMINI CON CLAVES SEGURAS
+    const geminiApiKey = plan === 'free' 
+      ? functions.config().gemini?.api_key_free 
+      : (plan === 'pro' 
+          ? functions.config().gemini?.api_key_basic 
+          : functions.config().gemini?.api_key_pro);
     
-    // 🔄 MODIFICADO: Usar enableWebSearch en lugar de detección automática
-    if (enableWebSearch) {
-      console.log('🔍 Usuario activó búsqueda web manualmente');
-      // Usar función con búsqueda web (incluye verificación de límites)
-      const result = await generateResponseWithSearch(message, chatHistory, plan, genAI, uid, true);
-      console.log('✅ Respuesta generada con búsqueda web según configuración del usuario');
-      return result;
-    } else {
-      console.log('🚫 Búsqueda web desactivada - respuesta normal');
-      // Flujo normal sin búsqueda
+    if (!geminiApiKey) {
+      throw new functions.https.HttpsError('internal', 'Configuración de API no disponible');
+    }
+
+    const genAI = new GoogleGenerativeAI(geminiApiKey);
+
+    // ✅ LÓGICA DE BÚSQUEDA WEB SEGURA (MANTENER EXISTENTE)
+    const limitCheck = await checkSearchLimits(uid, plan);
+    
+    if (!limitCheck.canSearch && shouldSearchInternet(message)) {
+      console.log(`⚠️ Usuario alcanzó límite de búsquedas: ${limitCheck.used}/${limitCheck.limit}`);
+      
       let conversationContext = '';
       if (chatHistory && chatHistory.length > 0) {
+        conversationContext = chatHistory.slice(-5).map(msg => 
+          `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
+        ).join('\n');
+      }
+
+      const limitPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
+
+${conversationContext ? `Contexto de conversación:\n${conversationContext}\n\n` : ''}
+
+Usuario: ${message}
+
+NOTA IMPORTANTE: El usuario ha alcanzado su límite mensual de búsquedas en internet (${limitCheck.used}/${limitCheck.limit}). Responde basándote en tu conocimiento general y menciona que para información muy actualizada ha alcanzado el límite de búsquedas web del plan ${plan === 'free' ? 'Gratuito' : (plan === 'pro' ? 'Pro' : 'Pro Max')}.
+
+Respuesta:`;
+
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-2.0-flash',
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.8,
+          maxOutputTokens: maxTokens || limits.maxTokensPerResponse
+        }
+      });
+
+      const result = await model.generateContent(limitPrompt);
+      const text = result.response.text();
+
+      return {
+        response: text,
+        tokensUsed: Math.floor(text.length / 4),
+        searchUsed: false,
+        limitReached: true,
+        searchLimits: limitCheck
+      };
+    }
+    
+    // Determinar si necesita búsqueda
+    const needsSearch = shouldSearchInternet(message);
+    
+    let searchResults = null;
+    let searchContext = '';
+    
+    if (needsSearch && limitCheck.canSearch) {
+      console.log('🔍 Consulta requiere búsqueda en internet y hay límite disponible');
+      
+      try {
+        let searchQuery = message;
+        searchQuery = searchQuery
+          .replace(/por favor|puedes|podrías|me ayudas/gi, '')
+          .replace(/\?/g, '')
+          .trim();
+        
+        searchResults = await searchInternet(searchQuery, 5);
+        await updateSearchUsage(uid, limitCheck.monthlyUsage);
+        
+        if (searchResults.results.length > 0) {
+          searchContext = `\n\n--- INFORMACIÓN ACTUAL DE INTERNET ---\n`;
+          searchContext += `Búsqueda: "${searchResults.query}"\n`;
+          searchContext += `Resultados encontrados: ${searchResults.results.length}\n\n`;
+          
+          searchResults.results.forEach((result, index) => {
+            searchContext += `${index + 1}. ${result.title}\n`;
+            searchContext += `   ${result.snippet}\n`;
+            searchContext += `   Fuente: ${result.displayLink}\n\n`;
+          });
+          
+          searchContext += `--- FIN INFORMACIÓN DE INTERNET ---\n\n`;
+        }
+      } catch (searchError) {
+        console.error('Error en búsqueda, continuando sin resultados web:', searchError);
+        searchContext = '\n--- No se pudo obtener información actualizada de internet ---\n\n';
+      }
+    }
+    
+    // Preparar contexto de conversación
+    let conversationContext = '';
+    if (chatHistory && chatHistory.length > 0) {
+      conversationContext = chatHistory.slice(-5).map(msg => 
+        `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
+      ).join('\n');
+    }
+
+    // Crear prompt completo
+    if (searchContext || fileContext) {
+      const fullPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
+
+      ${fileContext ? `ARCHIVOS ADJUNTOS:\n${fileContext}\n\n` : ''}
+
+      ${searchContext}
+
+      ${conversationContext ? `Contexto:\n${conversationContext}\n` : ''}
+
+      Usuario: ${message}
+
+      ${searchContext ? 
+      `INSTRUCCIONES: Usa la información actualizada de internet, cita fuentes cuando uses información específica, y menciona que la información es actual cuando sea apropiado.` 
+      : ''}
+
+      Respuesta:`;
+
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-2.0-flash',
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.8,
+          maxOutputTokens: maxTokens || limits.maxTokensPerResponse
+        }
+      });
+
+      console.log('🚀 Generando respuesta con contexto...');
+      const result = await model.generateContent(fullPrompt);
+      const text = result.response.text();
+
+      const tokensUsed = Math.floor(text.length / 4);
+
+      // Actualizar contadores
+      dailyUsage.tokensUsed += tokensUsed;
+      monthlyUsage.tokensUsed += tokensUsed;
+
+      await admin.firestore().collection('usage').doc(uid).set({
+        daily: dailyUsage,
+        monthly: monthlyUsage
+      });
+
+      const updatedLimits = await checkSearchLimits(uid, plan);
+
+      return {
+        response: text,
+        tokensUsed,
+        searchUsed: needsSearch && limitCheck.canSearch,
+        searchResults,
+        limitReached: false,
+        searchLimits: updatedLimits
+      };
+    } else {
+      // Respuesta simple sin contexto adicional
+      if (conversationContext) {
         conversationContext = chatHistory.slice(-5).map(msg => 
           `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
         ).join('\n');
@@ -403,7 +476,7 @@ Respuesta (explica que detectaste el PDF pero necesitas el contenido copiado):`;
           temperature: 0.7,
           topK: 40,
           topP: 0.8,
-          maxOutputTokens: maxTokens || TOKEN_LIMITS[plan]?.maxTokensPerResponse || 2000
+          maxOutputTokens: maxTokens || limits.maxTokensPerResponse
         }
       });
 
@@ -421,11 +494,16 @@ Respuesta (explica que detectaste el PDF pero necesitas el contenido copiado):`;
     
   } catch (error) {
     console.error('❌ Error en chatWithAI:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
     throw new functions.https.HttpsError('internal', `Error: ${error.message}`);
   }
 });
 
-// ✅ FUNCIÓN PARA OBTENER ESTADO DE BÚSQUEDAS WEB (MANTENER)
+// ========================================
+// ✅ FUNCIÓN BÚSQUEDA WEB CON VERIFICACIÓN DE SUSCRIPCIÓN
+// ========================================
 exports.getWebSearchStatus = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
@@ -434,10 +512,13 @@ exports.getWebSearchStatus = functions.https.onCall(async (data, context) => {
   const uid = context.auth.uid;
   
   try {
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const plan = userData?.plan || 'free';
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
+    }
 
+    const { plan } = verification;
     const searchLimits = await checkSearchLimits(uid, plan);
 
     return {
@@ -453,11 +534,16 @@ exports.getWebSearchStatus = functions.https.onCall(async (data, context) => {
 
   } catch (error) {
     console.error('Error obteniendo estado de búsquedas web:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
     throw new functions.https.HttpsError('internal', 'Error obteniendo estado de búsquedas web');
   }
 });
 
-// ✅ FUNCIÓN ESPECÍFICA PARA BÚSQUEDA WEB DIRECTA (OPCIONAL)
+// ========================================
+// ✅ FUNCIÓN BÚSQUEDA WEB DIRECTA CON VERIFICACIÓN
+// ========================================
 exports.searchWeb = functions.runWith({ 
   timeoutSeconds: 60, 
   memory: '512MB' 
@@ -474,11 +560,13 @@ exports.searchWeb = functions.runWith({
   }
 
   try {
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const plan = userData?.plan || 'free';
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
+    }
 
-    // Verificar límites
+    const { plan } = verification;
     const limitCheck = await checkSearchLimits(uid, plan);
     
     if (!limitCheck.canSearch) {
@@ -487,8 +575,6 @@ exports.searchWeb = functions.runWith({
     }
 
     const results = await searchInternet(query.trim(), maxResults);
-    
-    // Actualizar contador
     await updateSearchUsage(uid, limitCheck.monthlyUsage);
     
     return {
@@ -498,11 +584,16 @@ exports.searchWeb = functions.runWith({
     };
   } catch (error) {
     console.error('Error en búsqueda web:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
     throw new functions.https.HttpsError('internal', `Error en búsqueda: ${error.message}`);
   }
 });
 
-// ✅ MANTENER TODAS LAS FUNCIONES EXISTENTES
+// ========================================
+// ✅ FUNCIÓN DE IMÁGENES CON VERIFICACIÓN DE SUSCRIPCIÓN
+// ========================================
 exports.getImageUsageStatus = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
@@ -511,10 +602,13 @@ exports.getImageUsageStatus = functions.https.onCall(async (data, context) => {
   const uid = context.auth.uid;
   
   try {
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const plan = userData?.plan || 'free';
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
+    }
 
+    const { plan } = verification;
     const config = IMAGE_LIMITS[plan] || IMAGE_LIMITS['free'];
     const monthlyLimit = config.monthly;
 
@@ -563,43 +657,54 @@ exports.getImageUsageStatus = functions.https.onCall(async (data, context) => {
         aspectRatios: plan === 'free' ? [] : ['1:1', '16:9', '9:16'],
         costPerImage: plan === 'pro' ? 0.04 : 0.08
       },
-      history,
-      warningAt80Percent,
-      usagePercentage: Math.round(usagePercentage)
+      usage: {
+        monthlyUsed: usedCount,
+        usagePercentage: Math.round(usagePercentage),
+        warningAt80Percent: warningAt80Percent
+      },
+      history
     };
 
   } catch (error) {
     console.error('Error obteniendo estado de imágenes:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
     throw new functions.https.HttpsError('internal', 'Error obteniendo estado de imágenes');
   }
 });
 
-exports.generateImage = functions.runWith({ 
-  timeoutSeconds: 540, 
-  memory: '1GB' 
-}).https.onCall(async (data, context) => {
+// ========================================
+// ✅ FUNCIÓN GENERAR IMAGEN CON VERIFICACIÓN SEGURA
+// ========================================
+exports.generateImage = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
   }
 
+  const { prompt, aspectRatio = '1:1', style = 'realistic' } = data;
   const uid = context.auth.uid;
-  const { prompt, aspectRatio = '1:1', style = 'natural' } = data;
 
-  if (!prompt || prompt.trim().length === 0) {
+  if (!prompt || typeof prompt !== 'string') {
     throw new functions.https.HttpsError('invalid-argument', 'Prompt requerido');
   }
 
   try {
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const plan = userData?.plan || 'free';
-
-    const config = IMAGE_LIMITS[plan] || IMAGE_LIMITS['free'];
-    const monthlyLimit = config.monthly;
-    
-    if (monthlyLimit === 0) {
-      throw new functions.https.HttpsError('permission-denied', 'Generación de imágenes no disponible en tu plan');
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN CRÍTICA
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
     }
+
+    const { plan } = verification;
+
+    // Verificar que no sea plan gratuito
+    if (plan === 'free') {
+      throw new functions.https.HttpsError('permission-denied', 'La generación de imágenes requiere un plan premium');
+    }
+
+    const config = IMAGE_LIMITS[plan] || IMAGE_LIMITS['pro'];
+    const monthlyLimit = config.monthly;
 
     const today = new Date();
     const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
@@ -618,26 +723,34 @@ exports.generateImage = functions.runWith({
       throw new functions.https.HttpsError('resource-exhausted', 'Límite mensual de imágenes alcanzado');
     }
 
-    const openai = new OpenAI({
-      apiKey: functions.config().openai?.api_key || process.env.OPENAI_API_KEY
-    });
+    // ✅ CONFIGURAR OPENAI CON CLAVE SEGURA
+    const openaiApiKey = functions.config().openai?.api_key || process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      throw new functions.https.HttpsError('internal', 'Configuración de OpenAI no disponible');
+    }
 
+    const openai = new OpenAI({ apiKey: openaiApiKey });
+
+    // Crear imagen con DALL-E
     const response = await openai.images.generate({
       model: 'dall-e-3',
       prompt: prompt.trim(),
       n: 1,
       size: aspectRatio === '16:9' ? '1792x1024' : (aspectRatio === '9:16' ? '1024x1792' : '1024x1024'),
-      quality: plan === 'pro_max' ? 'hd' : 'standard'
+      quality: plan === 'pro_max' ? 'hd' : 'standard',
+      response_format: 'url',
+      style: style === 'artistic' ? 'vivid' : 'natural'
     });
 
     const imageUrl = response.data[0].url;
     const imageId = admin.firestore().collection('generated_images').doc().id;
 
+    // Guardar imagen en Firestore
     await admin.firestore().collection('generated_images').doc(imageId).set({
       id: imageId,
       userId: uid,
-      imageUrl: imageUrl,
       prompt: prompt.trim(),
+      imageUrl: imageUrl,
       aspectRatio,
       style,
       model: 'dall-e-3',
@@ -666,10 +779,16 @@ exports.generateImage = functions.runWith({
 
   } catch (error) {
     console.error('Error generando imagen:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
     throw new functions.https.HttpsError('internal', `Error: ${error.message}`);
   }
 });
 
+// ========================================
+// ✅ FUNCIONES DE STRIPE CON VERIFICACIÓN MEJORADA
+// ========================================
 exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
@@ -678,6 +797,7 @@ exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
   const { plan, priceId } = data;
   const uid = context.auth.uid;
 
+  // ✅ DESPUÉS
   const validPriceIds = {
     pro: 'price_1S8id6Pa2fV72c7wyqjkxdpw',
     pro_max: 'price_1S12wKPa2fV72c7wX2NRAwQF'
@@ -688,9 +808,15 @@ exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
   }
 
   try {
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
+    // ✅ VERIFICAR QUE EL USUARIO EXISTE
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
+    }
 
+    const { userData } = verification;
+
+    // ✅ CREAR SESSION SEGURA CON METADATA
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -700,30 +826,76 @@ exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${functions.config().app?.url || 'https://nora-ai.vercel.app'}/chat?success=true`,
-      cancel_url: `${functions.config().app?.url || 'https://nora-ai.vercel.app'}/chat?canceled=true`,
+      success_url: `${functions.config().app?.url || 'https://nora-ai.vercel.app'}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${functions.config().app?.url || 'https://nora-ai.vercel.app'}/upgrade?canceled=true`,
       customer_email: userData.email,
       metadata: {
         userId: uid,
-        plan: plan
+        plan: plan,
+        timestamp: Date.now().toString(),
+        // ✅ METADATA PARA VERIFICACIÓN
+        securityHash: require('crypto').createHash('sha256').update(`${uid}-${plan}-${priceId}`).digest('hex').substring(0, 16)
       }
     });
 
     return {
       success: true,
-      url: session.url
+      url: session.url,
+      sessionId: session.id
     };
 
   } catch (error) {
     console.error('Error creando checkout de Stripe:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
     throw new functions.https.HttpsError('internal', 'Error procesando el pago');
   }
 });
 
+// ✅ FUNCIÓN MANAGE SUBSCRIPTION ACTUALIZADA
 exports.manageSubscription = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
   }
 
-  return { success: true, url: 'https://billing.stripe.com/example' };
+  const uid = context.auth.uid;
+
+  try {
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
+    }
+
+    const { userData } = verification;
+
+    // Verificar que tenga suscripción activa
+    if (!userData.stripeCustomerId) {
+      throw new functions.https.HttpsError('failed-precondition', 'No tienes una suscripción activa');
+    }
+
+    // ✅ CREAR PORTAL SESSION REAL
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: userData.stripeCustomerId,
+      return_url: `${functions.config().app?.url || 'https://nora-ai.vercel.app'}/chat`,
+    });
+
+    return { 
+      success: true, 
+      url: portalSession.url 
+    };
+
+  } catch (error) {
+    console.error('Error creando portal de facturación:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', 'Error accediendo a la gestión de suscripción');
+  }
 });
+
+// ========================================
+// 🔧 EXPORTAR FUNCIÓN DE VERIFICACIÓN PARA OTROS MÓDULOS
+// ========================================
+exports.verifyUserSubscription = verifyUserSubscription;

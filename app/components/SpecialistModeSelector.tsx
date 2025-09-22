@@ -37,15 +37,72 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
   useEffect(() => {
     const loadSpecialistLimits = async () => {
       try {
+        setLoading(true);
         const response = await cloudFunctions.getSpecialistModeLimits();
-        setSpecialistLimits(response.data); // ✅ CORRECCIÓN: Acceder a .data
+        setSpecialistLimits(response.data);
       } catch (error) {
-        console.error('Error cargando límites de especialista:', error);
+        console.error('❌ Error en getSpecialistModeLimits:', error);
+        // CREAR LÍMITES POR DEFECTO CON LA ESTRUCTURA CORRECTA
+        const plan = userProfile.user.plan || 'free';
+        const defaultLimits: SpecialistModeLimits = {
+          plan: plan,
+          limits: {
+            developerMode: {
+              dailyLimit: plan === 'free' ? 1 : plan === 'pro' ? 15 : -1,
+              monthlyLimit: plan === 'free' ? 5 : plan === 'pro' ? 200 : -1,
+              dailyRemaining: plan === 'free' ? 1 : plan === 'pro' ? 15 : -1,
+              monthlyRemaining: plan === 'free' ? 5 : plan === 'pro' ? 200 : -1
+            },
+            specialistMode: {
+              dailyLimit: plan === 'free' ? 1 : plan === 'pro' ? 10 : -1,
+              monthlyLimit: plan === 'free' ? 3 : plan === 'pro' ? 150 : -1,
+              dailyRemaining: plan === 'free' ? 1 : plan === 'pro' ? 10 : -1,
+              monthlyRemaining: plan === 'free' ? 3 : plan === 'pro' ? 150 : -1
+            },
+            maxTokensPerResponse: plan === 'free' ? 1500 : plan === 'pro' ? 6000 : 12000
+          },
+          usage: {
+            developer: {
+              daily: 0,
+              monthly: 0
+            },
+            specialist: {
+              daily: 0,
+              monthly: 0
+            }
+          },
+          availableSpecialties: {
+            business: { name: 'Negocios', icon: '📊', systemPrompt: 'Experto en estrategia empresarial' },
+            science: { name: 'Ciencias', icon: '🔬', systemPrompt: 'Científico especializado' },
+            education: { name: 'Educación', icon: '📚', systemPrompt: 'Pedagogo experto' },
+            health: { name: 'Salud', icon: '⚕️', systemPrompt: 'Profesional de la salud' },
+            marketing: { name: 'Marketing', icon: '📢', systemPrompt: 'Experto en marketing digital' },
+            finance: { name: 'Finanzas', icon: '💰', systemPrompt: 'Analista financiero' },
+            legal: { name: 'Legal', icon: '⚖️', systemPrompt: 'Asesor legal' },
+            psychology: { name: 'Psicología', icon: '🧠', systemPrompt: 'Psicólogo y coach' },
+            engineering: { name: 'Ingeniería', icon: '⚙️', systemPrompt: 'Ingeniero experto' },
+            hr: { name: 'Recursos Humanos', icon: '👥', systemPrompt: 'Especialista en RRHH' },
+            sales: { name: 'Ventas', icon: '💼', systemPrompt: 'Experto en ventas' },
+            data: { name: 'Datos', icon: '📈', systemPrompt: 'Analista de datos' }
+          },
+          features: {
+            codeGeneration: plan !== 'free',
+            advancedAnalysis: plan === 'pro_max',
+            priorityProcessing: plan === 'pro_max',
+            unlimitedContextMemory: plan === 'pro_max'
+          }
+        };
+        setSpecialistLimits(defaultLimits);
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadSpecialistLimits();
-  }, []);
+    // SOLO CARGAR SI EL USUARIO ESTÁ AUTENTICADO
+    if (userProfile?.user?.uid) {
+      loadSpecialistLimits();
+    }
+  }, [userProfile?.user?.uid, userProfile?.user?.plan]);
 
   const handleModeSelection = (mode: 'normal' | 'developer' | 'specialist', specialty?: SpecialtyType) => {
     setIsOpen(false);
@@ -62,7 +119,6 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
         bgColor: 'bg-blue-500/10 border-blue-500/20'
       };
     } else if (currentMode === 'specialist' && currentSpecialty) {
-      // ✅ CORRECCIÓN: Type assertion para specialty
       const specialty = SPECIALIST_MODES.find((s: any) => s.id === currentSpecialty);
       return {
         icon: <span className="text-sm">{specialty?.icon}</span>,
@@ -160,7 +216,7 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
                       <div className="text-xs text-blue-400 mt-1">
                         Usos hoy: {specialistLimits.limits.developerMode.dailyRemaining === -1 
                           ? 'Ilimitado' 
-                          : `${specialistLimits.usage.developer.daily}/${specialistLimits.limits.developerMode.dailyLimit}`
+                          : `${specialistLimits.limits.developerMode.dailyRemaining}/${specialistLimits.limits.developerMode.dailyLimit}`
                         }
                       </div>
                     )}
@@ -191,7 +247,7 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
                   <div className="text-xs text-purple-400">
                     ({specialistLimits.limits.specialistMode.dailyRemaining === -1 
                       ? 'Ilimitado' 
-                      : `${specialistLimits.usage.specialist.daily}/${specialistLimits.limits.specialistMode.dailyLimit} hoy`
+                      : `${specialistLimits.limits.specialistMode.dailyRemaining}/${specialistLimits.limits.specialistMode.dailyLimit} hoy`
                     })
                   </div>
                 )}
@@ -207,7 +263,7 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
 
           {/* Especialidades */}
           <div className="max-h-60 overflow-y-auto">
-            {SPECIALIST_MODES.map((specialty: any) => ( // ✅ CORRECCIÓN: Type assertion
+            {SPECIALIST_MODES.map((specialty: any) => (
               <button
                 key={specialty.id}
                 onClick={() => handleModeSelection('specialist', specialty.id as SpecialtyType)}
@@ -231,7 +287,7 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
                         {specialty.description}
                       </div>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {specialty.features.slice(0, 2).map((feature: string) => ( // ✅ CORRECCIÓN: Type assertion
+                        {specialty.features.slice(0, 2).map((feature: string) => (
                           <span 
                             key={feature}
                             className={`text-xs px-2 py-0.5 rounded-full bg-${specialty.color}-500/10 text-${specialty.color}-400`}

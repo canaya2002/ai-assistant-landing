@@ -84,7 +84,7 @@ export default function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
     
     try {
       const priceIds = {
-        pro: 'price_1S08CYPa2fV72c7wm3DC8M3y',
+        pro: 'price_1S8id6Pa2fV72c7wyqjkxdpw',
         pro_max: 'price_1S12wKPa2fV72c7wX2NRAwQF'
       };
 

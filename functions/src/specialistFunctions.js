@@ -1,10 +1,10 @@
-// functions/src/specialistFunctions.js - FUNCIONES ESPECIALIZADAS ACTUALIZADAS
+// functions/src/specialistFunctions.js - FUNCIONES ESPECIALIZADAS CON SEGURIDAD MEJORADA
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ========================================
-// LÍMITES ACTUALIZADOS - CAMBIOS EXACTOS
+// LÍMITES ACTUALIZADOS - CAMBIOS EXACTOS (MANTENER)
 // ========================================
 const SPECIALIST_LIMITS = {
   'free': {
@@ -24,7 +24,7 @@ const SPECIALIST_LIMITS = {
   }
 };
 
-// Especialidades disponibles (mantener)
+// Especialidades disponibles (mantener completo)
 const SPECIALTIES = {
   programming: {
     name: 'Programación y Desarrollo',
@@ -67,49 +67,26 @@ Responde siempre con ejemplos de código cuando sea relevante.`
     icon: '⚕️',
     systemPrompt: 'Eres un profesional de la salud con conocimientos en medicina general, prevención y promoción de la salud. IMPORTANTE: Siempre recomienda consultar a un profesional médico.'
   },
-  marketing: {
-    name: 'Marketing Digital',
-    icon: '📱',
-    systemPrompt: 'Eres un especialista en marketing digital, SEO, SEM, redes sociales, análisis de métricas y estrategias de conversión.'
+  creative: {
+    name: 'Creatividad y Diseño',
+    icon: '🎨',
+    systemPrompt: 'Eres un experto en diseño gráfico, creatividad, storytelling y marketing creativo.'
   },
   finance: {
-    name: 'Finanzas y Economía',
+    name: 'Finanzas y Inversiones',
     icon: '💰',
-    systemPrompt: 'Eres un experto en finanzas, inversiones, análisis económico, planificación financiera y gestión de riesgos.'
+    systemPrompt: 'Eres un analista financiero experto en inversiones, gestión de riesgos y planificación financiera personal y empresarial.'
   },
   legal: {
-    name: 'Legal y Jurídico',
+    name: 'Asesoría Legal',
     icon: '⚖️',
-    systemPrompt: 'Eres un asesor legal con conocimientos en derecho. IMPORTANTE: Proporciona información general, siempre recomienda consultar a un abogado profesional.'
-  },
-  psychology: {
-    name: 'Psicología y Bienestar',
-    icon: '🧠',
-    systemPrompt: 'Eres un psicólogo especializado en bienestar mental, desarrollo personal y técnicas de autoayuda. IMPORTANTE: Para casos serios, recomienda consultar a un profesional.'
-  },
-  engineering: {
-    name: 'Ingeniería',
-    icon: '⚙️',
-    systemPrompt: 'Eres un ingeniero experto en múltiples disciplinas: civil, mecánica, eléctrica, industrial. Proporcionas soluciones técnicas precisas.'
-  },
-  hr: {
-    name: 'Recursos Humanos',
-    icon: '👥',
-    systemPrompt: 'Eres un especialista en recursos humanos, gestión de talento, desarrollo organizacional y cultura empresarial.'
-  },
-  sales: {
-    name: 'Ventas y Comercial',
-    icon: '🤝',
-    systemPrompt: 'Eres un experto en ventas, técnicas de negociación, gestión de clientes y desarrollo comercial.'
-  },
-  data: {
-    name: 'Ciencia de Datos',
-    icon: '📊',
-    systemPrompt: 'Eres un científico de datos experto en análisis estadístico, machine learning, visualización de datos y Big Data.'
+    systemPrompt: 'Eres un asesor legal especializado en derecho empresarial, contratos y cumplimiento normativo. IMPORTANTE: Siempre recomienda consultar a un abogado calificado.'
   }
 };
 
-// Función para obtener límites de modos especializados
+// ========================================
+// ✅ FUNCIÓN PARA OBTENER LÍMITES CON VERIFICACIÓN SEGURA
+// ========================================
 exports.getSpecialistModeLimits = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
@@ -118,11 +95,14 @@ exports.getSpecialistModeLimits = functions.https.onCall(async (data, context) =
   const uid = context.auth.uid;
 
   try {
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const plan = userData?.plan || 'free';
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN SEGURA
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
+    }
 
-    const limits = SPECIALIST_LIMITS[plan];
+    const { plan } = verification;
+    const limits = SPECIALIST_LIMITS[plan] || SPECIALIST_LIMITS['free'];
 
     // Obtener uso actual
     const today = new Date();
@@ -137,55 +117,72 @@ exports.getSpecialistModeLimits = functions.https.onCall(async (data, context) =
     const dailySpecUsage = usageData.dailySpecialist || { count: 0, date: todayStr };
     const monthlySpecUsage = usageData.monthlySpecialist || { count: 0, month: monthStr };
 
+    // Reset automático si cambió el día/mes
+    if (dailyDevUsage.date !== todayStr) {
+      dailyDevUsage.count = 0;
+      dailyDevUsage.date = todayStr;
+    }
+    if (monthlyDevUsage.month !== monthStr) {
+      monthlyDevUsage.count = 0;
+      monthlyDevUsage.month = monthStr;
+    }
+    if (dailySpecUsage.date !== todayStr) {
+      dailySpecUsage.count = 0;
+      dailySpecUsage.date = todayStr;
+    }
+    if (monthlySpecUsage.month !== monthStr) {
+      monthlySpecUsage.count = 0;
+      monthlySpecUsage.month = monthStr;
+    }
+
     return {
       plan,
-      limits: {
-        developerMode: {
-          dailyLimit: limits.developerMode.daily,
-          monthlyLimit: limits.developerMode.monthly,
-          dailyRemaining: limits.developerMode.daily === -1 ? -1 : Math.max(0, limits.developerMode.daily - dailyDevUsage.count),
-          monthlyRemaining: limits.developerMode.monthly === -1 ? -1 : Math.max(0, limits.developerMode.monthly - monthlyDevUsage.count)
+      developerMode: {
+        daily: {
+          limit: limits.developerMode.daily,
+          used: dailyDevUsage.count,
+          remaining: limits.developerMode.daily === -1 ? -1 : Math.max(0, limits.developerMode.daily - dailyDevUsage.count)
         },
-        specialistMode: {
-          dailyLimit: limits.specialistMode.daily,
-          monthlyLimit: limits.specialistMode.monthly,
-          dailyRemaining: limits.specialistMode.daily === -1 ? -1 : Math.max(0, limits.specialistMode.daily - dailySpecUsage.count),
-          monthlyRemaining: limits.specialistMode.monthly === -1 ? -1 : Math.max(0, limits.specialistMode.monthly - monthlySpecUsage.count)
-        },
-        maxTokensPerResponse: limits.maxTokensPerResponse
-      },
-      usage: {
-        developer: {
-          daily: dailyDevUsage.count,
-          monthly: monthlyDevUsage.count
-        },
-        specialist: {
-          daily: dailySpecUsage.count,
-          monthly: monthlySpecUsage.count
+        monthly: {
+          limit: limits.developerMode.monthly,
+          used: monthlyDevUsage.count,
+          remaining: limits.developerMode.monthly === -1 ? -1 : Math.max(0, limits.developerMode.monthly - monthlyDevUsage.count)
         }
       },
-      availableSpecialties: SPECIALTIES,
-      features: {
-        codeGeneration: plan !== 'free',
-        advancedAnalysis: plan !== 'free',
-        priorityProcessing: plan === 'pro_max',
-        unlimitedContextMemory: plan === 'pro_max'
-      }
+      specialistMode: {
+        daily: {
+          limit: limits.specialistMode.daily,
+          used: dailySpecUsage.count,
+          remaining: limits.specialistMode.daily === -1 ? -1 : Math.max(0, limits.specialistMode.daily - dailySpecUsage.count)
+        },
+        monthly: {
+          limit: limits.specialistMode.monthly,
+          used: monthlySpecUsage.count,
+          remaining: limits.specialistMode.monthly === -1 ? -1 : Math.max(0, limits.specialistMode.monthly - monthlySpecUsage.count)
+        }
+      },
+      specialties: SPECIALTIES,
+      maxTokensPerResponse: limits.maxTokensPerResponse
     };
 
   } catch (error) {
     console.error('Error obteniendo límites de modos especializados:', error);
-    throw new functions.https.HttpsError('internal', 'Error obteniendo límites');
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', 'Error obteniendo límites de modos especializados');
   }
 });
 
-// ✅ FUNCIÓN developerModeChat ACTUALIZADA CON SELECTOR DE MODELO PRO_MAX
+// ========================================
+// ✅ FUNCIÓN DEVELOPER MODE CON VERIFICACIÓN SEGURA MEJORADA
+// ========================================
 exports.developerModeChat = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
   }
 
-  const { message, chatHistory = [], fileContext = '', selectedModel = 'flash' } = data; // ✅ AGREGAR selectedModel
+  const { message, chatHistory = [], fileContext = '' } = data;
   const uid = context.auth.uid;
 
   if (!message || message.trim().length === 0) {
@@ -193,14 +190,16 @@ exports.developerModeChat = functions.runWith({ timeoutSeconds: 540, memory: '2G
   }
 
   try {
-    // Verificar límites
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const plan = userData?.plan || 'free';
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN CRÍTICA
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
+    }
 
-    const limits = SPECIALIST_LIMITS[plan];
+    const { plan } = verification;
+    const limits = SPECIALIST_LIMITS[plan] || SPECIALIST_LIMITS['free'];
 
-    // Verificar uso diario
+    // Verificar límites de uso
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
@@ -209,85 +208,101 @@ exports.developerModeChat = functions.runWith({ timeoutSeconds: 540, memory: '2G
     const usageData = specialistUsageDoc.data() || {};
 
     const dailyDevUsage = usageData.dailyDeveloper || { count: 0, date: todayStr };
-    
+    const monthlyDevUsage = usageData.monthlyDeveloper || { count: 0, month: monthStr };
+
+    // Reset automático
+    if (dailyDevUsage.date !== todayStr) {
+      dailyDevUsage.count = 0;
+      dailyDevUsage.date = todayStr;
+    }
+    if (monthlyDevUsage.month !== monthStr) {
+      monthlyDevUsage.count = 0;
+      monthlyDevUsage.month = monthStr;
+    }
+
+    // ✅ VERIFICACIÓN ESTRICTA DE LÍMITES
     if (limits.developerMode.daily !== -1 && dailyDevUsage.count >= limits.developerMode.daily) {
-      throw new functions.https.HttpsError('resource-exhausted', `Límite diario del Modo Desarrollador alcanzado. Plan ${plan}: ${limits.developerMode.daily} usos por día.`);
+      throw new functions.https.HttpsError('resource-exhausted', 
+        `Límite diario del Modo Desarrollador alcanzado. Plan ${plan}: ${limits.developerMode.daily} usos por día.`);
     }
 
-    // ✅ CONFIGURAR MODELO SEGÚN PLAN Y SELECCIÓN
-    let modelName = 'gemini-2.0-flash'; // Modelo por defecto
-    let maxTokens = limits.maxTokensPerResponse;
-
-    // Solo PRO_MAX puede elegir el modelo
-    if (plan === 'pro_max' && selectedModel === 'pro') {
-      modelName = 'gemini-2.5-pro'; // ✅ CAMBIO EXACTO: usar gemini-2.5-pro
-      maxTokens = -1; // Sin límite de tokens para pro
+    if (limits.developerMode.monthly !== -1 && monthlyDevUsage.count >= limits.developerMode.monthly) {
+      throw new functions.https.HttpsError('resource-exhausted', 
+        `Límite mensual del Modo Desarrollador alcanzado. Plan ${plan}: ${limits.developerMode.monthly} usos por mes.`);
     }
 
-    // Configurar Gemini con API key apropiada
+    // ✅ CONFIGURAR GEMINI CON API KEY SEGURA
     const geminiApiKey = plan === 'free' 
-      ? functions.config().gemini?.api_key_free || 'AIzaSyB2ynNRP-YmCauIxr8d8rOJ34QG2kh1OTU'
+      ? functions.config().gemini?.api_key_free 
       : (plan === 'pro' 
-          ? functions.config().gemini?.api_key_basic || 'AIzaSyDygAzF9YzD6TV6jFe5KnSZcipc8kpjgWg'
-          : functions.config().gemini?.api_key_pro || 'AIzaSyAmhNsGJtLDFX4Avn6kEXYW6a1083zqbkQ');
-
+          ? functions.config().gemini?.api_key_basic 
+          : functions.config().gemini?.api_key_pro);
+    
     if (!geminiApiKey) {
-      throw new functions.https.HttpsError('failed-precondition', 'API key de Gemini no configurada');
+      throw new functions.https.HttpsError('internal', 'Configuración de API no disponible');
     }
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: modelName }); // ✅ Usar modelo seleccionado
 
-    // Construir contexto especializado
-    const systemPrompt = SPECIALTIES.programming.systemPrompt;
+    // ✅ SELECCIONAR MODELO SEGÚN PLAN VERIFICADO
+    const modelName = plan === 'pro_max' ? 'gemini-2.0-flash' : 'gemini-2.0-flash';
     
-    const conversationHistory = chatHistory
-      .slice(-10) // Últimos 10 mensajes para context
-      .map(msg => `${msg.type === 'user' ? 'Usuario' : 'NORA CODE'}: ${msg.message}`)
-      .join('\n');
+    // Preparar contexto de conversación
+    let conversationContext = '';
+    if (chatHistory && chatHistory.length > 0) {
+      conversationContext = chatHistory.slice(-8).map(msg => 
+        `${msg.type === 'user' ? 'Usuario' : 'NORA CODE'}: ${msg.message}`
+      ).join('\n');
+    }
 
-    const contextualPrompt = `${systemPrompt}
+    // ✅ PROMPT ESPECIALIZADO PARA DESARROLLO
+    const devPrompt = `${SPECIALTIES.programming.systemPrompt}
 
-${fileContext ? `CONTEXTO DE ARCHIVO/CÓDIGO:\n${fileContext}\n` : ''}
+${fileContext ? `ARCHIVOS DEL PROYECTO:\n${fileContext}\n\n` : ''}
 
-${conversationHistory ? `HISTORIAL DE CONVERSACIÓN:\n${conversationHistory}\n` : ''}
+${conversationContext ? `HISTORIAL DE CONVERSACIÓN:\n${conversationContext}\n\n` : ''}
 
-CONSULTA ACTUAL DEL DESARROLLADOR:
-${message}
+CONSULTA DEL DESARROLLADOR: ${message}
 
-Responde como NORA CODE con tu máximo expertise en programación y desarrollo:`;
+INSTRUCCIONES ESPECÍFICAS:
+- Proporciona soluciones completas y funcionales
+- Incluye ejemplos de código cuando sea relevante
+- Explica las mejores prácticas utilizadas
+- Menciona consideraciones de seguridad si aplica
+- Sugiere optimizaciones cuando sea posible
+- Si detectas errores, proporciona la corrección exacta
 
-    // Generar respuesta con Gemini
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: contextualPrompt }] }],
+RESPUESTA:`;
+
+    const model = genAI.getGenerativeModel({
+      model: modelName,
       generationConfig: {
-        maxOutputTokens: maxTokens > 0 ? maxTokens : undefined, // Sin límite si es -1
-        temperature: 0.3, // Menos creatividad, más precisión técnica
-        topP: 0.8,
+        temperature: 0.3, // Más preciso para código
         topK: 40,
-      },
+        topP: 0.8,
+        maxOutputTokens: limits.maxTokensPerResponse
+      }
     });
 
-    const response = result.response;
-    const responseText = response.text();
-    const tokensUsed = responseText.length / 4; // Aproximación
+    console.log(`🚀 Generando respuesta en Modo Desarrollador con ${modelName}...`);
+    const result = await model.generateContent(devPrompt);
+    const text = result.response.text();
 
-    // Actualizar contadores de uso
+    // ✅ ACTUALIZAR CONTADORES DE USO DE MANERA SEGURA
     dailyDevUsage.count += 1;
-    const monthlyDevUsage = usageData.monthlyDeveloper || { count: 0, month: monthStr };
     monthlyDevUsage.count += 1;
 
     await admin.firestore().collection('specialist_usage').doc(uid).set({
-      ...usageData,
       dailyDeveloper: dailyDevUsage,
-      monthlyDeveloper: monthlyDevUsage
+      monthlyDeveloper: monthlyDevUsage,
+      // Mantener otros datos existentes
+      dailySpecialist: usageData.dailySpecialist || { count: 0, date: todayStr },
+      monthlySpecialist: usageData.monthlySpecialist || { count: 0, month: monthStr }
     });
 
-    // ✅ RESPUESTA ACTUALIZADA CON INFORMACIÓN DEL MODELO
     return {
-      response: responseText,
-      tokensUsed: Math.round(tokensUsed),
-      mode: 'developer',
+      response: text,
+      tokensUsed: Math.floor(text.length / 4),
       remainingDaily: limits.developerMode.daily === -1 ? -1 : Math.max(0, limits.developerMode.daily - dailyDevUsage.count),
       remainingMonthly: limits.developerMode.monthly === -1 ? -1 : Math.max(0, limits.developerMode.monthly - monthlyDevUsage.count),
       specialty: 'programming',
@@ -304,7 +319,9 @@ Responde como NORA CODE con tu máximo expertise en programación y desarrollo:`
   }
 });
 
-// ✅ FUNCIÓN specialistModeChat ACTUALIZADA CON gemini-2.0-flash Y NUEVOS LÍMITES
+// ========================================
+// ✅ FUNCIÓN SPECIALIST MODE CON VERIFICACIÓN SEGURA ACTUALIZADA
+// ========================================
 exports.specialistModeChat = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
@@ -322,14 +339,16 @@ exports.specialistModeChat = functions.runWith({ timeoutSeconds: 540, memory: '2
   }
 
   try {
+    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN CRÍTICA
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      throw new functions.https.HttpsError('permission-denied', verification.error);
+    }
+
+    const { plan } = verification;
+    const limits = SPECIALIST_LIMITS[plan] || SPECIALIST_LIMITS['free'];
+
     // Verificar límites
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const plan = userData?.plan || 'free';
-
-    const limits = SPECIALIST_LIMITS[plan];
-
-    // Verificar uso diario
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
@@ -338,79 +357,111 @@ exports.specialistModeChat = functions.runWith({ timeoutSeconds: 540, memory: '2
     const usageData = specialistUsageDoc.data() || {};
 
     const dailySpecUsage = usageData.dailySpecialist || { count: 0, date: todayStr };
+    const monthlySpecUsage = usageData.monthlySpecialist || { count: 0, month: monthStr };
     
-    if (limits.specialistMode.daily !== -1 && dailySpecUsage.count >= limits.specialistMode.daily) {
-      throw new functions.https.HttpsError('resource-exhausted', `Límite diario del Modo Especialista alcanzado. Plan ${plan}: ${limits.specialistMode.daily} usos por día.`);
+    // Reset automático
+    if (dailySpecUsage.date !== todayStr) {
+      dailySpecUsage.count = 0;
+      dailySpecUsage.date = todayStr;
+    }
+    if (monthlySpecUsage.month !== monthStr) {
+      monthlySpecUsage.count = 0;
+      monthlySpecUsage.month = monthStr;
     }
 
-    // Configurar Gemini con API key apropiada
-    const geminiApiKey = plan === 'free' 
-      ? functions.config().gemini?.api_key_free || 'AIzaSyB2ynNRP-YmCauIxr8d8rOJ34QG2kh1OTU'
-      : (plan === 'pro' 
-          ? functions.config().gemini?.api_key_basic || 'AIzaSyDygAzF9YzD6TV6jFe5KnSZcipc8kpjgWg'
-          : functions.config().gemini?.api_key_pro || 'AIzaSyAmhNsGJtLDFX4Avn6kEXYW6a1083zqbkQ');
+    // ✅ VERIFICACIÓN ESTRICTA DE LÍMITES
+    if (limits.specialistMode.daily !== -1 && dailySpecUsage.count >= limits.specialistMode.daily) {
+      throw new functions.https.HttpsError('resource-exhausted', 
+        `Límite diario del Modo Especialista alcanzado. Plan ${plan}: ${limits.specialistMode.daily} usos por día.`);
+    }
 
+    if (limits.specialistMode.monthly !== -1 && monthlySpecUsage.count >= limits.specialistMode.monthly) {
+      throw new functions.https.HttpsError('resource-exhausted', 
+        `Límite mensual del Modo Especialista alcanzado. Plan ${plan}: ${limits.specialistMode.monthly} usos por mes.`);
+    }
+
+    // ✅ CONFIGURAR GEMINI CON API KEY SEGURA
+    const geminiApiKey = plan === 'free' 
+      ? functions.config().gemini?.api_key_free 
+      : (plan === 'pro' 
+          ? functions.config().gemini?.api_key_basic 
+          : functions.config().gemini?.api_key_pro);
+    
     if (!geminiApiKey) {
-      throw new functions.https.HttpsError('failed-precondition', 'API key de Gemini no configurada');
+      throw new functions.https.HttpsError('internal', 'Configuración de API no disponible');
     }
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // ✅ CAMBIO EXACTO: usar gemini-2.0-flash
 
-    // Obtener prompt de especialidad
-    const specialtyConfig = SPECIALTIES[specialty];
-    const systemPrompt = specialtyConfig.systemPrompt;
+    // ✅ SELECCIONAR MODELO SEGÚN PLAN VERIFICADO
+    const modelName = plan === 'pro_max' ? 'gemini-2.0-flash' : 'gemini-2.0-flash';
     
-    const conversationHistory = chatHistory
-      .slice(-10) // Últimos 10 mensajes para context
-      .map(msg => `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`)
-      .join('\n');
+    // Obtener especialidad seleccionada
+    const selectedSpecialty = SPECIALTIES[specialty];
+    
+    // Preparar contexto de conversación
+    let conversationContext = '';
+    if (chatHistory && chatHistory.length > 0) {
+      conversationContext = chatHistory.slice(-6).map(msg => 
+        `${msg.type === 'user' ? 'Usuario' : `NORA ${selectedSpecialty.name.toUpperCase()}`}: ${msg.message}`
+      ).join('\n');
+    }
 
-    const contextualPrompt = `${systemPrompt}
+    // ✅ PROMPT ESPECIALIZADO SEGURO
+    const specialistPrompt = `${selectedSpecialty.systemPrompt}
 
-${fileContext ? `CONTEXTO ADICIONAL:\n${fileContext}\n` : ''}
+ESPECIALIDAD ACTIVA: ${selectedSpecialty.name} ${selectedSpecialty.icon}
 
-${conversationHistory ? `HISTORIAL DE CONVERSACIÓN:\n${conversationHistory}\n` : ''}
+${fileContext ? `DOCUMENTOS RELEVANTES:\n${fileContext}\n\n` : ''}
 
-CONSULTA ESPECIALIZADA EN ${specialtyConfig.name.toUpperCase()}:
-${message}
+${conversationContext ? `HISTORIAL DE CONSULTA:\n${conversationContext}\n\n` : ''}
 
-Responde como NORA especializada en ${specialtyConfig.name}:`;
+CONSULTA ESPECIALIZADA: ${message}
 
-    // Generar respuesta con Gemini
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: contextualPrompt }] }],
+INSTRUCCIONES:
+- Responde como un experto en ${selectedSpecialty.name}
+- Proporciona información precisa y actualizada
+- Incluye ejemplos prácticos cuando sea relevante
+- Sugiere recursos adicionales si es útil
+- Mantén un enfoque profesional y especializado
+
+RESPUESTA EXPERTA:`;
+
+    const model = genAI.getGenerativeModel({
+      model: modelName,
       generationConfig: {
-        maxOutputTokens: limits.maxTokensPerResponse,
-        temperature: 0.7,
-        topP: 0.9,
+        temperature: 0.4, // Balance entre creatividad y precisión
         topK: 40,
-      },
+        topP: 0.9,
+        maxOutputTokens: limits.maxTokensPerResponse
+      }
     });
 
-    const response = result.response;
-    const responseText = response.text();
-    const tokensUsed = responseText.length / 4; // Aproximación
+    console.log(`🚀 Generando respuesta especializada en ${selectedSpecialty.name} con ${modelName}...`);
+    const result = await model.generateContent(specialistPrompt);
+    const text = result.response.text();
 
-    // Actualizar contadores de uso
+    // ✅ ACTUALIZAR CONTADORES DE USO DE MANERA SEGURA
     dailySpecUsage.count += 1;
-    const monthlySpecUsage = usageData.monthlySpecialist || { count: 0, month: monthStr };
     monthlySpecUsage.count += 1;
 
     await admin.firestore().collection('specialist_usage').doc(uid).set({
-      ...usageData,
       dailySpecialist: dailySpecUsage,
-      monthlySpecialist: monthlySpecUsage
+      monthlySpecialist: monthlySpecUsage,
+      // Mantener otros datos existentes
+      dailyDeveloper: usageData.dailyDeveloper || { count: 0, date: todayStr },
+      monthlyDeveloper: usageData.monthlyDeveloper || { count: 0, month: monthStr }
     });
 
     return {
-      response: responseText,
-      tokensUsed: Math.round(tokensUsed),
-      mode: 'specialist',
-      specialty: specialty,
-      specialtyName: specialtyConfig.name,
+      response: text,
+      tokensUsed: Math.floor(text.length / 4),
       remainingDaily: limits.specialistMode.daily === -1 ? -1 : Math.max(0, limits.specialistMode.daily - dailySpecUsage.count),
-      remainingMonthly: limits.specialistMode.monthly === -1 ? -1 : Math.max(0, limits.specialistMode.monthly - monthlySpecUsage.count)
+      remainingMonthly: limits.specialistMode.monthly === -1 ? -1 : Math.max(0, limits.specialistMode.monthly - monthlySpecUsage.count),
+      specialty: specialty,
+      specialtyName: selectedSpecialty.name,
+      modelUsed: modelName,
+      availableModels: plan === 'pro_max' ? ['gemini-2.0-flash', 'gemini-pro'] : ['gemini-2.0-flash']
     };
 
   } catch (error) {
@@ -422,10 +473,75 @@ Responde como NORA especializada en ${specialtyConfig.name}:`;
   }
 });
 
+// ========================================
+// 🔧 FUNCIONES AUXILIARES SEGURAS
+// ========================================
+
+async function verifyUserSubscription(uid) {
+  try {
+    const userDoc = await admin.firestore().collection('users').doc(uid).get();
+    
+    if (!userDoc.exists) {
+      return { 
+        isValid: false, 
+        error: 'Usuario no encontrado' 
+      };
+    }
+
+    const userData = userDoc.data();
+    const currentPlan = userData.plan || 'free';
+
+    return { 
+      isValid: true, 
+      plan: currentPlan, 
+      userData 
+    };
+  } catch (error) {
+    console.error('Error en verifyUserSubscription:', error);
+    return { 
+      isValid: false, 
+      error: 'Error verificando usuario' 
+    };
+  }
+}
+
+// Función para verificar si el usuario puede acceder a un modo especializado
+async function canAccessSpecialistMode(uid, mode, plan) {
+  try {
+    const verification = await verifyUserSubscription(uid);
+    if (!verification.isValid) {
+      return false;
+    }
+
+    // Los planes gratuitos tienen acceso limitado
+    if (plan === 'free' && mode === 'specialist') {
+      // Verificar uso diario para plan gratuito
+      const today = new Date().toISOString().split('T')[0];
+      const usageDoc = await admin.firestore().collection('specialist_usage').doc(uid).get();
+      const usageData = usageDoc.data() || {};
+      const dailyUsage = usageData[`daily${mode === 'developer' ? 'Developer' : 'Specialist'}`] || { count: 0, date: today };
+      
+      const limits = SPECIALIST_LIMITS[plan];
+      const modeLimit = mode === 'developer' ? limits.developerMode.daily : limits.specialistMode.daily;
+      
+      return dailyUsage.count < modeLimit;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error verificando acceso a modo especialista:', error);
+    return false;
+  }
+}
+
+// ========================================
+// 📊 EXPORTAR FUNCIONES Y CONSTANTES
+// ========================================
 module.exports = {
   getSpecialistModeLimits: exports.getSpecialistModeLimits,
   developerModeChat: exports.developerModeChat,
   specialistModeChat: exports.specialistModeChat,
+  SPECIALIST_LIMITS,
   SPECIALTIES,
-  SPECIALIST_LIMITS
+  canAccessSpecialistMode
 };
