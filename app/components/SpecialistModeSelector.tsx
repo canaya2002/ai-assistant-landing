@@ -33,6 +33,25 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
   const [specialistLimits, setSpecialistLimits] = useState<SpecialistModeLimits | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Función helper para validar acceso seguro a límites anidados
+  const getLimits = () => {
+    if (!specialistLimits?.limits) return null;
+    return specialistLimits.limits;
+  };
+
+  const getDeveloperLimits = () => {
+    const limits = getLimits();
+    return limits?.developerMode || null;
+  };
+
+  const getSpecialistModeLimits = () => {
+    const limits = getLimits();
+    return limits?.specialistMode || null;
+  };
+
+  // Validar si el usuario es premium
+  const isPremium = userProfile?.user?.plan && userProfile.user.plan !== 'free';
+
   // Cargar límites de modos especializados
   useEffect(() => {
     const loadSpecialistLimits = async () => {
@@ -43,7 +62,7 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
       } catch (error) {
         console.error('❌ Error en getSpecialistModeLimits:', error);
         // CREAR LÍMITES POR DEFECTO CON LA ESTRUCTURA CORRECTA
-        const plan = userProfile.user.plan || 'free';
+        const plan = userProfile?.user?.plan || 'free';
         const defaultLimits: SpecialistModeLimits = {
           plan: plan,
           limits: {
@@ -105,65 +124,55 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
   }, [userProfile?.user?.uid, userProfile?.user?.plan]);
 
   const handleModeSelection = (mode: 'normal' | 'developer' | 'specialist', specialty?: SpecialtyType) => {
-    setIsOpen(false);
     onModeChange(mode, specialty);
+    setIsOpen(false);
   };
 
-  const getCurrentModeInfo = () => {
+  // Obtener texto del modo actual
+  const getCurrentModeText = () => {
     if (currentMode === 'developer') {
-      return {
-        icon: <Code className="w-4 h-4" />,
-        name: 'Modo Desarrollador',
-        description: 'Experto en programación',
-        color: 'text-blue-400',
-        bgColor: 'bg-blue-500/10 border-blue-500/20'
-      };
-    } else if (currentMode === 'specialist' && currentSpecialty) {
-      const specialty = SPECIALIST_MODES.find((s: any) => s.id === currentSpecialty);
-      return {
-        icon: <span className="text-sm">{specialty?.icon}</span>,
-        name: `Modo ${specialty?.name}`,
-        description: specialty?.description,
-        color: `text-${specialty?.color || 'purple'}-400`,
-        bgColor: `bg-${specialty?.color || 'purple'}-500/10 border-${specialty?.color || 'purple'}-500/20`
-      };
-    } else {
-      return {
-        icon: <Brain className="w-4 h-4" />,
-        name: 'Chat Normal',
-        description: 'Asistente general NORA',
-        color: 'text-gray-400',
-        bgColor: 'bg-gray-500/10 border-gray-500/20'
-      };
+      return 'Modo Desarrollador';
     }
+    if (currentMode === 'specialist' && currentSpecialty) {
+      const specialty = SPECIALIST_MODES.find((s: any) => s.id === currentSpecialty);
+      return specialty ? specialty.name : 'Modo Especialista';
+    }
+    return 'Chat Normal';
   };
 
-  const modeInfo = getCurrentModeInfo();
-  const isPremium = userProfile.user.plan !== 'free';
+  // Validar si developer mode está deshabilitado
+  const isDeveloperDisabled = () => {
+    const devLimits = getDeveloperLimits();
+    return !isPremium && devLimits?.dailyRemaining === 0;
+  };
+
+  // Validar si specialist mode está deshabilitado
+  const isSpecialistDisabled = () => {
+    const specLimits = getSpecialistModeLimits();
+    return !isPremium && specLimits?.dailyRemaining === 0;
+  };
 
   return (
     <div className={`relative ${className}`}>
-      {/* Selector Principal */}
+      {/* Botón Principal */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`
-          w-full flex items-center justify-between p-3 rounded-lg border transition-all
-          ${modeInfo.bgColor}
-          hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500/50
-        `}
+        className="w-full flex items-center justify-between p-3 bg-gray-800/50 border border-gray-700 rounded-lg hover:bg-gray-800/70 transition-colors"
       >
         <div className="flex items-center space-x-3">
-          <div className={`p-2 rounded-md ${modeInfo.bgColor} ${modeInfo.color}`}>
-            {modeInfo.icon}
-          </div>
-          <div className="text-left">
-            <div className={`font-medium ${modeInfo.color}`}>
-              {modeInfo.name}
-            </div>
-            <div className="text-xs text-gray-500 truncate max-w-48">
-              {modeInfo.description}
-            </div>
-          </div>
+          {currentMode === 'developer' ? (
+            <Code className="w-4 h-4 text-blue-400" />
+          ) : currentMode === 'specialist' ? (
+            <Zap className="w-4 h-4 text-purple-400" />
+          ) : (
+            <Brain className="w-4 h-4 text-gray-400" />
+          )}
+          <span className="text-sm font-medium text-white">
+            {getCurrentModeText()}
+          </span>
+          {loading && (
+            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+          )}
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -194,11 +203,11 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
           <div>
             <button
               onClick={() => handleModeSelection('developer')}
-              disabled={!isPremium && specialistLimits?.limits.developerMode.dailyRemaining === 0}
+              disabled={isDeveloperDisabled()}
               className={`
                 w-full p-4 text-left hover:bg-blue-900/20 transition-colors border-b border-gray-700
                 ${currentMode === 'developer' ? 'bg-blue-900/20' : ''}
-                ${!isPremium && specialistLimits?.limits.developerMode.dailyRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}
+                ${isDeveloperDisabled() ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
               <div className="flex items-center justify-between">
@@ -212,11 +221,11 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
                       <Sparkles className="w-3 h-3" />
                     </div>
                     <div className="text-xs text-gray-500">Experto en programación y desarrollo</div>
-                    {specialistLimits && (
+                    {specialistLimits && getDeveloperLimits() && (
                       <div className="text-xs text-blue-400 mt-1">
-                        Usos hoy: {specialistLimits.limits.developerMode.dailyRemaining === -1 
+                        Usos hoy: {getDeveloperLimits()?.dailyRemaining === -1 
                           ? 'Ilimitado' 
-                          : `${specialistLimits.limits.developerMode.dailyRemaining}/${specialistLimits.limits.developerMode.dailyLimit}`
+                          : `${getDeveloperLimits()?.dailyRemaining}/${getDeveloperLimits()?.dailyLimit}`
                         }
                       </div>
                     )}
@@ -228,7 +237,7 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
                     <span className="text-xs">Limitado</span>
                   </div>
                 )}
-                {userProfile.user.plan === 'pro_max' && (
+                {userProfile?.user?.plan === 'pro_max' && (
                   <Crown className="w-4 h-4 text-yellow-400" />
                 )}
               </div>
@@ -243,11 +252,11 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
                   <Zap className="w-3 h-3 text-purple-400" />
                 </div>
                 <span className="text-sm font-medium text-purple-300">Modo Especialista</span>
-                {specialistLimits && (
+                {specialistLimits && getSpecialistModeLimits() && (
                   <div className="text-xs text-purple-400">
-                    ({specialistLimits.limits.specialistMode.dailyRemaining === -1 
+                    ({getSpecialistModeLimits()?.dailyRemaining === -1 
                       ? 'Ilimitado' 
-                      : `${specialistLimits.limits.specialistMode.dailyRemaining}/${specialistLimits.limits.specialistMode.dailyLimit} hoy`
+                      : `${getSpecialistModeLimits()?.dailyRemaining}/${getSpecialistModeLimits()?.dailyLimit} hoy`
                     })
                   </div>
                 )}
@@ -267,11 +276,11 @@ const SpecialistModeSelector: React.FC<SpecialistModeSelectorProps> = ({
               <button
                 key={specialty.id}
                 onClick={() => handleModeSelection('specialist', specialty.id as SpecialtyType)}
-                disabled={!isPremium && specialistLimits?.limits.specialistMode.dailyRemaining === 0}
+                disabled={isSpecialistDisabled()}
                 className={`
                   w-full p-3 text-left hover:bg-gray-800/50 transition-colors border-b border-gray-700/50 last:border-b-0
                   ${currentMode === 'specialist' && currentSpecialty === specialty.id ? 'bg-gray-800/50' : ''}
-                  ${!isPremium && specialistLimits?.limits.specialistMode.dailyRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}
+                  ${isSpecialistDisabled() ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
               >
                 <div className="flex items-center justify-between">

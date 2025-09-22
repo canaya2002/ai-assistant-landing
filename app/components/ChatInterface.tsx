@@ -28,7 +28,9 @@ import {
   AlertTriangle,
   Wifi,
   WifiOff,
-  UserCircle // ✅ NUEVO ICONO DE PERFIL
+  UserCircle,
+  ArrowRight,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConversations } from '../contexts/ConversationContext';
@@ -70,12 +72,13 @@ const VideoGenerator = dynamic(() => import('./VideoGenerator'), {
   ssr: false
 });
 
-// Background Video minimalista
+// ✅ Background Video con mayor visibilidad y efectos
 const VideoBackground = memo(function VideoBackground() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
       <video 
-        className="absolute inset-0 w-full h-full object-cover opacity-20"
+        className="absolute inset-0 w-full h-full object-cover opacity-40 scale-105"
+        style={{ objectPosition: 'center 30%' }}
         autoPlay 
         muted 
         loop 
@@ -85,47 +88,76 @@ const VideoBackground = memo(function VideoBackground() {
         <source src="/images/fondo-nora-tres.mp4" type="video/mp4" />
         <source src="/fondo.webm" type="video/webm" />
       </video>
-      <div className="absolute inset-0 bg-black/80 z-10" />
+      
+      {/* Overlay gradients más sutiles para mayor visibilidad del video */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-20" />
+      
+      {/* Efectos adicionales de movimiento */}
+      <div className="absolute inset-0 z-30">
+        {/* Partículas flotantes animadas */}
+        <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-white/30 rounded-full animate-ping" style={{ animationDelay: '0s', animationDuration: '3s' }} />
+        <div className="absolute top-1/3 right-1/3 w-0.5 h-0.5 bg-purple-400/40 rounded-full animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }} />
+        <div className="absolute bottom-1/4 left-1/3 w-1.5 h-1.5 bg-blue-400/20 rounded-full animate-ping" style={{ animationDelay: '2s', animationDuration: '5s' }} />
+        <div className="absolute top-1/2 right-1/4 w-0.5 h-0.5 bg-white/20 rounded-full animate-ping" style={{ animationDelay: '1.5s', animationDuration: '3.5s' }} />
+        
+        {/* Líneas de movimiento sutil */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-20 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400/10 to-transparent animate-slide-x" />
+          <div className="absolute bottom-32 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400/10 to-transparent animate-slide-x-reverse" style={{ animationDelay: '2s' }} />
+        </div>
+        
+        {/* Círculos de respiración */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-white/5 rounded-full animate-breath" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-purple-400/10 rounded-full animate-breath-delayed" />
+      </div>
     </div>
   );
 });
 
-// ✅ NUEVO COMPONENTE: Pantalla de bienvenida animada
+// ✅ COMPONENTE: Pantalla de bienvenida SIMPLE Y LIMPIA con efectos sutiles
 const WelcomeScreen = memo(function WelcomeScreen({ onStartChat }: { onStartChat: () => void }) {
   return (
-    <div className="flex-1 flex items-center justify-center text-center px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Título animado con efecto de typewriter */}
-        <div className="mb-8">
-          <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-wide animate-fade-up" 
-              style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-            Bienvenido a Nora
-          </h2>
-          <p className="text-xl md:text-2xl text-white/90 mb-12 animate-fade-up leading-relaxed font-light" 
-             style={{ animationDelay: '0.5s' }}>
-            ¿En qué puedo ayudarte el día de hoy?
-          </p>
-        </div>
+    <div className="flex-1 flex items-center justify-center text-center px-4 relative">
+      {/* Efectos de luz sutiles con solo blanco/gris */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-white/3 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-gray-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
 
-        {/* Botón estilo main page */}
+      <div className="max-w-2xl mx-auto relative z-10">
+        {/* Título principal con sombra sutil */}
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-wide animate-fade-up drop-shadow-2xl" 
+            style={{ 
+              fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif',
+              textShadow: '0 0 40px rgba(255, 255, 255, 0.1), 0 0 80px rgba(255, 255, 255, 0.05)'
+            }}>
+          Bienvenido a Nora
+        </h1>
+
+        {/* Subtítulo con glow sutil */}
+        <p className="text-xl md:text-2xl text-white/90 mb-12 animate-fade-up leading-relaxed font-light drop-shadow-lg" 
+           style={{ 
+             animationDelay: '0.5s',
+             textShadow: '0 0 20px rgba(255, 255, 255, 0.08)'
+           }}>
+          ¿En qué puedo ayudarte el día de hoy?
+        </p>
+
+        {/* Botón de empezar conversación con efectos de luz */}
         <div className="animate-fade-up" style={{ animationDelay: '1s' }}>
           <button
             onClick={onStartChat}
-            className="group relative px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300 text-lg flex items-center space-x-3 mx-auto"
+            className="relative px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300 text-lg shadow-2xl hover:shadow-white/20"
+            style={{
+              boxShadow: '0 0 30px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+            }}
           >
-            <span>Empezar conversación</span>
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all duration-300">
-              <Bot className="w-4 h-4" />
-            </div>
+            {/* Glow interior sutil */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent to-white/5 pointer-events-none" />
+            <span className="relative z-10">Empezar conversación</span>
           </button>
-        </div>
-
-        {/* Indicador de scroll */}
-        <div className="mt-16 animate-fade-up" style={{ animationDelay: '1.5s' }}>
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full mx-auto flex items-start justify-center p-1">
-            <div className="w-1 h-3 bg-white/60 rounded-full animate-bounce"></div>
-          </div>
-          <p className="text-white/60 text-sm mt-3 font-light">Desplázate para explorar</p>
         </div>
       </div>
     </div>
@@ -227,6 +259,7 @@ const ChatInterface = memo(function ChatInterface() {
   const [showConversationList, setShowConversationList] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [chatStarted, setChatStarted] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
   const [showImageGenerator, setShowImageGenerator] = useState(false);
@@ -613,13 +646,20 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     return percentage >= 90;
   };
 
-  const handleStartChat = () => {
-    setChatStarted(true);
-    setShowVideoBackground(false);
-    if (!currentConversation) {
-      startNewConversation();
-    }
-  };
+  // ✅ FUNCIÓN: Manejar inicio de chat con animación
+  const handleStartChat = useCallback(() => {
+    setIsTransitioning(true);
+    
+    // Animación de desplazamiento tipo cortina
+    setTimeout(() => {
+      setChatStarted(true);
+      setShowVideoBackground(false);
+      setIsTransitioning(false);
+      if (!currentConversation) {
+        startNewConversation();
+      }
+    }, 800);
+  }, [currentConversation, startNewConversation]);
 
   // ✅ FUNCIÓN PARA MANEJAR NUEVOS MENSAJES DE ESPECIALISTAS
   const handleNewMessage = (message: ChatMessage) => {
@@ -946,22 +986,31 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
 
   return (
     <div className="h-screen bg-black text-white overflow-hidden relative">
-      {/* TU VIDEO DE FONDO ORIGINAL */}
+      {/* TU VIDEO DE FONDO MEJORADO */}
       {showVideoBackground && <VideoBackground />}
+      
+      {/* Overlay de transición */}
+      {isTransitioning && (
+        <div className="fixed inset-0 z-[100] bg-black animate-slide-right" />
+      )}
       
       {/* ✅ NAVEGACIÓN SUPERIOR REDISEÑADA - HEADER QUE SE DESPLAZA */}
       <div className={`fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-gray-800 transition-all duration-300 ${
         showConversationList && !isMobile ? 'ml-80' : ''
       }`}>
         <div className="flex items-center justify-between px-6 py-4">
-          {/* ✅ Logo separado con hamburguesa más delgada */}
+          {/* ✅ Logo separado con hamburguesa estilo gota de agua */}
           <div className="flex items-center space-x-8">
-            {/* ✅ Menú hamburguesa MÁS DELGADA con hover scale */}
+            {/* ✅ Menú hamburguesa estilo gota de agua como iOS */}
             <button
               onClick={() => setShowConversationList(!showConversationList)}
-              className="group transition-transform duration-200 hover:scale-110"
+              className="group transition-all duration-200 hover:scale-110 p-2 rounded-full hover:bg-white/10"
             >
-              <Menu className="w-6 h-6 text-gray-400 stroke-1" />
+              <div className="flex flex-col space-y-1">
+                <div className={`h-0.5 bg-gray-400 rounded-full transition-all duration-300 ${showConversationList ? 'w-4 rotate-45 translate-y-1.5' : 'w-6'}`} />
+                <div className={`h-0.5 bg-gray-400 rounded-full transition-all duration-300 ${showConversationList ? 'w-0' : 'w-4'}`} />
+                <div className={`h-0.5 bg-gray-400 rounded-full transition-all duration-300 ${showConversationList ? 'w-4 -rotate-45 -translate-y-1.5' : 'w-6'}`} />
+              </div>
             </button>
             
             {/* ✅ Logo de NORA más separado */}
@@ -981,7 +1030,7 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
           <div className="flex items-center">
             <button
               onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-              className="group transition-transform duration-200 hover:scale-110"
+              className="group transition-transform duration-200 hover:scale-110 p-2 rounded-full hover:bg-white/10"
             >
               <UserCircle className="w-6 h-6 text-gray-400 stroke-1" />
             </button>
@@ -1197,7 +1246,7 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
                   </div>
                 )}
 
-                {/* TU ÁREA DE INPUT ORIGINAL COMPLETA */}
+                {/* TU ÁREA DE INPUT ORIGINAL COMPLETA MÁS DELGADA */}
                 <div className="px-6 pb-6">
                   {/* Archivos subidos */}
                   {uploadedFiles.length > 0 && (
@@ -1254,8 +1303,8 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
                     </div>
                   )}
 
-                  {/* ✅ ÁREA DE INPUT REDISEÑADA - CIRCULAR/OVALADA CON EFECTO NEBLINA */}
-                  <div className="bg-gray-800/30 backdrop-blur-xl rounded-full p-3 border border-gray-700/30">
+                  {/* ✅ ÁREA DE INPUT REDISEÑADA - MÁS DELGADA Y COMPACTA */}
+                  <div className="bg-gray-800/30 backdrop-blur-xl rounded-full p-3 border border-gray-700/30 max-w-3xl mx-auto">
                     <div className="flex items-center space-x-3">
                       {/* ✅ MENÚ DE HERRAMIENTAS SIN MARGEN NI FONDO */}
                       <div className="relative">
@@ -1421,23 +1470,125 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
         
-        @keyframes fade-up {
-          0% { opacity: 0; transform: translateY(20px); }
+        @keyframes fade-up-slow {
+          0% { opacity: 0; transform: translateY(40px); }
           100% { opacity: 1; transform: translateY(0); }
         }
         
+        @keyframes fade-in {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          25% { transform: translateY(-10px) translateX(5px); }
+          50% { transform: translateY(0px) translateX(10px); }
+          75% { transform: translateY(10px) translateX(5px); }
+        }
+        
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          25% { transform: translateY(10px) translateX(-5px); }
+          50% { transform: translateY(0px) translateX(-10px); }
+          75% { transform: translateY(-10px) translateX(-5px); }
+        }
+        
+        @keyframes gradient-x {
+          0%, 100% { background-size: 200% 200%; background-position: left center; }
+          50% { background-size: 200% 200%; background-position: right center; }
+        }
+        
+        @keyframes width-expand {
+          0% { width: 0; }
+          100% { width: 8rem; }
+        }
+        
         @keyframes typewriter {
-          from { width: 0; }
-          to { width: 100%; }
+          0% { width: 0; }
+          100% { width: 100%; }
         }
         
-        @keyframes blink {
-          50% { border-color: transparent; }
+        @keyframes slide-x {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
         }
         
-        .animate-fade-up { 
-          animation: fade-up 0.8s ease-out forwards; 
+        @keyframes slide-x-reverse {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+        
+        @keyframes breath {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.1; }
+          50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.3; }
+        }
+        
+        @keyframes breath-delayed {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.05; }
+          50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.2; }
+        }
+        
+        @keyframes slide-right {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(0); }
+        }
+        
+        .animate-slide-right {
+          animation: slide-right 0.8s ease-in-out forwards;
+        }
+        
+        .animate-fade-up-slow { 
+          animation: fade-up-slow 1.2s ease-out forwards; 
           opacity: 0; 
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 1s ease-out forwards;
+          opacity: 0;
+        }
+        
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        
+        .animate-float-delayed {
+          animation: float-delayed 6s ease-in-out infinite;
+          animation-delay: 2s;
+        }
+        
+        .animate-gradient-x {
+          animation: gradient-x 3s ease infinite;
+        }
+        
+        .animate-width-expand {
+          animation: width-expand 1.5s ease-out forwards;
+        }
+        
+        .animate-typewriter {
+          overflow: hidden;
+          white-space: nowrap;
+          animation: typewriter 2s steps(40) forwards;
+          animation-delay: 0.5s;
+          width: 0;
+          display: inline-block;
+        }
+        
+        .animate-slide-x {
+          animation: slide-x 8s linear infinite;
+        }
+        
+        .animate-slide-x-reverse {
+          animation: slide-x-reverse 10s linear infinite;
+        }
+        
+        .animate-breath {
+          animation: breath 4s ease-in-out infinite;
+        }
+        
+        .animate-breath-delayed {
+          animation: breath-delayed 6s ease-in-out infinite;
+          animation-delay: 1s;
         }
 
         /* Ensure smooth scrolling */

@@ -1,119 +1,88 @@
-// components/SettingsMenu.tsx - VERSIÓN COMPLETA CORREGIDA
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, memo } from 'react';
 import { 
-  Crown, 
-  LogOut, 
+  X, 
   User, 
-  CreditCard, 
-  Loader2,
-  X,
-  Settings,
-  Trash2,
+  Settings, 
+  LogOut, 
+  Crown, 
+  Shield, 
+  Palette,
+  Bell,
+  Moon,
+  Sun,
+  Monitor,
+  Globe,
   Download,
-  Upload
+  Upload,
+  Trash2,
+  UserCircle,
+  Mail,
+  Calendar,
+  CreditCard,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConversations } from '../contexts/ConversationContext';
 import { useRouter } from 'next/navigation';
-import { cloudFunctions, helpers } from '../lib/firebase';
+import { cloudFunctions } from '../lib/firebase';
 import toast from 'react-hot-toast';
-
-interface CheckoutResponse {
-  url: string;
-}
 
 interface SettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+type SettingsTab = 'profile' | 'appearance' | 'notifications' | 'data' | 'plan' | 'about';
+
 export default function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'account' | 'usage' | 'data'>('account');
-  const { userProfile, plan, signOut } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const { exportConversations, importConversations } = useConversations();
   const router = useRouter();
-  const menuRef = useRef<HTMLDivElement>(null);
+  
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const [isLoading, setIsLoading] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
+  const [notifications, setNotifications] = useState(true);
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
+  if (!isOpen || !user || !userProfile) return null;
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose]);
-
-  // Prevenir propagación de clicks dentro del menú
-  const handleMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  const canUpgrade = () => {
-    return plan === 'free' || plan === 'pro';
-  };
-
-  const getPlanColor = (currentPlan: string) => {
-    const colors = {
-      free: 'text-gray-400',
-      pro: 'text-blue-400',
-      pro_max: 'text-yellow-400'
-    };
-    return colors[currentPlan as keyof typeof colors] || 'text-gray-400';
-  };
-
-  const getPlanDisplayName = (currentPlan: string) => {
-    const names = {
-      free: 'Gratis',
-      pro: 'Pro',
-      pro_max: 'Pro Max'
-    };
-    return names[currentPlan as keyof typeof names] || 'Gratis';
-  };
-
-  const handleUpgrade = async (planId: 'pro' | 'pro_max') => {
+  // Manejar upgrade de plan
+  const handleUpgrade = async () => {
     setIsLoading(true);
     
     try {
-      const priceIds = {
-        pro: 'price_1S8id6Pa2fV72c7wyqjkxdpw',
-        pro_max: 'price_1S12wKPa2fV72c7wX2NRAwQF'
-      };
-
       const result = await cloudFunctions.createStripeCheckout({
-        plan: planId,
-        priceId: priceIds[planId]
-      }) as { data: CheckoutResponse };
+        plan: 'pro',
+        priceId: 'price_pro_monthly'
+      });
       
-      if (result.data.url) {
-        window.location.href = result.data.url;
-      } else {
-        throw new Error('No se pudo crear el checkout');
+      if (result?.data && typeof result.data === 'object' && 'url' in result.data) {
+        const url = (result.data as { url: string }).url;
+        if (url) {
+          window.location.href = url;
+        }
       }
     } catch (error: unknown) {
-      console.error('Error upgrading:', error);
-      toast.error('Error al procesar el pago. Intenta nuevamente.');
+      console.error('Error initiating upgrade:', error);
+      toast.error('Error al procesar upgrade. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
       onClose();
     }
   };
 
+  // Manejar gestión de suscripción
   const handleManageSubscription = async () => {
     setIsLoading(true);
     
     try {
       const result = await cloudFunctions.manageSubscription();
       
-      // ✅ CORRECCIÓN PARA EL ERROR DEL OPERADOR 'in'
       if (result?.data && typeof result.data === 'object' && 'url' in result.data) {
         const url = (result.data as { url: string }).url;
         if (url) {
@@ -133,6 +102,7 @@ export default function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
     }
   };
 
+  // Cerrar sesión
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -144,6 +114,7 @@ export default function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
     }
   };
 
+  // Exportar datos
   const handleExportData = () => {
     try {
       exportConversations();
@@ -154,6 +125,7 @@ export default function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
     }
   };
 
+  // Importar datos
   const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -169,293 +141,736 @@ export default function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
       console.error('Error importing conversations:', error);
       toast.error('Error al importar conversaciones');
     }
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    
+    // Reset input
+    event.target.value = '';
   };
 
-  if (!isOpen) return null;
+  const tabs = [
+    { id: 'profile' as const, name: 'Perfil', icon: UserCircle },
+    { id: 'data' as const, name: 'Datos', icon: Download },
+    { id: 'plan' as const, name: 'Plan', icon: Crown },
+    { id: 'about' as const, name: 'Acerca de', icon: Settings },
+  ];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      
-      {/* Modal */}
-      <div className="absolute right-4 top-4 bottom-4 w-96 max-w-[calc(100vw-2rem)]">
-        <div 
-          ref={menuRef}
-          onClick={handleMenuClick}
-          className="h-full bg-black/90 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl flex flex-col"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
-            <h2 className="text-xl font-light text-white font-lastica">Configuración</h2>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+    <>
+      <div className="h-full flex flex-col relative overflow-hidden">
+        {/* Efectos de fondo decorativos */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-1/3 left-1/4 w-32 h-32 bg-white/3 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-1/4 right-1/3 w-24 h-24 bg-white/5 rounded-full blur-2xl animate-float-delayed"></div>
+          <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-white/4 rounded-full blur-xl animate-float-slow"></div>
+        </div>
 
-          {/* Tabs */}
-          <div className="flex border-b border-white/10">
-            {[
-              { id: 'account', label: 'Cuenta', icon: User },
-              { id: 'usage', label: 'Uso', icon: Settings },
-              { id: 'data', label: 'Datos', icon: Download }
-            ].map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-white/10 text-white border-b-2 border-white'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-light">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            {activeTab === 'account' && (
-              <div className="p-6 space-y-6">
-                {/* User Info */}
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <User className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-white font-medium text-sm">
-                      {userProfile?.user?.name || 'Usuario'}
-                    </div>
-                    <div className="text-gray-400 text-xs">
-                      {userProfile?.user?.email || ''}
-                    </div>
-                    <div className={`text-xs font-medium ${getPlanColor(plan)}`}>
-                      Plan {getPlanDisplayName(plan)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Upgrade Options */}
-                {canUpgrade() && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-white">Actualizar Plan</h3>
-                    
-                    {plan === 'free' && (
-                      <button
-                        onClick={() => handleUpgrade('pro')}
-                        disabled={isLoading}
-                        className="w-full flex items-center space-x-3 p-4 bg-blue-500/20 border border-blue-500/30 rounded-xl text-white hover:bg-blue-500/30 transition-all duration-300"
-                      >
-                        <Crown className="w-5 h-5 text-blue-400" />
-                        <div className="flex-1 text-left">
-                          <div className="font-medium">Actualizar a Pro</div>
-                          <div className="text-xs text-gray-400">$15/mes - Todas las funciones</div>
-                        </div>
-                        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                      </button>
-                    )}
-
-                    {(plan === 'free' || plan === 'pro') && (
-                      <button
-                        onClick={() => handleUpgrade('pro_max')}
-                        disabled={isLoading}
-                        className="w-full flex items-center space-x-3 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-xl text-white hover:bg-yellow-500/30 transition-all duration-300"
-                      >
-                        <Crown className="w-5 h-5 text-yellow-400" />
-                        <div className="flex-1 text-left">
-                          <div className="font-medium">Actualizar a Pro Max</div>
-                          <div className="text-xs text-gray-400">$25/mes - Uso ilimitado</div>
-                        </div>
-                        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Manage Subscription */}
-                {(plan === 'pro' || plan === 'pro_max') && (
+        {/* Container flotante principal */}
+        <div className="relative z-10 h-full flex flex-col">
+          <div className="flex-1 max-w-6xl mx-auto w-full my-4 md:my-8">
+            {/* Settings menu flotante */}
+            <div className="floating-settings-container h-full flex flex-col">
+              {/* Header compacto */}
+              <div className="p-3 md:p-4">
+                <div className="flex items-center justify-end">
                   <button
-                    onClick={handleManageSubscription}
-                    disabled={isLoading}
-                    className="w-full flex items-center space-x-3 p-4 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-all duration-300"
+                    onClick={onClose}
+                    className="floating-button p-2 rounded-lg transition-all duration-300"
                   >
-                    <CreditCard className="w-5 h-5 text-gray-400" />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium">Gestionar Suscripción</div>
-                      <div className="text-xs text-gray-400">Facturas, cancelación y más</div>
-                    </div>
-                    {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <X className="w-5 h-5 text-gray-400" />
                   </button>
-                )}
-
-                {/* Sign Out */}
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center space-x-3 p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-white hover:bg-red-500/30 transition-all duration-300"
-                >
-                  <LogOut className="w-5 h-5 text-red-400" />
-                  <div className="text-left">
-                    <div className="font-medium">Cerrar Sesión</div>
-                    <div className="text-xs text-gray-400">Salir de tu cuenta</div>
-                  </div>
-                </button>
+                </div>
               </div>
-            )}
 
-            {activeTab === 'usage' && userProfile && (
-              <div className="p-6 space-y-6">
-                {/* Daily Usage */}
-                <div className="bg-white/5 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-white mb-3">Uso Diario</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Tokens</span>
-                      <span className="text-sm text-white">
-                        {helpers.formatTokens(userProfile.usage.daily.tokensUsed)}/
-                        {helpers.formatTokens(userProfile.usage.daily.tokensLimit)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${Math.min(helpers.getUsagePercentage(
-                            userProfile.usage.daily.tokensUsed,
-                            userProfile.usage.daily.tokensLimit
-                          ), 100)}%` 
-                        }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {helpers.getUsagePercentage(
-                        userProfile.usage.daily.tokensUsed,
-                        userProfile.usage.daily.tokensLimit
-                      )}% utilizado
-                    </div>
+              {/* Layout principal optimizado */}
+              <div className="flex-1 flex flex-col md:flex-row min-h-0">
+                {/* Sidebar ultra-compacto */}
+                <div className="w-full md:w-16 flex md:flex-col overflow-x-auto md:overflow-x-visible overflow-y-visible md:overflow-y-auto p-2 space-x-2 md:space-x-0 space-y-0 md:space-y-2 border-b md:border-b-0 md:border-r border-white/10">
+                  {/* Tabs con iconos más grandes */}
+                  <div className="flex md:flex-col space-x-2 md:space-x-0 space-y-0 md:space-y-2 min-w-max md:min-w-0">
+                    {tabs.map((tab, index) => {
+                      const IconComponent = tab.icon;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          onMouseEnter={() => setHoveredTab(tab.id)}
+                          onMouseLeave={() => setHoveredTab(null)}
+                          className={`flex md:flex-col items-center justify-center space-x-2 md:space-x-0 space-y-0 md:space-y-1 p-2 md:p-3 rounded-xl font-light transition-all duration-500 liquid-tab-button group whitespace-nowrap md:whitespace-normal ${
+                            activeTab === tab.id
+                              ? 'floating-tab-active'
+                              : 'floating-tab hover:floating-tab-hover'
+                          }`}
+                          style={{ 
+                            fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif',
+                            animationDelay: `${index * 0.1}s`
+                          }}
+                          title={tab.name}
+                        >
+                          <div className="relative flex-shrink-0">
+                            <IconComponent className={`w-5 h-5 transition-all duration-500 ${
+                              activeTab === tab.id ? 'text-white scale-110' : 'text-gray-300 group-hover:text-white group-hover:scale-105'
+                            }`} />
+                            {hoveredTab === tab.id && (
+                              <div className="absolute inset-0 bg-white/20 rounded-full scale-0 animate-ripple"></div>
+                            )}
+                          </div>
+                          <span className={`text-xs leading-tight transition-all duration-500 md:hidden ${
+                            activeTab === tab.id ? 'text-white' : 'text-gray-300 group-hover:text-white'
+                          }`}>
+                            {tab.name}
+                          </span>
+                          
+                          {/* Indicador activo */}
+                          {activeTab === tab.id && (
+                            <div className="hidden md:block absolute left-0 top-1/2 transform -translate-y-1/2 w-0.5 h-6 bg-white rounded-r-lg animate-slide-in"></div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
-                </div>
 
-                {/* Monthly Usage */}
-                <div className="bg-white/5 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-white mb-3">Uso Mensual</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Tokens</span>
-                      <span className="text-sm text-white">
-                        {helpers.formatTokens(userProfile.usage.monthly.tokensUsed)}/
-                        {helpers.formatTokens(userProfile.usage.monthly.tokensLimit)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${Math.min(helpers.getUsagePercentage(
-                            userProfile.usage.monthly.tokensUsed,
-                            userProfile.usage.monthly.tokensLimit
-                          ), 100)}%` 
-                        }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {helpers.getUsagePercentage(
-                        userProfile.usage.monthly.tokensUsed,
-                        userProfile.usage.monthly.tokensLimit
-                      )}% utilizado
-                    </div>
+                  {/* Botón cerrar sesión */}
+                  <div className="flex-shrink-0 pt-2 md:pt-4 mt-2 md:mt-4 border-t border-white/10">
+                    <button
+                      onClick={handleSignOut}
+                      className="flex md:flex-col items-center justify-center space-x-2 md:space-x-0 space-y-0 md:space-y-1 p-2 md:p-3 rounded-xl font-light text-red-400 hover:text-red-300 transition-all duration-500 liquid-tab-button group floating-tab hover:floating-tab-hover-danger whitespace-nowrap md:whitespace-normal"
+                      style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                      title="Cerrar sesión"
+                    >
+                      <LogOut className="w-5 h-5 transition-all duration-300 group-hover:scale-105 flex-shrink-0" />
+                      <span className="text-xs leading-tight md:hidden">Cerrar sesión</span>
+                    </button>
                   </div>
-                </div>
+          </div>
 
-                {/* Features */}
-                <div className="bg-white/5 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-white mb-3">Funciones Disponibles</h3>
-                  <div className="space-y-2">
-                    {Object.entries(userProfile.planInfo.availableFeatures).map(([feature, available]) => (
-                      <div key={feature} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-400 capitalize">{feature}</span>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          available ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                        }`}>
-                          {available ? 'Disponible' : 'No disponible'}
-                        </span>
+                {/* Contenido principal compacto */}
+                <div className="flex-1 overflow-y-auto custom-scroll">
+                  <div className="container max-w-none px-3 md:px-6">
+                    {/* Tab: Perfil */}
+                    {activeTab === 'profile' && (
+                      <div className="py-4 md:py-6 space-y-4 md:space-y-6 animate-tab-content">
+                        {/* Información del usuario compacta */}
+                        <div className="floating-card p-4 md:p-5 animate-card-in" style={{ animationDelay: '0.1s' }}>
+                          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-4">
+                            <div className="relative flex-shrink-0 self-center sm:self-auto">
+                              <div className="w-10 h-10 md:w-12 md:h-12 floating-avatar flex items-center justify-center">
+                                <User className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="flex-1 text-center sm:text-left min-w-0">
+                              <h3 className="text-base md:text-lg font-light text-white mb-1" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                                {userProfile.user.name || 'Usuario'}
+                              </h3>
+                              <p className="text-gray-400 font-light text-xs md:text-sm truncate" title={user.email ?? undefined}>{user.email}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+                            <div className="floating-info-card p-2 md:p-3 animate-card-in" style={{ animationDelay: '0.2s' }}>
+                              <div className="text-gray-400 mb-1 text-xs font-light">Plan actual</div>
+                              <div className="text-white font-light flex items-center space-x-1 text-xs md:text-sm">
+                                {userProfile.user.plan === 'free' ? (
+                                  <>
+                                    <Shield className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                    <span>Gratis</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Crown className="w-3 h-3 text-yellow-400 flex-shrink-0" />
+                                    <span className="capitalize truncate">{userProfile.user.plan}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="floating-info-card p-2 md:p-3 animate-card-in" style={{ animationDelay: '0.3s' }}>
+                              <div className="text-gray-400 mb-1 text-xs font-light">Miembro desde</div>
+                              <div className="text-white font-light text-xs md:text-sm">
+                                {user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'No disponible'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Información adicional compacta */}
+                        <div className="space-y-2 md:space-y-3">
+                          <div className="floating-card p-3 md:p-4 flex items-center space-x-3 md:space-x-4 animate-card-in" style={{ animationDelay: '0.4s' }}>
+                            <div className="w-7 h-7 md:w-8 md:h-8 floating-icon-container flex-shrink-0">
+                              <Mail className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white font-light text-sm md:text-base mb-1" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Email</div>
+                              <div className="text-gray-400 font-light text-xs md:text-sm truncate" title={user.email ?? undefined}>{user.email}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="floating-card p-3 md:p-4 flex items-center space-x-3 md:space-x-4 animate-card-in" style={{ animationDelay: '0.5s' }}>
+                            <div className="w-7 h-7 md:w-8 md:h-8 floating-icon-container flex-shrink-0">
+                              <Calendar className="w-3 h-3 md:w-4 md:h-4 text-green-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white font-light text-sm md:text-base mb-1" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Último acceso</div>
+                              <div className="text-gray-400 font-light text-xs md:text-sm break-words">
+                                {user.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime).toLocaleString() : 'No disponible'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Tab: Datos compacto */}
+                    {activeTab === 'data' && (
+                      <div className="py-4 md:py-6 space-y-4 md:space-y-6 animate-tab-content">
+                        {/* Export Data */}
+                        <div className="animate-card-in">
+                          <h3 className="text-base md:text-lg font-light text-white mb-2" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Exportar Datos</h3>
+                          <p className="text-gray-400 mb-3 md:mb-4 font-light leading-relaxed text-xs md:text-sm">
+                            Descarga todas tus conversaciones y configuraciones en un archivo JSON seguro para respaldo personal.
+                          </p>
+                          <button
+                            onClick={handleExportData}
+                            className="floating-action-button w-full p-3 md:p-4 flex items-center space-x-3 md:space-x-4"
+                          >
+                            <div className="w-7 h-7 md:w-8 md:h-8 floating-icon-container flex-shrink-0">
+                              <Download className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
+                            </div>
+                            <div className="text-left flex-1 min-w-0">
+                              <div className="font-light text-white text-sm md:text-base mb-1" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Exportar Conversaciones</div>
+                              <div className="text-gray-400 font-light text-xs md:text-sm">Descargar archivo JSON con todas tus conversaciones</div>
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Import Data */}
+                        <div className="animate-card-in" style={{ animationDelay: '0.2s' }}>
+                          <h3 className="text-base md:text-lg font-light text-white mb-2" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Importar Datos</h3>
+                          <p className="text-gray-400 mb-3 md:mb-4 font-light leading-relaxed text-xs md:text-sm">
+                            Restaura tus conversaciones desde un archivo de respaldo previo. Solo se aceptan archivos JSON válidos.
+                          </p>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".json"
+                            onChange={handleImportData}
+                            className="hidden"
+                          />
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="floating-action-button w-full p-3 md:p-4 flex items-center space-x-3 md:space-x-4"
+                          >
+                            <div className="w-7 h-7 md:w-8 md:h-8 floating-icon-container flex-shrink-0">
+                              <Upload className="w-3 h-3 md:w-4 md:h-4 text-green-400" />
+                            </div>
+                            <div className="text-left flex-1 min-w-0">
+                              <div className="font-light text-white text-sm md:text-base mb-1" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Importar Conversaciones</div>
+                              <div className="text-gray-400 font-light text-xs md:text-sm">Seleccionar archivo JSON de respaldo</div>
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Privacy Notice */}
+                        <div className="floating-card p-3 md:p-4 animate-card-in" style={{ animationDelay: '0.4s' }}>
+                          <h4 className="text-sm md:text-base font-light text-yellow-400 mb-2" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Privacidad y Seguridad</h4>
+                          <p className="text-gray-400 font-light leading-relaxed text-xs md:text-sm">
+                            Todos los datos se procesan y almacenan localmente en tu dispositivo. Tus conversaciones nunca se comparten con terceros y mantienes control total sobre tu información personal.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab: Plan compacto */}
+                    {activeTab === 'plan' && (
+                      <div className="py-4 md:py-6 space-y-4 md:space-y-6 animate-tab-content">
+                        {/* Plan actual */}
+                        <div className="floating-card p-4 md:p-6 animate-card-in">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4 md:mb-6">
+                            <h3 className="text-base md:text-lg font-light text-white" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Plan Actual</h3>
+                            <div className={`px-3 md:px-4 py-1 md:py-2 rounded-lg md:rounded-xl font-light text-center sm:text-left text-xs md:text-sm ${
+                              userProfile.user.plan === 'free' 
+                                ? 'floating-badge-free' 
+                                : 'floating-badge-premium'
+                            }`}>
+                              {userProfile.user.plan === 'free' ? 'GRATIS' : userProfile.user.plan.toUpperCase()}
+                            </div>
+                          </div>
+                          
+                          {userProfile.user.plan === 'free' ? (
+                            <div className="space-y-4 md:space-y-6">
+                              <p className="text-gray-400 font-light text-sm md:text-base leading-relaxed">
+                                Estás usando el plan gratuito. Actualiza a Pro para desbloquear el potencial completo de NORA con funcionalidades avanzadas y sin límites.
+                              </p>
+                              
+                              <button
+                                onClick={handleUpgrade}
+                                disabled={isLoading}
+                                className="floating-premium-button w-full py-3 md:py-4 px-4 md:px-6 flex items-center justify-center space-x-2 md:space-x-3 disabled:opacity-50"
+                                style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                              >
+                                {isLoading ? (
+                                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-4 h-4 flex-shrink-0" />
+                                    <span className="font-light text-sm md:text-base">Upgrade a Pro</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4 md:space-y-6">
+                              <p className="text-gray-400 font-light text-sm md:text-base leading-relaxed">
+                                Tienes acceso completo a todas las funcionalidades premium de NORA. Gestiona tu suscripción o actualiza tu método de pago.
+                              </p>
+                              
+                              <button
+                                onClick={handleManageSubscription}
+                                disabled={isLoading}
+                                className="floating-action-button w-full py-3 md:py-4 px-4 md:px-6 flex items-center justify-center space-x-2 md:space-x-3"
+                                style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                              >
+                                <CreditCard className="w-4 h-4 flex-shrink-0" />
+                                <span className="font-light text-sm md:text-base">Gestionar Suscripción</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Beneficios */}
+                        <div className="animate-card-in" style={{ animationDelay: '0.2s' }}>
+                          <h3 className="text-base md:text-lg font-light text-white mb-4 md:mb-6" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Beneficios Premium</h3>
+                          <div className="grid grid-cols-1 gap-2 md:gap-3">
+                            {[
+                              { text: 'Conversaciones ilimitadas', active: userProfile.user.plan !== 'free' },
+                              { text: 'Búsqueda web avanzada', active: userProfile.user.plan !== 'free' },
+                              { text: 'Generación de imágenes', active: userProfile.user.plan !== 'free' },
+                              { text: 'Modo especialista', active: userProfile.user.plan !== 'free' },
+                              { text: 'Soporte prioritario', active: userProfile.user.plan !== 'free' }
+                            ].map((benefit, index) => (
+                              <div 
+                                key={index} 
+                                className="floating-benefit-card p-2 md:p-3 flex items-center space-x-2 md:space-x-3 animate-card-in"
+                                style={{ animationDelay: `${0.1 + index * 0.1}s` }}
+                              >
+                                <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0 ${
+                                  benefit.active ? 'bg-green-400 animate-pulse' : 'bg-gray-600'
+                                }`} />
+                                <span className="text-gray-300 font-light text-xs md:text-sm">{benefit.text}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab: Acerca de con imagen de NORA */}
+                    {activeTab === 'about' && (
+                      <div className="py-4 md:py-6 space-y-4 md:space-y-6 animate-tab-content">
+                        <div className="text-center animate-card-in">
+                          <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 md:mb-6 floating-avatar">
+                            <img 
+                              src="/images/nora.png" 
+                              alt="NORA" 
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <p className="text-gray-400 mb-4 md:mb-6 font-light text-sm md:text-base leading-relaxed">Tu asistente de IA más inteligente y confiable</p>
+                          <div className="text-gray-500 font-light text-xs md:text-sm">Versión 1.0.0</div>
+                        </div>
+                        
+                        <div className="space-y-3 md:space-y-4">
+                          <div className="floating-card p-3 md:p-4 animate-card-in" style={{ animationDelay: '0.2s' }}>
+                            <h4 className="text-white font-light text-sm md:text-base mb-2 md:mb-3" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Tecnología Avanzada</h4>
+                            <p className="text-gray-400 font-light leading-relaxed text-xs md:text-sm">
+                              Impulsado por los modelos de IA más avanzados: GPT-4o y Gemini, diseñados para brindarte respuestas precisas, contextuales y altamente personalizadas.
+                            </p>
+                          </div>
+                          
+                          <div className="floating-card p-3 md:p-4 animate-card-in" style={{ animationDelay: '0.3s' }}>
+                            <h4 className="text-white font-light text-sm md:text-base mb-2 md:mb-3" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Privacidad Garantizada</h4>
+                            <p className="text-gray-400 font-light leading-relaxed text-xs md:text-sm">
+                              Tus conversaciones se almacenan de forma segura con encriptación de extremo a extremo. Nunca compartimos tus datos personales con terceros y tú mantienes control total.
+                            </p>
+                          </div>
+                          
+                          <div className="floating-card p-3 md:p-4 animate-card-in" style={{ animationDelay: '0.4s' }}>
+                            <h4 className="text-white font-light text-sm md:text-base mb-2 md:mb-3" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Soporte Dedicado</h4>
+                            <p className="text-gray-400 font-light leading-relaxed text-xs md:text-sm break-words">
+                              ¿Tienes preguntas o necesitas ayuda? Nuestro equipo está aquí para ti.{' '}
+                              <a href="mailto:support@nora.ai" className="text-blue-400 hover:text-blue-300 transition-colors duration-300 underline decoration-blue-400/30 hover:decoration-blue-300 break-all">
+                                support@nora.ai
+                              </a>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            )}
-
-            {activeTab === 'data' && (
-              <div className="p-6 space-y-6">
-                {/* Export Data */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-white">Exportar Datos</h3>
-                  <p className="text-xs text-gray-400">
-                    Descarga todas tus conversaciones en formato JSON
-                  </p>
-                  <button
-                    onClick={handleExportData}
-                    className="w-full flex items-center space-x-3 p-4 bg-blue-500/20 border border-blue-500/30 rounded-xl text-white hover:bg-blue-500/30 transition-all duration-300"
-                  >
-                    <Download className="w-5 h-5 text-blue-400" />
-                    <div className="text-left">
-                      <div className="font-medium">Exportar Conversaciones</div>
-                      <div className="text-xs text-gray-400">Descargar archivo JSON</div>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Import Data */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-white">Importar Datos</h3>
-                  <p className="text-xs text-gray-400">
-                    Sube un archivo de respaldo para restaurar conversaciones
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full flex items-center space-x-3 p-4 bg-green-500/20 border border-green-500/30 rounded-xl text-white hover:bg-green-500/30 transition-all duration-300"
-                  >
-                    <Upload className="w-5 h-5 text-green-400" />
-                    <div className="text-left">
-                      <div className="font-medium">Importar Conversaciones</div>
-                      <div className="text-xs text-gray-400">Seleccionar archivo JSON</div>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Privacy Notice */}
-                <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-yellow-400 mb-2">Privacidad</h4>
-                  <p className="text-xs text-gray-300">
-                    Todos los datos se almacenan localmente en tu dispositivo. 
-                    No se envían a servidores externos sin tu consentimiento.
-                  </p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Estilos CSS para diseño flotante */}
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
+        
+        /* Animaciones personalizadas */
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-12px) rotate(-1deg); }
+        }
+        
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-6px); }
+        }
+        
+        @keyframes ripple {
+          0% {
+            transform: scale(0);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(4);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes slide-in {
+          0% {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes card-in {
+          0% {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes tab-content {
+          0% {
+            opacity: 0;
+            transform: translateX(30px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        /* Clases de animación */
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-float-delayed { animation: float-delayed 8s ease-in-out infinite; }
+        .animate-float-slow { animation: float-slow 10s ease-in-out infinite; }
+        .animate-ripple { animation: ripple 0.6s ease-out; }
+        .animate-slide-in { animation: slide-in 0.3s ease-out; }
+        .animate-card-in { 
+          animation: card-in 0.8s ease-out forwards; 
+          opacity: 0; 
+        }
+        .animate-tab-content { 
+          animation: tab-content 0.6s ease-out; 
+        }
+
+        /* Container flotante principal */
+        .floating-settings-container {
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+          backdrop-filter: blur(40px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 24px;
+          box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.3),
+            0 8px 32px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* Botón flotante */
+        .floating-button {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          transition: all 0.3s ease;
+        }
+        .floating-button:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+          border-color: rgba(255, 255, 255, 0.15);
+          transform: scale(1.05);
+        }
+
+        /* Tabs flotantes */
+        .floating-tab {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+          backdrop-filter: blur(15px);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          transition: all 0.4s ease;
+        }
+        .floating-tab-hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+          border-color: rgba(255, 255, 255, 0.12);
+          transform: translateY(-2px);
+        }
+        .floating-tab-active {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+          border: 2px solid rgba(255, 255, 255, 0.25);
+          box-shadow: 
+            0 8px 32px rgba(255, 255, 255, 0.15),
+            0 4px 16px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          transform: scale(1.05);
+        }
+        .floating-tab-hover-danger:hover {
+          background: linear-gradient(145deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+          border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Tarjetas flotantes */
+        .floating-card {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+          backdrop-filter: blur(25px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+          box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.15),
+            0 4px 16px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          transition: all 0.3s ease;
+        }
+        .floating-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.2),
+            0 6px 20px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        /* Avatar flotante */
+        .floating-avatar {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+          backdrop-filter: blur(25px);
+          border: 2px solid rgba(255, 255, 255, 0.15);
+          border-radius: 16px;
+          box-shadow: 
+            0 8px 32px rgba(255, 255, 255, 0.1),
+            0 4px 16px rgba(0, 0, 0, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.4s ease;
+        }
+        .floating-avatar:hover {
+          transform: scale(1.05);
+          box-shadow: 
+            0 12px 40px rgba(255, 255, 255, 0.15),
+            0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Contenedores de iconos flotantes */
+        .floating-icon-container {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+        }
+        .floating-icon-container:hover {
+          transform: scale(1.1);
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+        }
+
+        /* Tarjetas de información flotantes */
+        .floating-info-card {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 12px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          transition: all 0.3s ease;
+        }
+        .floating-info-card:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+          transform: translateY(-1px);
+        }
+
+        /* Botones de acción flotantes */
+        .floating-action-button {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+          backdrop-filter: blur(25px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer;
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+        }
+        .floating-action-button:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+          border-color: rgba(255, 255, 255, 0.15);
+          transform: translateY(-3px);
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Botón premium flotante */
+        .floating-premium-button {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+          backdrop-filter: blur(30px);
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          border-radius: 16px;
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer;
+          box-shadow: 
+            0 8px 32px rgba(255, 255, 255, 0.1),
+            0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .floating-premium-button:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.12));
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: translateY(-4px) scale(1.02);
+          box-shadow: 
+            0 16px 48px rgba(255, 255, 255, 0.2),
+            0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Badges flotantes */
+        .floating-badge-free {
+          background: linear-gradient(145deg, rgba(107, 114, 128, 0.25), rgba(107, 114, 128, 0.15));
+          color: #d1d5db;
+          border: 1px solid rgba(107, 114, 128, 0.3);
+          backdrop-filter: blur(20px);
+        }
+        .floating-badge-premium {
+          background: linear-gradient(145deg, rgba(251, 191, 36, 0.25), rgba(251, 191, 36, 0.15));
+          color: #fbbf24;
+          border: 1px solid rgba(251, 191, 36, 0.3);
+          backdrop-filter: blur(20px);
+        }
+
+        /* Tarjetas de beneficios flotantes */
+        .floating-benefit-card {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 12px;
+          transition: all 0.3s ease;
+        }
+        .floating-benefit-card:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+          border-color: rgba(255, 255, 255, 0.12);
+          transform: translateX(4px);
+        }
+
+        /* Scrollbar personalizada mejorada */
+        .custom-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+          transition: scrollbar-color 0.3s ease;
+        }
+        .custom-scroll:hover {
+          scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }
+        .custom-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 3px;
+          transition: background 0.3s ease;
+        }
+        .custom-scroll:hover::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.15);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Fuente global */
+        * {
+          font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Transiciones suaves para tabs */
+        .liquid-tab-button {
+          position: relative;
+          overflow: hidden;
+        }
+        .liquid-tab-button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+          transition: left 0.5s;
+        }
+        .liquid-tab-button:hover::before {
+          left: 100%;
+        }
+
+        /* Utilidades para texto responsivo */
+        .truncate {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .break-words {
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: break-word;
+        }
+        .break-all {
+          word-break: break-all;
+        }
+
+        /* Mejoras de accesibilidad */
+        @media (prefers-reduced-motion: reduce) {
+          *,
+          *::before,
+          *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+
+        /* Mejoras para pantallas pequeñas */
+        @media (max-width: 640px) {
+          .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          
+          .floating-settings-container {
+            border-radius: 16px;
+            margin: 0.5rem;
+          }
+        }
+      `}</style>
+    </>
   );
 }

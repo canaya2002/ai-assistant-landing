@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { cloudFunctions, helpers } from '../lib/firebase';
 import { 
-  Camera, Loader2, Download, Share2, Trash2, 
+  Camera, Loader2, Download, Share2, Trash2, X,
   Settings, Palette, Sparkles, Crown, AlertTriangle,
   Zap, ImageIcon, Grid3X3, Ratio, Copy, RefreshCw
 } from 'lucide-react';
@@ -20,10 +20,10 @@ import type {
 
 const STYLES: ImageStyle[] = [
   { value: 'realistic', label: 'Realista', icon: Camera },
-  { value: 'artistic', label: 'ArtÃ­stico', icon: Palette },
+  { value: 'artistic', label: 'Artístico', icon: Palette },
   { value: 'digital_art', label: 'Arte Digital', icon: Sparkles },
-  { value: 'illustration', label: 'IlustraciÃ³n', icon: ImageIcon },
-  { value: 'photography', label: 'FotografÃ­a', icon: Camera },
+  { value: 'illustration', label: 'Ilustración', icon: ImageIcon },
+  { value: 'photography', label: 'Fotografía', icon: Camera },
   { value: 'painting', label: 'Pintura', icon: Palette },
   { value: 'sketch', label: 'Boceto', icon: Grid3X3 },
   { value: 'cartoon', label: 'Caricatura', icon: Sparkles }
@@ -31,9 +31,9 @@ const STYLES: ImageStyle[] = [
 
 const ASPECT_RATIOS: AspectRatioOption[] = [
   { value: '1:1', label: 'Cuadrado (1:1)', free: true },
-  { value: '16:9', label: 'PanorÃ¡mico (16:9)', free: false },
+  { value: '16:9', label: 'Panorámico (16:9)', free: false },
   { value: '9:16', label: 'Vertical (9:16)', free: false },
-  { value: '4:3', label: 'EstÃ¡ndar (4:3)', free: false },
+  { value: '4:3', label: 'Estándar (4:3)', free: false },
   { value: '3:4', label: 'Retrato (3:4)', free: false },
   { value: '21:9', label: 'Ultra ancho (21:9)', free: false },
   { value: '1:2', label: 'Vertical largo (1:2)', free: false },
@@ -43,12 +43,14 @@ const ASPECT_RATIOS: AspectRatioOption[] = [
 interface ImageGeneratorProps {
   isEmbedded?: boolean;
   onImageGenerated?: (image: { imageUrl: string; prompt: string }) => void;
+  onClose?: () => void;
   className?: string;
 }
 
 export default function ImageGenerator({ 
   isEmbedded = false, 
   onImageGenerated,
+  onClose,
   className = ''
 }: ImageGeneratorProps) {
   const { user, userProfile, plan } = useAuth();
@@ -88,7 +90,6 @@ export default function ImageGenerator({
       setIsLoading(true);
       const result = await cloudFunctions.getImageUsageStatus();
       
-      // âœ… CORRECCIÃ“N: Convertir GetImageUsageStatusOutput a ImageUsageStatus
       const convertedStatus: ImageUsageStatus = {
         plan: result.data.plan,
         limits: {
@@ -104,7 +105,7 @@ export default function ImageGenerator({
       setUsageStatus(convertedStatus);
     } catch (error) {
       console.error('Error cargando estado:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error cargando informaciÃ³n de uso';
+      const errorMessage = error instanceof Error ? error.message : 'Error cargando información de uso';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -118,16 +119,15 @@ export default function ImageGenerator({
     }
 
     if (!usageStatus) {
-      toast.error('Cargando informaciÃ³n de lÃ­mites...');
+      toast.error('Cargando información de límites...');
       return;
     }
 
     if (usageStatus.limits.remainingMonthly <= 0) {
-      toast.error('Has alcanzado tu lÃ­mite mensual de imÃ¡genes');
+      toast.error('Has alcanzado tu límite mensual de imágenes');
       return;
     }
 
-    // Validar prompt
     const validation = helpers.validateImagePrompt(prompt, usageStatus.features.maxPromptLength);
     if (!validation.valid) {
       toast.error(validation.error || 'Error validando prompt');
@@ -145,9 +145,8 @@ export default function ImageGenerator({
 
       if (result.data?.success) {
         setGeneratedImage(result.data.imageUrl);
-        toast.success(`Â¡Imagen generada! Quedan ${result.data.remainingDaily} usos hoy`);
+        toast.success(`¡Imagen generada! Quedan ${result.data.remainingDaily} usos hoy`);
         
-        // Callback para componente padre
         if (onImageGenerated) {
           onImageGenerated({
             imageUrl: result.data.imageUrl,
@@ -155,7 +154,6 @@ export default function ImageGenerator({
           });
         }
 
-        // Actualizar contadores
         await loadUsageStatus();
         setPrompt('');
       } else {
@@ -185,8 +183,7 @@ export default function ImageGenerator({
     if (!generatedImage) return;
     
     try {
-      // âœ… CORRECCIÃ“N: Cambiar de 3 argumentos a 2
-      await helpers.shareImage(generatedImage, `Mira esta imagen que generÃ©: "${prompt}"`);
+      await helpers.shareImage(generatedImage, `Mira esta imagen que generé: "${prompt}"`);
       toast.success('Imagen compartida');
     } catch (error: any) {
       console.error('Error compartiendo:', error);
@@ -206,9 +203,11 @@ export default function ImageGenerator({
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center p-8 ${className}`}>
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-4" />
-          <p className="text-gray-400">Cargando generador de imÃ¡genes...</p>
+        <div className="floating-settings-container p-8 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
+          <p className="text-gray-300 font-light" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+            Cargando generador de imágenes...
+          </p>
         </div>
       </div>
     );
@@ -217,16 +216,20 @@ export default function ImageGenerator({
   if (!usageStatus) {
     return (
       <div className={`text-center p-8 ${className}`}>
-        <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-white mb-2">Error cargando datos</h3>
-        <p className="text-gray-400 mb-4">No se pudo cargar la informaciÃ³n de uso</p>
-        <button 
-          onClick={loadUsageStatus}
-          className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg transition-colors"
-        >
-          <RefreshCw className="w-4 h-4 inline mr-2" />
-          Reintentar
-        </button>
+        <div className="floating-settings-container p-8">
+          <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+          <h3 className="text-xl font-light text-white mb-2" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+            Error cargando datos
+          </h3>
+          <p className="text-gray-400 mb-6 font-light">No se pudo cargar la información de uso</p>
+          <button 
+            onClick={loadUsageStatus}
+            className="floating-premium-button px-4 py-2 flex items-center space-x-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Reintentar</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -234,239 +237,410 @@ export default function ImageGenerator({
   const canGenerate = usageStatus.limits.remainingDaily > 0 && usageStatus.limits.remainingMonthly > 0;
 
   return (
-    <div className={`bg-gray-900 rounded-xl border border-gray-700 p-6 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-purple-500/20 rounded-lg">
-            <ImageIcon className="w-6 h-6 text-purple-400" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">Generador de ImÃ¡genes</h2>
-            <p className="text-gray-400 text-sm">Crea imÃ¡genes con IA</p>
-          </div>
+    <>
+      <div className="relative overflow-hidden">
+        {/* Efectos de fondo decorativos */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-24 h-24 bg-pink-500/15 rounded-full blur-2xl animate-float-delayed"></div>
+          <div className="absolute top-1/2 right-1/3 w-20 h-20 bg-blue-500/10 rounded-full blur-xl animate-float-slow"></div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {isPremium && (
-            <Crown className="w-5 h-5 text-yellow-400" />
-          )}
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <Settings className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
-      </div>
-
-      {/* LÃ­mites de uso */}
-      <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-400">Uso diario</span>
-          <span className="text-sm font-medium text-white">
-            {usageStatus.limits.remainingDaily} / {usageStatus.limits.daily}
-          </span>
-        </div>
-        <div className="w-full bg-gray-700 rounded-full h-2">
-          <div 
-            className="bg-purple-500 h-2 rounded-full transition-all"
-            style={{ 
-              width: `${Math.max(0, Math.min(100, ((usageStatus.limits.daily - usageStatus.limits.remainingDaily) / usageStatus.limits.daily) * 100))}%` 
-            }}
-          />
-        </div>
-        
-        <div className="flex items-center justify-between mt-3 mb-2">
-          <span className="text-sm text-gray-400">Uso mensual</span>
-          <span className="text-sm font-medium text-white">
-            {usageStatus.limits.remainingMonthly} / {usageStatus.limits.monthly}
-          </span>
-        </div>
-        <div className="w-full bg-gray-700 rounded-full h-2">
-          <div 
-            className="bg-blue-500 h-2 rounded-full transition-all"
-            style={{ 
-              width: `${Math.max(0, (usageStatus.limits.remainingMonthly / usageStatus.limits.monthly) * 100)}%` 
-            }}
-          />
-        </div>
-      </div>
-
-      {/* ConfiguraciÃ³n avanzada */}
-      {showSettings && (
-        <div className="mb-6 p-4 bg-gray-800/30 rounded-lg border border-gray-600">
-          <h3 className="text-lg font-medium text-white mb-4">ConfiguraciÃ³n</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Estilo */}
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">
-                Estilo
-              </label>
-              <select
-                value={selectedStyle}
-                onChange={(e) => setSelectedStyle(e.target.value)}
-                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+        {/* Container flotante principal */}
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <div className={`floating-settings-container p-4 md:p-6 ${className} relative`}>
+            
+            {/* Botón cerrar simple en esquina */}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-lg z-50 shadow-lg"
+                title="Cerrar"
               >
-                {STYLES.map((style) => (
-                  <option key={style.value} value={style.value}>
-                    {style.label}
-                  </option>
-                ))}
-              </select>
+                ×
+              </button>
+            )}
+            
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4 md:mb-6">
+              <div>
+                <h2 className="text-base md:text-xl font-light text-white" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                  Generador de Imágenes
+                </h2>
+                <p className="text-gray-400 text-xs md:text-sm font-light">Crea imágenes con IA</p>
+              </div>
+
+              <div className="flex items-center justify-between sm:justify-end space-x-2">
+                {isPremium && (
+                  <div className="floating-badge-premium px-2 md:px-3 py-1 rounded-lg">
+                    <div className="flex items-center space-x-1 md:space-x-2">
+                      <Crown className="w-3 h-3" />
+                      <span className="text-xs font-light">Pro</span>
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="floating-button p-2 rounded-lg"
+                  title="Configuración"
+                >
+                  <Settings className="w-4 h-4 text-gray-300" />
+                </button>
+              </div>
             </div>
 
-            {/* ProporciÃ³n */}
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">
-                ProporciÃ³n
-              </label>
-              <select
-                value={selectedAspectRatio}
-                onChange={(e) => setSelectedAspectRatio(e.target.value)}
-                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
-              >
-                {ASPECT_RATIOS.map((ratio) => (
-                  <option 
-                    key={ratio.value} 
-                    value={ratio.value}
-                    disabled={!ratio.free && !isPremium}
+            {/* Configuración avanzada */}
+            {showSettings && (
+              <div className="mb-6">
+                <div className="floating-card p-4">
+                  <h3 className="text-base md:text-lg font-light text-white mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                    Configuración
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Estilo */}
+                    <div>
+                      <label className="block text-white text-xs md:text-sm font-light mb-2">
+                        Estilo
+                      </label>
+                      <select
+                        value={selectedStyle}
+                        onChange={(e) => setSelectedStyle(e.target.value)}
+                        className="w-full p-2 md:p-3 floating-info-card text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-xs md:text-sm"
+                        style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                      >
+                        {STYLES.map((style) => (
+                          <option key={style.value} value={style.value} className="bg-gray-800">
+                            {style.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Proporción */}
+                    <div>
+                      <label className="block text-white text-xs md:text-sm font-light mb-2">
+                        Proporción
+                      </label>
+                      <select
+                        value={selectedAspectRatio}
+                        onChange={(e) => setSelectedAspectRatio(e.target.value)}
+                        className="w-full p-2 md:p-3 floating-info-card text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-xs md:text-sm"
+                        style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                      >
+                        {ASPECT_RATIOS.map((ratio) => (
+                          <option 
+                            key={ratio.value} 
+                            value={ratio.value}
+                            disabled={!ratio.free && !isPremium}
+                            className="bg-gray-800"
+                          >
+                            {ratio.label} {!ratio.free && !isPremium && '(Pro)'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Prompt input */}
+            <div className="mb-6">
+              <div className="floating-card p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-white text-sm md:text-base font-light" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                    Describe tu imagen
+                  </label>
+                  <button
+                    onClick={copyPrompt}
+                    disabled={!prompt.trim()}
+                    className="floating-button p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {ratio.label} {!ratio.free && !isPremium && '(Pro)'}
-                  </option>
-                ))}
-              </select>
+                    <Copy className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                  </button>
+                </div>
+                
+                <div className="relative">
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="Una ciudad futurista con rascacielos brillantes al atardecer..."
+                    disabled={isGenerating}
+                    className="w-full p-3 md:p-4 floating-info-card text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none h-16 md:h-20 disabled:opacity-50 text-xs md:text-sm"
+                    style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                    maxLength={usageStatus.features.maxPromptLength}
+                  />
+                  
+                  <div className="absolute bottom-2 right-2 text-xs text-gray-500 font-light">
+                    {prompt.length}/{usageStatus.features.maxPromptLength}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Prompt input */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-white text-sm font-medium">
-            Describe tu imagen
-          </label>
-          <button
-            onClick={copyPrompt}
-            disabled={!prompt.trim()}
-            className="p-1 hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Copy className="w-4 h-4 text-gray-400" />
-          </button>
-        </div>
-        
-        <div className="relative">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Una ciudad futurista con rascacielos brillantes al atardecer..."
-            disabled={isGenerating}
-            className="w-full p-4 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none h-24 disabled:opacity-50"
-            maxLength={usageStatus.features.maxPromptLength}
-          />
-          
-          <div className="absolute bottom-2 right-2 text-xs text-gray-500">
-            {prompt.length}/{usageStatus.features.maxPromptLength}
-          </div>
-        </div>
-      </div>
+            {/* Botón generar */}
+            <div className="mb-6">
+              <button
+                onClick={generateImage}
+                disabled={!canGenerate || isGenerating || !prompt.trim()}
+                className="w-full floating-premium-button py-3 md:py-4 px-4 md:px-6 flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                    <span className="text-sm md:text-base font-light">Generando imagen...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="text-sm md:text-base font-light">Generar Imagen</span>
+                  </>
+                )}
+              </button>
 
-      {/* BotÃ³n generar */}
-      <div className="mb-6">
-        <button
-          onClick={generateImage}
-          disabled={!canGenerate || isGenerating || !prompt.trim()}
-          className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl text-white font-medium transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Generando imagen...</span>
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-5 h-5" />
-              <span>Generar Imagen</span>
-            </>
-          )}
-        </button>
+              {!canGenerate && (
+                <p className="text-center text-red-400 text-xs md:text-sm mt-2 font-light">
+                  {usageStatus.limits.remainingDaily <= 0 
+                    ? 'Límite diario alcanzado' 
+                    : 'Límite mensual alcanzado'
+                  }
+                </p>
+              )}
+            </div>
 
-        {!canGenerate && (
-          <p className="text-center text-red-400 text-sm mt-2">
-            {usageStatus.limits.remainingDaily <= 0 
-              ? 'LÃ­mite diario alcanzado' 
-              : 'LÃ­mite mensual alcanzado'
-            }
-          </p>
-        )}
-      </div>
+            {/* Imagen generada */}
+            {generatedImage && (
+              <div className="mb-6">
+                <div className="floating-card overflow-hidden">
+                  <div className="relative group">
+                    {generatedImage && generatedImage.startsWith('http') ? (
+                      <Image
+                        src={generatedImage}
+                        alt="Imagen generada"
+                        width={512}
+                        height={512}
+                        className="w-full h-auto"
+                        onError={() => setGeneratedImage(null)}
+                      />
+                    ) : (
+                      <div className="w-full aspect-square bg-gray-800/50 flex items-center justify-center">
+                        <ImageIcon className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
+                    
+                    {/* Overlay con acciones */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center space-x-4">
+                      <button
+                        onClick={downloadImage}
+                        className="floating-button p-3 rounded-full"
+                        title="Descargar"
+                      >
+                        <Download className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                      </button>
+                      
+                      <button
+                        onClick={shareImage}
+                        className="floating-button p-3 rounded-full"
+                        title="Compartir"
+                      >
+                        <Share2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                      </button>
+                      
+                      <button
+                        onClick={() => setGeneratedImage(null)}
+                        className="floating-button p-3 rounded-full hover:bg-red-500/20"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 md:p-4 bg-gradient-to-r from-gray-800/50 to-gray-700/50">
+                    <p className="text-xs md:text-sm text-gray-300 line-clamp-2 font-light">
+                      "{prompt}"
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
-      {/* Imagen generada */}
-      {generatedImage && (
-        <div className="border border-gray-600 rounded-xl overflow-hidden">
-          <div className="relative">
-            {generatedImage && generatedImage.startsWith('http') ? (
-              <Image
-                src={generatedImage}
-                alt="Imagen generada"
-                width={512}
-                height={512}
-                className="w-full h-auto"
-                onError={() => setGeneratedImage(null)}
-              />
-            ) : (
-              <div className="w-full aspect-square bg-gray-800 flex items-center justify-center">
-                <ImageIcon className="w-12 h-12 text-gray-400" />
+            {/* Info del plan */}
+            {!isPremium && (
+              <div className="floating-card p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/20">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Zap className="w-3 h-3 md:w-4 md:h-4 text-orange-400" />
+                  <span className="text-orange-300 font-light text-xs md:text-sm" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                    Plan Gratuito
+                  </span>
+                </div>
+                <p className="text-gray-300 text-xs md:text-sm font-light">
+                  Actualiza a Pro para más imágenes, estilos premium y proporciones avanzadas.
+                </p>
               </div>
             )}
             
-            {/* Overlay con acciones */}
-            <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center space-x-4">
-              <button
-                onClick={downloadImage}
-                className="p-3 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
-              >
-                <Download className="w-5 h-5 text-white" />
-              </button>
-              
-              <button
-                onClick={shareImage}
-                className="p-3 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
-              >
-                <Share2 className="w-5 h-5 text-white" />
-              </button>
-              
-              <button
-                onClick={() => setGeneratedImage(null)}
-                className="p-3 bg-red-500/20 hover:bg-red-500/30 rounded-full transition-colors"
-              >
-                <Trash2 className="w-5 h-5 text-white" />
-              </button>
-            </div>
-          </div>
-          
-          <div className="p-4 bg-gray-800">
-            <p className="text-sm text-gray-300 line-clamp-2">
-              "{prompt}"
-            </p>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Info del plan */}
-      {!isPremium && (
-        <div className="mt-6 p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/20 rounded-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <Zap className="w-4 h-4 text-orange-400" />
-            <span className="text-orange-300 font-medium text-sm">Plan Gratuito</span>
-          </div>
-          <p className="text-gray-300 text-sm">
-            Actualiza a Pro para mÃ¡s imÃ¡genes, estilos premium y proporciones avanzadas.
-          </p>
-        </div>
-      )}
-    </div>
+      {/* Estilos CSS flotantes */}
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
+        
+        /* Animaciones */
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-12px) rotate(-1deg); }
+        }
+        
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-6px); }
+        }
+        
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-float-delayed { animation: float-delayed 8s ease-in-out infinite; }
+        .animate-float-slow { animation: float-slow 10s ease-in-out infinite; }
+
+        /* Container flotante principal */
+        .floating-settings-container {
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+          backdrop-filter: blur(40px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 24px;
+          box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.3),
+            0 8px 32px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        /* Botón flotante */
+        .floating-button {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          transition: all 0.3s ease;
+        }
+        .floating-button:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+          border-color: rgba(255, 255, 255, 0.15);
+          transform: scale(1.05);
+        }
+
+        /* Tarjetas flotantes */
+        .floating-card {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+          backdrop-filter: blur(25px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+          box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.15),
+            0 4px 16px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          transition: all 0.3s ease;
+        }
+        .floating-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.2),
+            0 6px 20px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        /* Contenedores de iconos flotantes */
+        .floating-icon-container {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+        }
+        .floating-icon-container:hover {
+          transform: scale(1.1);
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+        }
+
+        /* Tarjetas de información flotantes */
+        .floating-info-card {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 12px;
+          transition: all 0.3s ease;
+        }
+        .floating-info-card:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+          border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Botón premium flotante */
+        .floating-premium-button {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+          backdrop-filter: blur(30px);
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          border-radius: 16px;
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer;
+          box-shadow: 
+            0 8px 32px rgba(255, 255, 255, 0.1),
+            0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .floating-premium-button:hover:not(:disabled) {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.12));
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: translateY(-3px) scale(1.02);
+          box-shadow: 
+            0 16px 48px rgba(255, 255, 255, 0.2),
+            0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Badge premium flotante */
+        .floating-badge-premium {
+          background: linear-gradient(145deg, rgba(251, 191, 36, 0.25), rgba(251, 191, 36, 0.15));
+          color: #fbbf24;
+          border: 1px solid rgba(251, 191, 36, 0.3);
+          backdrop-filter: blur(20px);
+        }
+
+        /* Utilidades */
+        .line-clamp-2 {
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+        }
+
+        /* Fuente global */
+        * {
+          font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Selectores personalizados */
+        select option {
+          background-color: #1f2937;
+          color: white;
+        }
+
+        /* Mejoras para pantallas pequeñas */
+        @media (max-width: 640px) {
+          .floating-settings-container {
+            border-radius: 16px;
+            margin: 0.5rem;
+          }
+        }
+      `}</style>
+    </>
   );
 }

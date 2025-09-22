@@ -1,92 +1,298 @@
-/* app/globals.css - CSS OPTIMIZADO PARA MÓVILES */
+/* app/globals.css */
+/* Importar fuentes de Google - DEBE IR PRIMERO */
+@import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Variables CSS personalizadas */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  
-  /* ✅ VARIABLES CSS PARA SAFE AREAS */
-  --safe-area-inset-top: env(safe-area-inset-top);
-  --safe-area-inset-right: env(safe-area-inset-right);
-  --safe-area-inset-bottom: env(safe-area-inset-bottom);
-  --safe-area-inset-left: env(safe-area-inset-left);
-  
-  /* ✅ VARIABLES PARA TOUCH TARGETS */
-  --touch-target-min: 44px;
-  --touch-target-comfortable: 48px;
+  --nora-primary: #3b82f6;
+  --nora-secondary: #8b5cf6;
+  --nora-accent: #10b981;
+  --nora-dark: #0f172a;
+  --nora-gray: #1e293b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Estilos base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Prevenir selección y arrastre de elementos específicos */
+.no-select,
+.no-drag,
+img,
+video {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* Permitir selección para elementos de texto */
+.allow-select,
+p,
+span,
+h1, h2, h3, h4, h5, h6,
+input,
+textarea,
+.message-content {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.7);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.9);
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+/* Scrollbar para Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(75, 85, 99, 0.7) rgba(31, 41, 55, 0.5);
+}
+
+/* Animaciones personalizadas */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* ✅ BASE STYLES OPTIMIZADOS */
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Lastica', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  
-  /* ✅ MEJORAS PARA MÓVILES */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  
-  /* ✅ PREVENIR ZOOM EN INPUTS (iOS) */
-  -webkit-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
-/* ✅ SOPORTE PARA SAFE AREAS */
-.safe-area-top {
-  padding-top: max(1rem, var(--safe-area-inset-top));
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
-.safe-area-bottom {
-  padding-bottom: max(1rem, var(--safe-area-inset-bottom));
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
-.safe-area-left {
-  padding-left: max(1rem, var(--safe-area-inset-left));
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+  }
 }
 
-.safe-area-right {
-  padding-right: max(1rem, var(--safe-area-inset-right));
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
 }
 
-.safe-area-all {
-  padding-top: max(1rem, var(--safe-area-inset-top));
-  padding-right: max(1rem, var(--safe-area-inset-right));
-  padding-bottom: max(1rem, var(--safe-area-inset-bottom));
-  padding-left: max(1rem, var(--safe-area-inset-left));
+@keyframes blink {
+  from, to { border-color: transparent; }
+  50% { border-color: currentColor; }
 }
 
-/* ✅ OPTIMIZACIONES DE PERFORMANCE */
-.gpu-accelerated {
-  transform: translateZ(0);
-  will-change: transform;
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-.reduce-motion {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+/* Clases de utilidad */
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out;
 }
 
-/* ✅ RESPETA PREFERENCIAS DE MOVIMIENTO REDUCIDO */
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-typewriter {
+  animation: typewriter 2s steps(40) 1s both;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Gradientes personalizados */
+.bg-gradient-nora {
+  background: linear-gradient(135deg, var(--nora-primary), var(--nora-secondary));
+}
+
+.bg-gradient-nora-dark {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+}
+
+.text-gradient-nora {
+  background: linear-gradient(135deg, var(--nora-primary), var(--nora-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Efectos de cristal */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Estados de hover mejorados */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Botones personalizados */
+.btn-nora {
+  @apply bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl;
+}
+
+.btn-nora-outline {
+  @apply border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-medium py-3 px-6 rounded-xl transition-all duration-300;
+}
+
+/* Input personalizado */
+.input-nora {
+  @apply bg-gray-800/50 border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200;
+}
+
+/* Cards personalizadas */
+.card-nora {
+  @apply bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm hover:bg-white/10 hover:border-white/20 transition-all duration-300;
+}
+
+/* Estados de carga */
+.loading-dots::after {
+  content: '';
+  animation: loading-dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes loading-dots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+
+/* Responsive typography */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+/* Mejoras de accesibilidad */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -94,634 +300,101 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }
 
-/* ✅ CLAMP CON COMPATIBILIDAD COMPLETA */
-.line-clamp-1 {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;  
-  overflow: hidden;
-  line-clamp: 1;
+/* Focus states para accesibilidad */
+.focus-ring:focus {
+  @apply outline-none ring-2 ring-blue-500/50 ring-offset-2 ring-offset-gray-900;
 }
 
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;  
-  overflow: hidden;
-  line-clamp: 2;
-}
-
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;  
-  overflow: hidden;
-  line-clamp: 3;
-}
-
-/* ✅ TOUCH TARGETS OPTIMIZADOS */
-.touch-target {
-  min-height: var(--touch-target-min);
-  min-width: var(--touch-target-min);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.touch-target-comfortable {
-  min-height: var(--touch-target-comfortable);
-  min-width: var(--touch-target-comfortable);
-}
-
-/* ✅ BOTONES OPTIMIZADOS PARA MÓVIL */
-button, [role="button"] {
-  min-height: var(--touch-target-min);
-  cursor: pointer;
-  
-  /* ✅ MEJORAR UX TÁCTIL */
-  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
-  user-select: none;
-  touch-action: manipulation;
-}
-
-/* ✅ INPUTS OPTIMIZADOS */
-input, textarea, select {
-  /* ✅ PREVENIR ZOOM EN iOS */
-  font-size: max(16px, 1rem);
-  
-  /* ✅ MEJORAR EXPERIENCIA TÁCTIL */
-  -webkit-appearance: none;
-  appearance: none;
-  border-radius: 0;
-}
-
-/* ✅ MEDIA QUERIES MÓVILES ESPECÍFICAS */
-
-/* 📱 Extra Small Devices (320px - 479px) */
-@media (max-width: 479px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  /* ✅ TEXTO MÁS LEGIBLE EN PANTALLAS PEQUEÑAS */
-  .text-responsive-xs {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-  }
-  
-  /* ✅ ESPACIADO REDUCIDO */
-  .space-mobile-compact > * + * {
-    margin-top: 0.5rem;
-  }
-  
-  /* ✅ SIDEBAR FULL WIDTH EN MÓVILES */
-  .mobile-sidebar {
-    width: 100vw;
-    left: 0;
-    right: 0;
-  }
-}
-
-/* 📱 Small Devices (480px - 767px) */
-@media (min-width: 480px) and (max-width: 767px) {
-  .container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-  
-  .mobile-sidebar {
-    width: 85vw;
-    max-width: 320px;
-  }
-}
-
-/* 📱 Medium Devices (768px - 1023px) */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .mobile-sidebar {
-    width: 320px;
-  }
-}
-
-/* 💻 Large Devices (1024px+) */
-@media (min-width: 1024px) {
-  .desktop-only {
-    display: block;
-  }
-  
-  .mobile-only {
-    display: none;
-  }
-}
-
-/* ✅ UTILIDADES MÓVILES */
-@media (max-width: 767px) {
-  .desktop-only {
-    display: none;
-  }
-  
-  .mobile-only {
-    display: block;
-  }
-  
-  /* ✅ ALTURA COMPLETA EN MÓVILES */
-  .mobile-full-height {
-    height: 100vh;
-    height: 100dvh; /* Mejor soporte para móviles */
-  }
-  
-  /* ✅ PADDING HORIZONTAL REDUCIDO */
-  .mobile-px-reduced {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  /* ✅ TEXTO MÁS GRANDE PARA LECTURA */
-  .mobile-text-readable {
-    font-size: 1rem;
-    line-height: 1.5;
-  }
-  
-  /* ✅ BOTONES MÁS GRANDES */
-  .mobile-btn-large {
-    min-height: 48px;
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-  }
-  
-  /* ✅ INPUTS CÓMODOS */
-  .mobile-input-comfortable {
-    min-height: 48px;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-  }
-}
-
-/* ✅ ORIENTACIÓN ESPECÍFICA */
-@media (orientation: portrait) {
-  .portrait-only {
-    display: block;
-  }
-  
-  .landscape-only {
-    display: none;
-  }
-  
-  /* ✅ AJUSTES PARA MODO RETRATO */
-  .chat-input-portrait {
-    max-height: 120px;
-  }
-}
-
-@media (orientation: landscape) {
-  .portrait-only {
-    display: none;
-  }
-  
-  .landscape-only {
-    display: block;
-  }
-  
-  /* ✅ AJUSTES PARA MODO PAISAJE */
-  .chat-input-landscape {
-    max-height: 80px;
-  }
-  
-  /* ✅ REDUCIR ALTURA DE HEADER EN PAISAJE */
-  .landscape-header-compact {
-    height: 3rem;
-    min-height: 3rem;
-  }
-}
-
-/* ✅ OPTIMIZACIONES PARA HIGH DPI */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .high-dpi-optimized {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-  }
-}
-
-/* ✅ DARK MODE MÓVIL */
-@media (prefers-color-scheme: dark) {
-  .dark-mode-optimized {
-    background-color: #000000;
-    color: #ffffff;
-  }
-  
-  /* ✅ MEJORAR CONTRASTE EN MÓVILES OSCUROS */
-  .mobile-dark-contrast {
-    border-color: rgba(255, 255, 255, 0.2);
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-}
-
-/* ✅ HOVER STATES SOLO EN DISPOSITIVOS CON MOUSE */
-@media (hover: hover) {
-  .hover-only:hover {
-    /* Estilos de hover solo para dispositivos con mouse */
-    opacity: 0.8;
-    transform: scale(1.02);
-    transition: all 0.2s ease;
-  }
-}
-
-/* ✅ FOCUS VISIBLE PARA ACCESIBILIDAD */
-.focus-visible:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* ✅ SCROLLBARS OPTIMIZADOS */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-}
-
-/* ✅ ANIMACIONES OPTIMIZADAS PARA MÓVIL */
-@keyframes mobile-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes mobile-slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-mobile-fade-in {
-  animation: mobile-fade-in 0.3s ease-out;
-}
-
-.animate-mobile-slide-up {
-  animation: mobile-slide-up 0.4s ease-out;
-}
-
-/* ✅ UTILIDADES DE DEBUG MÓVIL (SOLO DESARROLLO) */
-.debug-mobile {
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: rgba(255, 0, 0, 0.8);
-  color: white;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  z-index: 9999;
-  pointer-events: none;
-}
-
-.debug-mobile::after {
-  content: 'W: ' attr(data-width) ' | H: ' attr(data-height) ' | DPR: ' attr(data-dpr);
-}
-
-/* ✅ PRINT STYLES */
-@media print {
-  .no-print {
-    display: none !important;
-  }
-  
-  body {
-    background: white !important;
-    color: black !important;
-  }
-}
-
-/* Selector de modelo con gradientes animados */
-.model-selector-flash {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  position: relative;
-  overflow: hidden;
-}
-
-.model-selector-flash::before {
-  content: '';
+/* Ocultar elementos solo visualmente (para screen readers) */
+.sr-only {
   position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left 0.5s;
-}
-
-.model-selector-flash:hover::before {
-  left: 100%;
-}
-
-.model-selector-pro {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  position: relative;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
-}
-
-.model-selector-pro::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left 0.5s;
-}
-
-.model-selector-pro:hover::before {
-  left: 100%;
-}
-
-/* Indicadores de modelo con brillo sutil */
-.model-indicator {
-  animation: subtle-glow 3s ease-in-out infinite alternate;
-  transition: all 0.3s ease;
-}
-
-.model-indicator:hover {
-  transform: scale(1.05);
-  animation: none;
-  box-shadow: 0 0 15px currentColor;
-}
-
-@keyframes subtle-glow {
-  0% { 
-    box-shadow: 0 0 5px currentColor; 
-  }
-  100% { 
-    box-shadow: 0 0 12px currentColor; 
-  }
-}
-
-/* Efectos para botones de selección de modelo */
-.model-button {
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.model-button::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.model-button:hover::after {
-  opacity: 1;
-}
-
-.model-button:active {
-  transform: scale(0.98);
-}
-
-/* Animación de aparición para el selector */
-.model-selector-container {
-  animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ========================================
-   TOOLTIP PERSONALIZADO
-   ======================================== */
-
-.model-tooltip {
-  position: relative;
-}
-
-.model-tooltip::before,
-.model-tooltip::after {
-  position: absolute;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.2s ease-in-out;
-  transform: translateX(-50%);
-}
-
-.model-tooltip::before {
-  content: attr(data-tooltip);
-  bottom: 120%;
-  left: 50%;
-  background: rgba(17, 24, 39, 0.95);
-  backdrop-filter: blur(8px);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border: 1px solid rgba(75, 85, 99, 0.3);
+  border: 0;
 }
 
-.model-tooltip::after {
-  content: '';
-  bottom: 108%;
-  left: 50%;
-  border: 5px solid transparent;
-  border-top-color: rgba(17, 24, 39, 0.95);
+/* Utilidades para el loading screen */
+.draggable-false {
+  -webkit-user-drag: none !important;
+  -khtml-user-drag: none !important;
+  -moz-user-drag: none !important;
+  -o-user-drag: none !important;
+  user-drag: none !important;
 }
 
-.model-tooltip:hover::before,
-.model-tooltip:hover::after {
-  visibility: visible;
-  opacity: 1;
+/* Evitar context menu en imágenes y videos */
+img, video {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  pointer-events: none;
 }
 
-/* ========================================
-   EFECTOS PREMIUM PARA PRO_MAX
-   ======================================== */
+/* Permitir interacción en elementos interactivos */
+button, input, textarea, select, a {
+  pointer-events: auto;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
-.pro-max-badge {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  animation: premium-shine 2s linear infinite;
+/* Permitir selección de texto en inputs y textareas */
+input, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Estilos para el menú hamburguesa animado */
+.hamburger-line {
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+/* Estilos para mensajes de chat */
+.message-bubble {
+  @apply rounded-2xl p-4 max-w-sm break-words;
+}
+
+.message-user {
+  @apply bg-gradient-to-r from-blue-600 to-blue-700 text-white ml-auto;
+}
+
+.message-ai {
+  @apply bg-gray-800 text-white;
+}
+
+/* Efectos especiales para la welcome screen */
+.sparkle-effect {
   position: relative;
   overflow: hidden;
 }
 
-@keyframes premium-shine {
-  0% { background-position: -200px 0; }
-  100% { background-position: 200px 0; }
-}
-
-.pro-max-badge::before {
+.sparkle-effect::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: premium-shine 2s linear infinite;
-}
-
-/* Efecto de partículas para PRO MAX (opcional) */
-.pro-max-particles {
-  position: relative;
-}
-
-.pro-max-particles::before,
-.pro-max-particles::after {
-  content: '✨';
-  position: absolute;
-  font-size: 12px;
-  animation: sparkle 1.5s ease-in-out infinite alternate;
-}
-
-.pro-max-particles::before {
-  top: -5px;
-  right: -5px;
-  animation-delay: 0s;
-}
-
-.pro-max-particles::after {
-  bottom: -5px;
-  left: -5px;
-  animation-delay: 0.75s;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: sparkle 3s linear infinite;
 }
 
 @keyframes sparkle {
-  0% { 
-    opacity: 0.3; 
-    transform: scale(0.8);
-  }
-  100% { 
-    opacity: 1; 
-    transform: scale(1.2);
-  }
-}
-
-/* ========================================
-   RESPONSIVE DESIGN
-   ======================================== */
-
-@media (max-width: 768px) {
-  .model-selector-container {
-    margin: 0 -1rem;
-    padding: 1rem;
-  }
-  
-  .model-button {
-    font-size: 14px;
-    padding: 12px;
-  }
-  
-  .model-indicator {
-    font-size: 10px;
-    padding: 4px 8px;
-  }
-}
-
-/* ========================================
-   ESTADOS DE CARGA
-   ======================================== */
-
-.model-loading {
-  position: relative;
-  overflow: hidden;
-}
-
-.model-loading::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg, 
-    transparent, 
-    rgba(59, 130, 246, 0.3), 
-    transparent
-  );
-  animation: loading-sweep 1.5s ease-in-out infinite;
-}
-
-@keyframes loading-sweep {
-  0% { left: -100%; }
-  100% { left: 100%; }
-}
-
-/* ========================================
-   MODO OSCURO MEJORADO
-   ======================================== */
-
-.dark .model-selector-container {
-  background: rgba(17, 24, 39, 0.8);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(75, 85, 99, 0.3);
-}
-
-.dark .model-button {
-  background: rgba(55, 65, 81, 0.5);
-  border: 1px solid rgba(75, 85, 99, 0.3);
-}
-
-.dark .model-button:hover {
-  background: rgba(75, 85, 99, 0.7);
-  border-color: rgba(156, 163, 175, 0.5);
-}
-
-/* ========================================
-   ACCESIBILIDAD
-   ======================================== */
-
-.model-button:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-.model-indicator:focus {
-  outline: 1px solid currentColor;
-  outline-offset: 1px;
-}
-
-/* Reducir animaciones si el usuario las tiene deshabilitadas */
-@media (prefers-reduced-motion: reduce) {
-  .model-indicator,
-  .model-button,
-  .model-selector-container,
-  .pro-max-badge,
-  .pro-max-particles::before,
-  .pro-max-particles::after {
-    animation: none;
-    transition: none;
-  }
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
