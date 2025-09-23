@@ -49,47 +49,35 @@ interface ImageGeneratorProps {
 
 export default function ImageGenerator({ 
   isEmbedded = false, 
-  onImageGenerated,
+  onImageGenerated, 
   onClose,
   className = ''
 }: ImageGeneratorProps) {
-  const { user, userProfile, plan } = useAuth();
+  const { userProfile, plan } = useAuth();
+  
+  // Estados principales
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState('realistic');
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('1:1');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [usageStatus, setUsageStatus] = useState<ImageUsageStatus | null>(null);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [usageStatus, setUsageStatus] = useState<ImageUsageStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
 
-  const isPremium = plan === 'pro' || plan === 'pro_max';
+  const isPremium = plan !== 'free';
 
+  // Cargar estado inicial
   useEffect(() => {
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod'];
-      return mobileKeywords.some(keyword => userAgent.includes(keyword)) || 
-             window.innerWidth <= 768;
-    };
-
-    setIsMobile(checkMobile());
+    loadUsageStatus();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      loadUsageStatus();
-    }
-  }, [user]);
-
   const loadUsageStatus = async () => {
-    if (!user) return;
-
     try {
       setIsLoading(true);
       const result = await cloudFunctions.getImageUsageStatus();
       
+      // ✅ CONVERSIÓN CORRECTA DE TIPOS
       const convertedStatus: ImageUsageStatus = {
         plan: result.data.plan,
         limits: {
@@ -104,9 +92,8 @@ export default function ImageGenerator({
       
       setUsageStatus(convertedStatus);
     } catch (error) {
-      console.error('Error cargando estado:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error cargando información de uso';
-      toast.error(errorMessage);
+      console.error('Error cargando estado de imágenes:', error);
+      toast.error('Error cargando información de imágenes');
     } finally {
       setIsLoading(false);
     }
@@ -123,45 +110,39 @@ export default function ImageGenerator({
       return;
     }
 
-    if (usageStatus.limits.remainingMonthly <= 0) {
-      toast.error('Has alcanzado tu límite mensual de imágenes');
-      return;
-    }
-
-    const validation = helpers.validateImagePrompt(prompt, usageStatus.features.maxPromptLength);
-    if (!validation.valid) {
-      toast.error(validation.error || 'Error validando prompt');
+    if (usageStatus.limits.remainingDaily <= 0) {
+      toast.error('Has alcanzado tu límite diario de imágenes');
       return;
     }
 
     setIsGenerating(true);
-    
+
     try {
       const result = await cloudFunctions.generateImage({
         prompt: prompt.trim(),
-        aspectRatio: selectedAspectRatio,
-        style: selectedStyle
+        style: selectedStyle,
+        aspectRatio: selectedAspectRatio
       });
 
-      if (result.data?.success) {
+      if (result.data?.success && result.data.imageUrl) {
         setGeneratedImage(result.data.imageUrl);
-        toast.success(`¡Imagen generada! Quedan ${result.data.remainingDaily} usos hoy`);
         
+        // Callback para componentes padre
         if (onImageGenerated) {
           onImageGenerated({
             imageUrl: result.data.imageUrl,
-            prompt: prompt.trim()
+            prompt: prompt
           });
         }
 
+        // Actualizar límites
         await loadUsageStatus();
-        setPrompt('');
-      } else {
-        toast.error('Error generando imagen');
+        
+        toast.success('¡Imagen generada exitosamente!');
       }
     } catch (error: any) {
-      console.error('Error:', error);
-      toast.error(helpers.getErrorMessage(error));
+      console.error('Error generando imagen:', error);
+      toast.error(error.message || 'Error generando imagen');
     } finally {
       setIsGenerating(false);
     }
@@ -169,45 +150,62 @@ export default function ImageGenerator({
 
   const downloadImage = async () => {
     if (!generatedImage) return;
-    
+
     try {
-      await helpers.downloadImage(generatedImage, `nora-generated-${Date.now()}.png`);
+      const response = await fetch(generatedImage);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `nora-imagen-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
       toast.success('Imagen descargada');
     } catch (error) {
-      console.error('Error descargando:', error);
+      console.error('Error descargando imagen:', error);
       toast.error('Error al descargar la imagen');
     }
   };
 
   const shareImage = async () => {
     if (!generatedImage) return;
-    
+
     try {
-      await helpers.shareImage(generatedImage, `Mira esta imagen que generé: "${prompt}"`);
-      toast.success('Imagen compartida');
-    } catch (error: any) {
-      console.error('Error compartiendo:', error);
-      if (error.message.includes('portapapeles')) {
-        toast.success('URL copiada al portapapeles');
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Imagen generada con NORA',
+          text: prompt,
+          url: generatedImage
+        });
       } else {
-        toast.error('Error al compartir la imagen');
+        await navigator.clipboard.writeText(generatedImage);
+        toast.success('URL copiada al portapapeles');
       }
+    } catch (error) {
+      console.error('Error compartiendo imagen:', error);
+      toast.error('Error al compartir la imagen');
     }
   };
 
-  const copyPrompt = () => {
-    navigator.clipboard.writeText(prompt);
-    toast.success('Prompt copiado');
+  const copyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      toast.success('Prompt copiado al portapapeles');
+    } catch (error) {
+      toast.error('Error al copiar el prompt');
+    }
   };
 
   if (isLoading) {
     return (
-      <div className={`flex items-center justify-center p-8 ${className}`}>
-        <div className="floating-settings-container p-8 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
-          <p className="text-gray-300 font-light" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-            Cargando generador de imágenes...
-          </p>
+      <div className="floating-settings-container p-8">
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+          <p className="text-white font-light">Cargando generador de imágenes...</p>
         </div>
       </div>
     );
@@ -215,21 +213,19 @@ export default function ImageGenerator({
 
   if (!usageStatus) {
     return (
-      <div className={`text-center p-8 ${className}`}>
-        <div className="floating-settings-container p-8">
-          <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-          <h3 className="text-xl font-light text-white mb-2" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-            Error cargando datos
-          </h3>
-          <p className="text-gray-400 mb-6 font-light">No se pudo cargar la información de uso</p>
-          <button 
-            onClick={loadUsageStatus}
-            className="floating-premium-button px-4 py-2 flex items-center space-x-2 mx-auto"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Reintentar</span>
-          </button>
-        </div>
+      <div className="floating-settings-container p-8">
+        <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+        <h3 className="text-xl font-light text-white mb-2" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+          Error cargando datos
+        </h3>
+        <p className="text-gray-400 mb-6 font-light">No se pudo cargar la información de uso</p>
+        <button 
+          onClick={loadUsageStatus}
+          className="floating-premium-button px-4 py-2 flex items-center space-x-2 mx-auto"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Reintentar</span>
+        </button>
       </div>
     );
   }
@@ -250,14 +246,18 @@ export default function ImageGenerator({
         <div className="relative z-10 max-w-4xl mx-auto">
           <div className={`floating-settings-container p-4 md:p-6 ${className} relative`}>
             
-            {/* Botón cerrar simple en esquina */}
+            {/* ✅ BOTÓN CERRAR CORREGIDO */}
             {onClose && (
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-lg z-50 shadow-lg"
-                title="Cerrar"
+                className="absolute top-4 right-4 w-10 h-10 bg-red-500/90 hover:bg-red-600/90 rounded-full flex items-center justify-center text-white font-bold transition-all duration-300 shadow-lg border-2 border-white/20 close-button"
+                style={{ 
+                  zIndex: 9999999,
+                  pointerEvents: 'auto'
+                }}
+                title="Cerrar Generador de Imágenes"
               >
-                ×
+                <X className="w-5 h-5" style={{ pointerEvents: 'none' }} />
               </button>
             )}
             
@@ -282,10 +282,32 @@ export default function ImageGenerator({
                 <button
                   onClick={() => setShowSettings(!showSettings)}
                   className="floating-button p-2 rounded-lg"
+                  style={{ zIndex: 1000 }}
                   title="Configuración"
                 >
                   <Settings className="w-4 h-4 text-gray-300" />
                 </button>
+              </div>
+            </div>
+
+            {/* Información de límites */}
+            <div className="mb-4 md:mb-6">
+              <div className="floating-card p-3 md:p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white text-xs md:text-sm font-light">
+                      Plan: <span className="text-purple-400 capitalize">{usageStatus.plan}</span>
+                    </p>
+                    <p className="text-gray-400 text-xs font-light">
+                      Imágenes restantes hoy: {usageStatus.limits.remainingDaily}/{usageStatus.limits.daily}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-gray-400 text-xs font-light">
+                      Este mes: {usageStatus.limits.remainingMonthly}/{usageStatus.limits.monthly}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -306,11 +328,12 @@ export default function ImageGenerator({
                       <select
                         value={selectedStyle}
                         onChange={(e) => setSelectedStyle(e.target.value)}
-                        className="w-full p-2 md:p-3 floating-info-card text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-xs md:text-sm"
+                        disabled={isGenerating}
+                        className="w-full p-2 md:p-3 floating-info-card text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 text-xs md:text-sm"
                         style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
                       >
                         {STYLES.map((style) => (
-                          <option key={style.value} value={style.value} className="bg-gray-800">
+                          <option key={style.value} value={style.value}>
                             {style.label}
                           </option>
                         ))}
@@ -325,7 +348,8 @@ export default function ImageGenerator({
                       <select
                         value={selectedAspectRatio}
                         onChange={(e) => setSelectedAspectRatio(e.target.value)}
-                        className="w-full p-2 md:p-3 floating-info-card text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-xs md:text-sm"
+                        disabled={isGenerating}
+                        className="w-full p-2 md:p-3 floating-info-card text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 text-xs md:text-sm"
                         style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
                       >
                         {ASPECT_RATIOS.map((ratio) => (
@@ -333,9 +357,8 @@ export default function ImageGenerator({
                             key={ratio.value} 
                             value={ratio.value}
                             disabled={!ratio.free && !isPremium}
-                            className="bg-gray-800"
                           >
-                            {ratio.label} {!ratio.free && !isPremium && '(Pro)'}
+                            {ratio.label} {!ratio.free && !isPremium ? '(Pro)' : ''}
                           </option>
                         ))}
                       </select>
@@ -345,10 +368,10 @@ export default function ImageGenerator({
               </div>
             )}
 
-            {/* Prompt input */}
-            <div className="mb-6">
-              <div className="floating-card p-4">
-                <div className="flex items-center justify-between mb-3">
+            {/* Campo de prompt */}
+            <div className="mb-4 md:mb-6">
+              <div className="floating-card p-3 md:p-4">
+                <div className="flex items-center justify-between mb-2">
                   <label className="block text-white text-sm md:text-base font-light" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
                     Describe tu imagen
                   </label>
@@ -458,68 +481,66 @@ export default function ImageGenerator({
                     </div>
                   </div>
                   
-                  <div className="p-3 md:p-4 bg-gradient-to-r from-gray-800/50 to-gray-700/50">
-                    <p className="text-xs md:text-sm text-gray-300 line-clamp-2 font-light">
-                      "{prompt}"
+                  <div className="p-3 md:p-4 bg-gradient-to-r from-gray-800/50 to-gray-700/30">
+                    <p className="text-white text-xs md:text-sm font-light line-clamp-2" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                      {prompt}
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Info del plan */}
-            {!isPremium && (
-              <div className="floating-card p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/20">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Zap className="w-3 h-3 md:w-4 md:h-4 text-orange-400" />
-                  <span className="text-orange-300 font-light text-xs md:text-sm" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-                    Plan Gratuito
-                  </span>
-                </div>
-                <p className="text-gray-300 text-xs md:text-sm font-light">
-                  Actualiza a Pro para más imágenes, estilos premium y proporciones avanzadas.
-                </p>
-              </div>
-            )}
-            
           </div>
         </div>
       </div>
 
-      {/* Estilos CSS flotantes */}
+      {/* ✅ ESTILOS CSS MEJORADOS */}
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
-        
         /* Animaciones */
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-8px) rotate(1deg); }
+          50% { transform: translateY(-20px) rotate(180deg); }
         }
-        
         @keyframes float-delayed {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-12px) rotate(-1deg); }
+          50% { transform: translateY(-15px) rotate(-180deg); }
         }
-        
         @keyframes float-slow {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(90deg); }
         }
-        
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-float-delayed { animation: float-delayed 8s ease-in-out infinite; }
-        .animate-float-slow { animation: float-slow 10s ease-in-out infinite; }
 
-        /* Container flotante principal */
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        .animate-float-delayed {
+          animation: float-delayed 8s ease-in-out infinite;
+        }
+        .animate-float-slow {
+          animation: float-slow 10s ease-in-out infinite;
+        }
+
+        /* Contenedor principal flotante */
         .floating-settings-container {
-          background: linear-gradient(145deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
-          backdrop-filter: blur(40px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+          backdrop-filter: blur(30px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 24px;
           box-shadow: 
             0 20px 60px rgba(0, 0, 0, 0.3),
             0 8px 32px rgba(0, 0, 0, 0.2),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          position: relative;
+          overflow: hidden;
+        }
+        .floating-settings-container::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
         }
 
         /* Botón flotante */
@@ -553,23 +574,6 @@ export default function ImageGenerator({
             0 12px 40px rgba(0, 0, 0, 0.2),
             0 6px 20px rgba(0, 0, 0, 0.15),
             inset 0 1px 0 rgba(255, 255, 255, 0.12);
-        }
-
-        /* Contenedores de iconos flotantes */
-        .floating-icon-container {
-          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-          transition: all 0.3s ease;
-        }
-        .floating-icon-container:hover {
-          transform: scale(1.1);
-          background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
         }
 
         /* Tarjetas de información flotantes */
@@ -639,6 +643,12 @@ export default function ImageGenerator({
             border-radius: 16px;
             margin: 0.5rem;
           }
+        }
+
+        /* ✅ ESTILOS ESPECÍFICOS PARA EL BOTÓN CERRAR */
+        .fixed {
+          position: fixed !important;
+          z-index: 9999999 !important;
         }
       `}</style>
     </>

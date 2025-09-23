@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, memo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import ReactMarkdown from 'react-markdown';
 import { 
   Send, 
   Loader2, 
@@ -30,7 +31,8 @@ import {
   WifiOff,
   UserCircle,
   ArrowRight,
-  Zap
+  Zap,
+  Atom
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConversations } from '../contexts/ConversationContext';
@@ -70,6 +72,74 @@ const ImageGenerator = dynamic(() => import('./ImageGenerator'), {
 const VideoGenerator = dynamic(() => import('./VideoGenerator'), {
   loading: () => <div className="bg-gray-800 rounded-xl p-4 animate-pulse h-48" />,
   ssr: false
+});
+
+// ✅ COMPONENTE MEJORADO PARA RENDERIZAR MARKDOWN - SIN ERRORES TYPESCRIPT
+const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { content: string }) {
+  return (
+    <div className="markdown-content">
+      <ReactMarkdown
+        components={{
+          // Párrafos
+          p: (props) => <p className="mb-3 leading-relaxed text-gray-100" {...props} />,
+          
+          // Títulos
+          h1: (props) => <h1 className="text-xl font-bold mb-4 text-white border-b border-gray-600 pb-2" {...props} />,
+          h2: (props) => <h2 className="text-lg font-bold mb-3 text-white" {...props} />,
+          h3: (props) => <h3 className="text-base font-bold mb-2 text-white" {...props} />,
+          
+          // Texto en negrita - ✅ CORRECCIÓN CRÍTICA
+          strong: (props) => <strong className="font-bold text-white" {...props} />,
+          
+          // Texto en cursiva
+          em: (props) => <em className="italic text-gray-200" {...props} />,
+          
+          // Listas
+          ul: (props) => <ul className="list-disc list-inside mb-4 space-y-1 text-gray-100 ml-4" {...props} />,
+          ol: (props) => <ol className="list-decimal list-inside mb-4 space-y-1 text-gray-100 ml-4" {...props} />,
+          li: (props) => <li className="mb-1 text-gray-100" {...props} />,
+          
+          // Código
+          code: (props) => {
+            const { className, children, ...rest } = props;
+            const isInline = !className;
+            return isInline ? (
+              <code className="bg-gray-700 px-2 py-1 rounded text-sm text-gray-200 font-mono" {...rest}>{children}</code>
+            ) : (
+              <pre className="bg-gray-800 p-4 rounded-lg text-sm text-gray-200 overflow-x-auto my-4">
+                <code {...rest}>{children}</code>
+              </pre>
+            );
+          },
+          
+          // Citas
+          blockquote: (props) => (
+            <blockquote className="border-l-4 border-gray-600 pl-4 italic text-gray-300 mb-4 bg-gray-800/50 py-2 rounded-r-lg" {...props} />
+          ),
+          
+          // Enlaces
+          a: (props) => (
+            <a className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" {...props} />
+          ),
+
+          // Tablas
+          table: (props) => (
+            <div className="overflow-x-auto my-4">
+              <table className="min-w-full border border-gray-600 rounded-lg" {...props} />
+            </div>
+          ),
+          th: (props) => (
+            <th className="border border-gray-600 px-4 py-2 bg-gray-700 text-white font-semibold text-left" {...props} />
+          ),
+          td: (props) => (
+            <td className="border border-gray-600 px-4 py-2 text-gray-100" {...props} />
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
 });
 
 // ✅ Background Video con mayor visibilidad y efectos
@@ -176,7 +246,7 @@ const WebSearchIndicator = ({ message }: { message: ChatMessage }) => {
           <span>Información actualizada de internet</span>
           {message.searchResults && (
             <span className="text-gray-400">
-              ({message.searchResults.results.length} fuentes)
+              ({message.searchResults.results?.length || 0} fuentes)
             </span>
           )}
         </div>
@@ -232,7 +302,7 @@ const WebSearchLimits = ({ userProfile }: { userProfile: any }) => {
       {(isNearLimit || isAtLimit) && (
         <div className={`mt-1 text-xs ${isAtLimit ? 'text-red-400' : 'text-yellow-400'}`}>
           {isAtLimit 
-            ? `Límite agotado - ${userProfile.planInfo.displayName}` 
+            ? `Límite agotado - ${userProfile.planInfo?.displayName || 'Plan actual'}` 
             : `${webSearchesRemaining} búsquedas restantes`
           }
         </div>
@@ -291,6 +361,7 @@ const ChatInterface = memo(function ChatInterface() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ✅ CORRECCIÓN CRÍTICA: Asegurar que messages siempre sea un array
   const messages = currentConversation?.messages || [];
   const validPlan: PlanType = isValidPlan(plan) ? plan : 'free';
 
@@ -333,13 +404,13 @@ const ChatInterface = memo(function ChatInterface() {
       console.error('Error requesting microphone permission:', error);
       
       if (error.name === 'NotAllowedError') {
-        toast.error('❌ Permisos del micrófono denegados. Por favor permite el acceso en la configuración del navegador.');
+        toast.error('Permisos del micrófono denegados. Por favor permite el acceso en la configuración del navegador.');
       } else if (error.name === 'NotFoundError') {
-        toast.error('❌ No se encontró micrófono. Verifica que tengas un micrófono conectado.');
+        toast.error('No se encontró micrófono. Verifica que tengas un micrófono conectado.');
       } else if (error.name === 'NotSupportedError') {
-        toast.error('❌ El micrófono no es compatible con este navegador.');
+        toast.error('El micrófono no es compatible con este navegador.');
       } else {
-        toast.error('❌ Error accediendo al micrófono. Revisa la configuración de tu navegador.');
+        toast.error('Error accediendo al micrófono. Revisa la configuración de tu navegador.');
       }
       
       return false;
@@ -352,7 +423,7 @@ const ChatInterface = memo(function ChatInterface() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
-      toast.error('❌ Reconocimiento de voz no disponible en este navegador.');
+      toast.error('Reconocimiento de voz no disponible en este navegador.');
       return null;
     }
 
@@ -372,12 +443,12 @@ const ChatInterface = memo(function ChatInterface() {
 
   const startVoiceRecording = async () => {
     if (!checkMicrophoneSupport()) {
-      toast.error('❌ Tu navegador no soporta reconocimiento de voz.');
+      toast.error('Tu navegador no soporta reconocimiento de voz.');
       return;
     }
 
     if (!recognition) {
-      toast.error('❌ Reconocimiento de voz no disponible. Recarga la página.');
+      toast.error('Reconocimiento de voz no disponible. Recarga la página.');
       return;
     }
 
@@ -402,7 +473,7 @@ const ChatInterface = memo(function ChatInterface() {
 
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length === 0) {
-        toast.error('❌ No se pudo acceder al micrófono.');
+        toast.error('No se pudo acceder al micrófono.');
         return;
       }
 
@@ -423,17 +494,17 @@ const ChatInterface = memo(function ChatInterface() {
       setIsRecording(false);
       
       if (error.name === 'NotAllowedError') {
-        toast.error('❌ Permisos del micrófono denegados. Ve a la configuración del navegador y permite el acceso al micrófono para este sitio.');
+        toast.error('Permisos del micrófono denegados. Ve a la configuración del navegador y permite el acceso al micrófono para este sitio.');
       } else if (error.name === 'NotFoundError') {
-        toast.error('❌ No se encontró micrófono. Verifica que tengas un micrófono conectado y funcionando.');
+        toast.error('No se encontró micrófono. Verifica que tengas un micrófono conectado y funcionando.');
       } else if (error.name === 'NotReadableError') {
-        toast.error('❌ El micrófono está siendo usado por otra aplicación. Cierra otras aplicaciones que puedan estar usando el micrófono.');
+        toast.error('El micrófono está siendo usado por otra aplicación. Cierra otras aplicaciones que puedan estar usando el micrófono.');
       } else if (error.name === 'OverconstrainedError') {
-        toast.error('❌ Configuración de micrófono no compatible. Intenta con otro micrófono.');
+        toast.error('Configuración de micrófono no compatible. Intenta con otro micrófono.');
       } else if (error.name === 'SecurityError') {
-        toast.error('❌ Error de seguridad. Asegúrate de estar usando HTTPS.');
+        toast.error('Error de seguridad. Asegúrate de estar usando HTTPS.');
       } else {
-        toast.error(`❌ Error accediendo al micrófono: ${error.message || 'Error desconocido'}`);
+        toast.error(`Error accediendo al micrófono: ${error.message || 'Error desconocido'}`);
       }
     }
   };
@@ -537,7 +608,7 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const maxHeight = isMobile ? 100 : 120;
+      const maxHeight = isMobile ? 80 : 100; // Reducido para hacerlo más compacto
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, maxHeight) + 'px';
     }
   }, [input, isMobile]);
@@ -640,8 +711,9 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
   // TUS FUNCIONES ORIGINALES - COMPLETAS
   const shouldShowUpgradeWarning = () => {
     if (!userProfile || validPlan !== 'free') return false;
-    const tokensUsed = userProfile.usage.daily.tokensUsed;
-    const tokensLimit = userProfile.usage.daily.tokensLimit;
+    const tokensUsed = userProfile.usage?.daily?.tokensUsed || 0;
+    const tokensLimit = userProfile.usage?.daily?.tokensLimit || 0;
+    if (tokensLimit === 0) return false;
     const percentage = helpers.getUsagePercentage(tokensUsed, tokensLimit);
     return percentage >= 90;
   };
@@ -685,7 +757,7 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     );
   };
 
-  // ✅ TU FUNCIÓN SENDMESSAGE ACTUALIZADA CON BÚSQUEDA WEB MANUAL
+  // ✅ FUNCIÓN SENDMESSAGE COMPLETAMENTE CORREGIDA
   const sendMessage = async () => {
     // Permitir envío si hay archivos aunque no haya texto
     const hasContent = input.trim() || uploadedFiles.length > 0;
@@ -693,10 +765,13 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     if (!hasContent || isLoading || shouldShowUpgradeWarning()) return;
 
     const messageText = input.trim() || "Analiza los archivos adjuntos";
-    setInput('');
+    
+    // ✅ CORRECCIÓN CRÍTICA: NO limpiar input hasta después de crear el mensaje
+    const originalInput = input;
+    const originalFiles = [...uploadedFiles];
 
     if (!currentConversation) {
-      startNewConversation();
+      await startNewConversation();
     }
 
     const workingConversation = currentConversation || {
@@ -712,6 +787,7 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
       tags: []
     };
 
+    // ✅ CREAR MENSAJE DEL USUARIO Y AGREGARLO INMEDIATAMENTE
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}_user`,
       type: 'user',
@@ -721,13 +797,18 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
       conversationId: workingConversation.id
     };
 
+    // ✅ AGREGAR MENSAJE INMEDIATAMENTE PARA QUE NO DESAPAREZCA
+    addMessage(userMessage);
+
+    // ✅ AHORA SÍ LIMPIAR DESPUÉS DE AGREGAR EL MENSAJE
+    setInput('');
+    setUploadedFiles([]);
+
     const updatedConversation = {
       ...workingConversation,
       messages: [...workingConversation.messages, userMessage],
       updatedAt: new Date()
     };
-
-    setTimeout(() => addMessage(userMessage), 100);
 
     if (workingConversation.messages.length === 0) {
       const generateTitle = (message: string): string => {
@@ -745,23 +826,44 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     try {
       const recentMessages = updatedConversation.messages.slice(-6);
       
+      // ✅ PROMPT MEJORADO PARA RESPUESTAS MÁS HUMANAS Y LARGAS
       let processedMessage = messageText;
       if (reportMode) {
-        processedMessage = `Genera un reporte completo y detallado sobre: ${messageText}. Incluye análisis profundo, datos relevantes y conclusiones.`;
+        processedMessage = `Como NORA, tu asistente personal experta, necesito crear un reporte completo y exhaustivo sobre: "${messageText}". 
+
+Este reporte debe ser detallado y profesional, incluyendo:
+- Análisis profundo del tema con múltiples perspectivas
+- Información actualizada y datos relevantes
+- Ejemplos concretos y casos de estudio
+- Estadísticas importantes cuando sean aplicables
+- Conclusiones prácticas y recomendaciones útiles
+- Estructura clara con secciones bien organizadas
+
+Por favor, genera un reporte de al menos 800 palabras que sea informativo y valioso para el usuario.`;
       } else if (deepThinkingMode) {
-        processedMessage = `Analiza de forma exhaustiva: ${messageText}`;
+        processedMessage = `Como NORA, necesito hacer un análisis profundo y exhaustivo sobre: "${messageText}". 
+
+Mi análisis debe incluir:
+- Múltiples perspectivas y enfoques del tema
+- Implicaciones prácticas y teóricas
+- Conexiones con conceptos relacionados
+- Ejemplos concretos y aplicaciones
+- Consideraciones importantes y matices
+- Posibles soluciones o alternativas
+
+Proporciona un análisis detallado de al menos 500 palabras que explore el tema en profundidad.`;
       }
       
       // Procesar archivos subidos con debugging mejorado
       let fileContext = '';
-      if (uploadedFiles.length > 0) {
-        console.log('📁 Iniciando procesamiento de', uploadedFiles.length, 'archivo(s)');
-        toast.loading(`Procesando ${uploadedFiles.length} archivo(s)...`, { id: 'processing-files' });
+      if (originalFiles.length > 0) {
+        console.log('📁 Iniciando procesamiento de', originalFiles.length, 'archivo(s)');
+        toast.loading(`Procesando ${originalFiles.length} archivo(s)...`, { id: 'processing-files' });
         
         try {
           const fileContents = await Promise.all(
-            uploadedFiles.map(async (file, index) => {
-              console.log(`📄 Procesando archivo ${index + 1}/${uploadedFiles.length}:`, file.name);
+            originalFiles.map(async (file, index) => {
+              console.log(`📄 Procesando archivo ${index + 1}/${originalFiles.length}:`, file.name);
               const content = await processFileContent(file);
               return `\n\n--- ARCHIVO ${index + 1}: ${file.name} ---\n${content}\n--- FIN ARCHIVO ${index + 1} ---\n`;
             })
@@ -770,30 +872,43 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
           fileContext = fileContents.join('\n');
           console.log('✅ Todos los archivos procesados. Contexto total length:', fileContext.length);
           toast.dismiss('processing-files');
-          toast.success(`${uploadedFiles.length} archivo(s) procesados correctamente`);
+          toast.success(`${originalFiles.length} archivo(s) procesados correctamente`);
         } catch (fileError) {
           console.error('❌ Error procesando archivos:', fileError);
           toast.dismiss('processing-files');
           toast.error('Error procesando algunos archivos, pero se intentará enviar');
-          fileContext = `Error procesando archivos: ${uploadedFiles.map(f => f.name).join(', ')}`;
+          fileContext = `Error procesando archivos: ${originalFiles.map(f => f.name).join(', ')}`;
         }
       }
       
-      // ✅ MODIFICADO: Incluir enableWebSearch en el input
+      // ✅ CONFIGURACIÓN MEJORADA PARA RESPUESTAS MÁS LARGAS
       const inputData = {
         message: processedMessage,
         fileContext,
         chatHistory: recentMessages.slice(0, -1),
-        maxTokens: validPlan === 'free' ? 150 : validPlan === 'pro' ? 500 : 1000,
-        enableWebSearch: webSearchEnabled // ✅ NUEVO PARÁMETRO
+        maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000, // ✅ LÍMITES AUMENTADOS SIGNIFICATIVAMENTE
+        enableWebSearch: webSearchEnabled,
+        // ✅ CONTEXTO PARA PERSONALIDAD MÁS HUMANA
+        personalityContext: `Eres NORA, una asistente de IA excepcional con una personalidad cálida y humana. 
+        Características de tu personalidad:
+        - Empática y comprensiva, te interesas genuinamente por ayudar
+        - Conversacional y natural, como una amiga muy inteligente  
+        - Detallada cuando es necesario, concisa cuando es apropiado
+        - Usas un lenguaje natural y fluido, no robótico
+        - Eres entusiasta y muestras interés por los temas
+        - Proporcionas respuestas completas y útiles
+        - Tu objetivo es ser de gran ayuda al usuario
+        
+        IMPORTANTE: Para reportes y análisis, sé muy detallada (mínimo 500-800 palabras). Para preguntas generales, responde de forma completa pero natural (200-400 palabras).`
       };
 
       console.log('🚀 Enviando datos al backend:', {
         messageLength: processedMessage.length,
         fileContextLength: fileContext.length,
-        hasFiles: uploadedFiles.length > 0,
-        fileNames: uploadedFiles.map(f => f.name),
-        webSearchEnabled: webSearchEnabled // ✅ NUEVO LOG
+        hasFiles: originalFiles.length > 0,
+        fileNames: originalFiles.map(f => f.name),
+        webSearchEnabled: webSearchEnabled,
+        maxTokens: inputData.maxTokens
       });
 
       console.log('📡 Llamando a cloudFunctions.chatWithAI...');
@@ -801,7 +916,23 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
       console.log('📡 Respuesta del backend:', result);
       
       if (result?.data?.response) {
-        console.log('✅ Respuesta válida recibida:', result.data.response.substring(0, 100) + '...');
+        console.log('✅ Respuesta válida recibida, longitud:', result.data.response.length);
+        
+        // ✅ VALIDAR LONGITUD DE RESPUESTA Y REGENERAR SI ES NECESARIO
+        if (result.data.response.length < 200 && (reportMode || deepThinkingMode)) {
+          console.log('⚠️ Respuesta muy corta para modo detallado, regenerando...');
+          
+          const extendedInputData = {
+            ...inputData,
+            message: `${processedMessage}\n\nIMPORTANTE: La respuesta anterior fue muy corta. Necesito una respuesta mucho más detallada y completa de al menos 800 palabras. Por favor, proporciona un análisis exhaustivo con ejemplos, detalles específicos y información útil.`
+          };
+          
+          const extendedResult = await cloudFunctions.chatWithAI(extendedInputData);
+          if (extendedResult?.data?.response && extendedResult.data.response.length > result.data.response.length) {
+            result.data.response = extendedResult.data.response;
+            result.data.tokensUsed = extendedResult.data.tokensUsed;
+          }
+        }
         
         // ✅ NUEVO: Mostrar indicadores específicos de búsqueda web
         if (result.data.searchUsed) {
@@ -820,7 +951,7 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
           timestamp: new Date(),
           tokensUsed: result.data.tokensUsed,
           conversationId: updatedConversation.id,
-          // ✅ NUEVO: Agregar metadata de búsqueda
+          // ✅ AGREGAR METADATA DE BÚSQUEDA
           searchUsed: result.data.searchUsed || false,
           searchResults: result.data.searchResults,
           limitReached: result.data.limitReached || false
@@ -829,12 +960,11 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
         addMessage(aiMessage);
         await refreshProfile();
         
-        console.log('✅ Mensaje enviado exitosamente, limpiando archivos');
-        setUploadedFiles([]);
+        console.log('✅ Mensaje enviado exitosamente');
         
         const toastMessage = result.data.searchUsed 
           ? (result.data.limitReached ? 'Respuesta generada (límite de búsquedas alcanzado)' : 'Respuesta con información actualizada')
-          : uploadedFiles.length > 0 
+          : originalFiles.length > 0 
             ? 'Respuesta recibida - Archivo analizado'
             : 'Respuesta recibida';
             
@@ -846,10 +976,13 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     } catch (error: any) {
       console.error('❌ Error enviando mensaje:', error);
       toast.error('Error al enviar mensaje');
-      console.log('⚠️ Manteniendo archivos debido al error');
+      
+      // ✅ RESTAURAR ARCHIVOS EN CASO DE ERROR
+      setUploadedFiles(originalFiles);
     } finally {
       setIsLoading(false);
       setReportMode(false);
+      setDeepThinkingMode(false);
       toast.dismiss('processing-files');
     }
   };
@@ -888,8 +1021,9 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
         message: userMessage.message,
         fileContext: '',
         chatHistory: recentMessages,
-        maxTokens: validPlan === 'free' ? 150 : validPlan === 'pro' ? 500 : 1000,
-        enableWebSearch: webSearchEnabled // ✅ NUEVO PARÁMETRO
+        maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000, // ✅ LÍMITES AUMENTADOS
+        enableWebSearch: webSearchEnabled,
+        personalityContext: `Eres NORA, una asistente de IA empática y conversacional. Proporciona respuestas detalladas y útiles con un tono natural y humano.`
       };
 
       const result = await cloudFunctions.chatWithAI(inputData);
@@ -902,7 +1036,6 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
           timestamp: new Date(),
           tokensUsed: result.data.tokensUsed,
           conversationId: currentConversation?.id || '',
-          // ✅ NUEVO: Agregar metadata de búsqueda para regeneración
           searchUsed: result.data.searchUsed || false,
           searchResults: result.data.searchResults,
           limitReached: result.data.limitReached || false
@@ -1133,85 +1266,108 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
             {currentMode === 'normal' ? (
               // TU CHAT NORMAL ORIGINAL CON BÚSQUEDA WEB
               <>
-                {/* ✅ MENSAJES MÁS COMPACTOS Y MENOS GORDITOS */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 max-w-4xl mx-auto">
-                  {messages.map((message: ChatMessage, index: number) => (
-                    <div key={message.id} className="mb-4 group">
-                      <div className="flex items-start space-x-2">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center">
-                          {message.type === 'user' ? (
-                            <User className="w-3 h-3 text-white" />
-                          ) : (
-                            <Bot className="w-3 h-3 text-white" />
-                          )}
-                        </div>
-
-                        <div className={`flex-1 max-w-3xl ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
-                          {/* ✅ INDICADOR DE BÚSQUEDA WEB */}
-                          {message.type === 'ai' && (
-                            <WebSearchIndicator message={message} />
-                          )}
+                {/* ✅ ÁREA DE MENSAJES COMPLETAMENTE CORREGIDA */}
+                <div className="flex-1 overflow-y-auto px-4 py-4">
+                  <div className="max-w-4xl mx-auto space-y-6">
+                    {messages.map((message: ChatMessage, index: number) => (
+                      <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} group`}>
+                        {/* ✅ CONTENEDOR DE MENSAJE CON ALINEACIÓN CORRECTA */}
+                        <div className={`flex items-start space-x-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                           
-                          <div className={`inline-block p-3 rounded-2xl ${
-                            message.type === 'user'
-                              ? 'bg-gray-800 text-white max-w-md'
-                              : 'bg-gray-900 text-white max-w-2xl'
-                          }`}>
-                            <div className="whitespace-pre-wrap leading-relaxed text-sm">
-                              {message.message}
+                          {/* ✅ AVATAR */}
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center border border-gray-600">
+                            {message.type === 'user' ? (
+                              <User className="w-4 h-4 text-blue-400" />
+                            ) : (
+                              <Bot className="w-4 h-4 text-purple-400" />
+                            )}
+                          </div>
+
+                          {/* ✅ CONTENIDO DEL MENSAJE */}
+                          <div className={`flex-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
+                            
+                            {/* ✅ INDICADOR DE BÚSQUEDA WEB SOLO PARA IA */}
+                            {message.type === 'ai' && (
+                              <WebSearchIndicator message={message} />
+                            )}
+                            
+                            {/* ✅ BURBUJA DEL MENSAJE CON MARKDOWN CORRECTO */}
+                            <div className={`inline-block p-4 rounded-2xl shadow-lg ${
+                              message.type === 'user'
+                                ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white max-w-md rounded-br-sm'
+                                : 'bg-gradient-to-br from-gray-800 to-gray-900 text-gray-100 border border-gray-700 max-w-3xl rounded-bl-sm'
+                            }`}>
+                              
+                              {/* ✅ RENDERIZADO DE CONTENIDO CON MARKDOWN PARA IA */}
+                              {message.type === 'ai' ? (
+                                <MarkdownRenderer content={message.message} />
+                              ) : (
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                  {message.message}
+                                </p>
+                              )}
+                              
+                              {/* Metadatos del mensaje */}
+                              <div className={`mt-3 pt-2 border-t ${message.type === 'user' ? 'border-blue-500/30' : 'border-gray-600'} text-xs ${message.type === 'user' ? 'text-blue-200' : 'text-gray-500'} flex items-center justify-between`}>
+                                <span>{message.timestamp.toLocaleTimeString()}</span>
+                                {message.tokensUsed && (
+                                  <span className="opacity-70">{message.tokensUsed} tokens</span>
+                                )}
+                              </div>
                             </div>
 
+                            {/* ✅ ACCIONES DEL MENSAJE PARA IA */}
                             {message.type === 'ai' && (
-                              <div className="mt-2 pt-2 border-t border-gray-700">
-                                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={() => handleCopy(message.message)}
-                                    className="p-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
-                                    title="Copiar"
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleRegenerate(index)}
-                                    className="p-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
-                                    title="Regenerar"
-                                  >
-                                    <RefreshCw className="w-3 h-3" />
-                                  </button>
-                                </div>
+                              <div className="flex items-center space-x-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => handleCopy(message.message)}
+                                  className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600 transition-colors text-gray-400 hover:text-white"
+                                  title="Copiar"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRegenerate(index)}
+                                  className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600 transition-colors text-gray-400 hover:text-white"
+                                  title="Regenerar"
+                                  disabled={isLoading}
+                                >
+                                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                                </button>
                               </div>
                             )}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
 
-                  {/* Indicador de carga */}
-                  {isLoading && (
-                    <div className="mb-6 flex items-start space-x-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
-                        <Bot className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="bg-gray-900 rounded-xl p-4">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex space-x-1">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    {/* ✅ INDICADOR DE CARGA MEJORADO */}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="flex items-start space-x-3 max-w-[85%]">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center border border-gray-600">
+                            <Bot className="w-4 h-4 text-purple-400" />
+                          </div>
+                          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl rounded-bl-sm p-4 border border-gray-700">
+                            <div className="flex items-center space-x-3">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                              </div>
+                              <span className="text-gray-300 text-sm">
+                                {reportMode ? 'Generando reporte detallado...' : 
+                                 deepThinkingMode ? 'Analizando profundamente...' : 
+                                 webSearchEnabled ? 'Buscando información actualizada...' : 'Escribiendo...'}
+                              </span>
                             </div>
-                            <span className="text-gray-400 text-sm">
-                              {deepThinkingMode || reportMode ? 'Analizando profundamente...' : 
-                               webSearchEnabled ? 'Buscando información actualizada...' : 'Escribiendo...'}
-                            </span>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} />
+                  </div>
                 </div>
 
                 {/* TU TEXTO DE VOZ ORIGINAL */}
@@ -1246,8 +1402,8 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
                   </div>
                 )}
 
-                {/* TU ÁREA DE INPUT ORIGINAL COMPLETA MÁS DELGADA */}
-                <div className="px-6 pb-6">
+                {/* ✅ ÁREA DE INPUT REDISEÑADA - MÁS DELGADA, CENTRADA Y OPTIMIZADA PARA MÓVIL */}
+                <div className="px-4 pb-4">
                   {/* Archivos subidos */}
                   {uploadedFiles.length > 0 && (
                     <div className="mb-4 flex flex-wrap gap-2">
@@ -1303,139 +1459,127 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
                     </div>
                   )}
 
-                  {/* ✅ ÁREA DE INPUT REDISEÑADA - MÁS DELGADA Y COMPACTA */}
-                  <div className="bg-gray-800/30 backdrop-blur-xl rounded-full p-3 border border-gray-700/30 max-w-3xl mx-auto">
-                    <div className="flex items-center space-x-3">
-                      {/* ✅ MENÚ DE HERRAMIENTAS SIN MARGEN NI FONDO */}
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowToolsMenu(!showToolsMenu);
-                          }}
-                          className="hover:bg-gray-700/30 rounded-full p-1 transition-colors"
-                          title="Herramientas"
-                        >
-                          <Plus className={`w-5 h-5 text-gray-400 transition-transform ${showToolsMenu ? 'rotate-45' : ''}`} />
-                        </button>
-
-                        {/* MENÚ DESPLEGABLE */}
-                        {showToolsMenu && (
-                          <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-2 w-48">
-                            <button
-                              onClick={toggleImageGenerator}
-                              className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 text-left"
-                            >
-                              <ImageIcon className="w-4 h-4" />
-                              <span className="text-sm">Generar imagen</span>
-                            </button>
-                            
-                            <button
-                              onClick={toggleVideoGenerator}
-                              className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 text-left"
-                            >
-                              <Video className="w-4 h-4" />
-                              <span className="text-sm">Generar video</span>
-                              {plan === 'free' && (
-                                <span className="text-xs bg-yellow-600 px-1 rounded">Pro</span>
-                              )}
-                            </button>
-                            
-                            <button
-                              onClick={toggleDeepSearch}
-                              className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 text-left"
-                            >
-                              <Brain className="w-4 h-4" />
-                              <span className="text-sm">Deep Search</span>
-                            </button>
-                            
-                            <button
-                              onClick={toggleReportMode}
-                              className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 text-left"
-                            >
-                              <FileText className="w-4 h-4" />
-                              <span className="text-sm">Generar reporte</span>
-                            </button>
-
-                            {/* BOTÓN DE BÚSQUEDA WEB EN EL MENÚ */}
-                            <button
-                              onClick={toggleWebSearch}
-                              className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 text-left ${
-                                webSearchEnabled ? 'text-green-400' : 'text-gray-300'
-                              }`}
-                            >
-                              {webSearchEnabled ? (
-                                <Wifi className="w-4 h-4" />
-                              ) : (
-                                <WifiOff className="w-4 h-4" />
-                              )}
-                              <span className="text-sm">
-                                {webSearchEnabled ? 'Desactivar búsqueda' : 'Activar búsqueda web'}
-                              </span>
-                            </button>
-                            
-                            <button
-                              onClick={() => fileInputRef.current?.click()}
-                              className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700 text-left"
-                            >
-                              <Upload className="w-4 h-4" />
-                              <span className="text-sm">Subir archivos</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* ✅ TEXTAREA MÁS COMPACTA */}
-                      <div className="flex-1 relative">
-                        <textarea
-                          ref={textareaRef}
-                          value={input}
-                          onChange={(e) => setInput(e.target.value)}
-                          onKeyDown={handleKeyPress}
-                          placeholder={
-                            shouldShowUpgradeWarning() 
-                              ? "Mejora tu plan para continuar..." 
-                              : webSearchEnabled 
-                                ? "Escribe tu mensaje (búsqueda web activada)..." 
-                                : "Escribe tu mensaje..."
-                          }
-                          disabled={isLoading || shouldShowUpgradeWarning()}
-                          className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none leading-relaxed min-h-[32px] max-h-20 py-1 text-sm"
-                        />
-                      </div>
-
-                      {/* ✅ MICRÓFONO SIN MARGEN NI FONDO */}
+                  {/* ✅ ÁREA DE INPUT MÁS COMPACTA Y CENTRADA */}
+                  <div className="bg-gray-800/30 backdrop-blur-xl rounded-full p-2 border border-gray-700/30 max-w-3xl mx-auto flex items-center">
+                    <div className="relative">
                       <button
-                        onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-                        disabled={shouldShowUpgradeWarning()}
-                        className={`hover:bg-gray-700/30 rounded-full p-1 transition-colors ${
-                          isRecording ? 'text-red-400' : 'text-gray-400'
-                        }`}
-                        title={isRecording ? "Detener" : "Grabar"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowToolsMenu(!showToolsMenu);
+                        }}
+                        className="hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105"
+                        title="Herramientas"
                       >
-                        {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                        <Plus className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${showToolsMenu ? 'rotate-45' : ''}`} />
                       </button>
 
-                      {/* ✅ BOTÓN DE ENVÍO CON ESTILO */}
-                      <button
-                        onClick={sendMessage}
-                        disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || shouldShowUpgradeWarning()}
-                        className={`p-2 rounded-full transition-all duration-300 ${
-                          (input.trim() || uploadedFiles.length > 0) && !isLoading && !shouldShowUpgradeWarning()
-                            ? webSearchEnabled 
-                              ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg' 
-                              : 'bg-white text-black hover:bg-gray-200 shadow-lg'
-                            : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                        }`}
-                        title={webSearchEnabled ? "Enviar con búsqueda web" : "Enviar"}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4" />
-                        )}
-                      </button>
+                      {/* ✅ MENÚ DESPLEGABLE CON ESTILO iOS 26 Y ANIMACIÓN */}
+                      {showToolsMenu && (
+                        <div className="absolute bottom-full left-0 mb-2 bg-gray-800/80 backdrop-blur-md border border-gray-700/50 rounded-lg shadow-lg py-2 w-48 animate-slide-up">
+                          <button
+                            onClick={toggleImageGenerator}
+                            className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
+                          >
+                            <span className="text-sm">Generar imagen</span>
+                          </button>
+                          
+                          <button
+                            onClick={toggleVideoGenerator}
+                            className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
+                          >
+                            <span className="text-sm">Generar video</span>
+                            {plan === 'free' && (
+                              <span className="text-xs bg-yellow-600 px-1 rounded">Pro</span>
+                            )}
+                          </button>
+                          
+                          <button
+                            onClick={toggleReportMode}
+                            className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
+                          >
+                            <span className="text-sm">Generar reporte</span>
+                          </button>
+
+                          <button
+                            onClick={toggleWebSearch}
+                            className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors ${
+                              webSearchEnabled ? 'text-green-400' : 'text-gray-300'
+                            }`}
+                          >
+                            <span className="text-sm">
+                              {webSearchEnabled ? 'Desactivar búsqueda' : 'Activar búsqueda web'}
+                            </span>
+                          </button>
+                          
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
+                          >
+                            <span className="text-sm">Subir archivos</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
+
+                    {/* ✅ TEXTAREA MÁS COMPACTA Y CENTRADA VERTICALMENTE */}
+                    <div className="flex-1 relative flex items-center">
+                      <textarea
+                        ref={textareaRef}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        placeholder={
+                          shouldShowUpgradeWarning() 
+                            ? "Mejora tu plan para continuar..." 
+                            : webSearchEnabled 
+                              ? "Escribe tu mensaje..." 
+                              : "Escribe tu mensaje..."
+                        }
+                        disabled={isLoading || shouldShowUpgradeWarning()}
+                        className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none leading-tight min-h-[24px] max-h-16 py-1 text-sm text-center"
+                      />
+                    </div>
+
+                    {/* ✅ DEEP SEARCH CON ICONO DE ÁTOMO A LA IZQUIERDA DEL MICRÓFONO */}
+                    <button
+                      onClick={toggleDeepSearch}
+                      className="hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105"
+                      title="Deep Search"
+                    >
+                      <Atom className={`w-5 h-5 ${deepThinkingMode ? 'text-purple-400' : 'text-gray-400'}`} />
+                    </button>
+
+                    {/* ✅ MICRÓFONO SIN MARGEN NI FONDO */}
+                    <button
+                      onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                      disabled={shouldShowUpgradeWarning()}
+                      className={`hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105 ${
+                        isRecording ? 'text-red-400' : 'text-gray-400'
+                      }`}
+                      title={isRecording ? "Detener" : "Grabar"}
+                    >
+                      {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                    </button>
+
+                    {/* ✅ BOTÓN DE ENVÍO CON ESTILO */}
+                    <button
+                      onClick={sendMessage}
+                      disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || shouldShowUpgradeWarning()}
+                      className={`p-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
+                        (input.trim() || uploadedFiles.length > 0) && !isLoading && !shouldShowUpgradeWarning()
+                          ? webSearchEnabled 
+                            ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg' 
+                            : 'bg-white text-black hover:bg-gray-200 shadow-lg'
+                          : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                      }`}
+                      title={webSearchEnabled ? "Enviar con búsqueda web" : "Enviar"}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
               </>
@@ -1534,6 +1678,11 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
           100% { transform: translateX(0); }
         }
         
+        @keyframes slide-up {
+          0% { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        
         .animate-slide-right {
           animation: slide-right 0.8s ease-in-out forwards;
         }
@@ -1589,6 +1738,10 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
         .animate-breath-delayed {
           animation: breath-delayed 6s ease-in-out infinite;
           animation-delay: 1s;
+        }
+
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out forwards;
         }
 
         /* Ensure smooth scrolling */

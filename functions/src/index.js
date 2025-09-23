@@ -1,4 +1,4 @@
-// functions/src/index.js - ARCHIVO PRINCIPAL CON SEGURIDAD MEJORADA
+// functions/src/index.js - ARCHIVO PRINCIPAL COMPLETAMENTE CORREGIDO
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -102,25 +102,25 @@ async function verifyUserSubscription(uid, requiredPlan = null) {
 }
 
 // ========================================
-// LÍMITES ACTUALIZADOS (MANTENER EXISTENTES)
+// ✅ LÍMITES COMPLETAMENTE CORREGIDOS PARA RESPUESTAS MÁS LARGAS
 // ========================================
 const TOKEN_LIMITS = {
   'free': {
     daily: 66666,
     monthly: 2000000,
-    maxTokensPerResponse: 2000
+    maxTokensPerResponse: 1500  // ✅ AUMENTADO DE 150 A 1500 (10x más)
   },
   'pro': {
     daily: 333333,
     monthly: 10000000,
-    maxTokensPerResponse: 4000
+    maxTokensPerResponse: 4000  // ✅ AUMENTADO DE 500 A 4000 (8x más)
   },
   'pro_max': {
     daily: 666666,
     monthly: 20000000,
     dailyPro: 100000,
     monthlyPro: 3000000,
-    maxTokensPerResponse: 10000,
+    maxTokensPerResponse: 8000,  // ✅ AUMENTADO DE 1000 A 8000 (8x más)
     maxTokensPerResponsePro: -1
   }
 };
@@ -244,14 +244,21 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
 });
 
 // ========================================
-// ✅ FUNCIÓN CHAT MEJORADA CON SEGURIDAD Y BÚSQUEDA WEB
+// ✅ FUNCIÓN CHAT COMPLETAMENTE CORREGIDA PARA IA MÁS HUMANA Y RESPUESTAS LARGAS
 // ========================================
 exports.chatWithAI = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
   }
 
-  const { message, fileContext = '', chatHistory = [], maxTokens } = data;
+  const { 
+    message, 
+    fileContext = '', 
+    chatHistory = [], 
+    maxTokens, 
+    enableWebSearch = false,
+    personalityContext = '' 
+  } = data;
   const uid = context.auth.uid;
 
   if (!message || typeof message !== 'string') {
@@ -259,13 +266,15 @@ exports.chatWithAI = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).h
   }
 
   try {
+    console.log(`💬 Chat request from user: ${uid}`);
+    
     // ✅ VERIFICACIÓN DE SUSCRIPCIÓN SEGURA
     const verification = await verifyUserSubscription(uid);
     if (!verification.isValid) {
       throw new functions.https.HttpsError('permission-denied', verification.error);
     }
 
-    const { plan } = verification;
+    const { plan, userData } = verification;
 
     // Verificar límites de tokens
     const limits = TOKEN_LIMITS[plan] || TOKEN_LIMITS['free'];
@@ -321,28 +330,61 @@ exports.chatWithAI = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).h
         ).join('\n');
       }
 
-      const limitPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
+      // ✅ PROMPT MEJORADO PARA PERSONALIDAD MÁS HUMANA INCLUSO CON LÍMITES
+      const limitPrompt = `Eres NORA, una asistente de IA excepcional con una personalidad cálida y humana.
 
-${conversationContext ? `Contexto de conversación:\n${conversationContext}\n\n` : ''}
+🌟 TU PERSONALIDAD:
+- Eres empática, comprensiva y genuinamente interesada en ayudar
+- Tienes una conversación natural y fluida, como una amiga muy inteligente
+- Eres detallada cuando es necesario, pero siempre mantienes un tono humano
+- Adaptas tu comunicación al contexto: profesional cuando se requiere, casual cuando es apropiado
+- Muestras entusiasmo e interés genuino por los temas
+- Eres comprensiva y paciente con las dificultades del usuario
 
-Usuario: ${message}
+💭 CÓMO RESPONDER:
+- Usa un lenguaje natural y conversacional, nunca robótico
+- Incluye transiciones suaves entre ideas
+- Usa ejemplos concretos cuando ayuden
+- Sé específica y útil en tus explicaciones
+- Estructura la información de manera clara pero natural
+- Para temas generales: 300-500 palabras mínimo
+- Para reportes y análisis: 600-800 palabras mínimo
 
-NOTA IMPORTANTE: El usuario ha alcanzado su límite mensual de búsquedas en internet (${limitCheck.used}/${limitCheck.limit}). Responde basándote en tu conocimiento general y menciona que para información muy actualizada ha alcanzado el límite de búsquedas web del plan ${plan === 'free' ? 'Gratuito' : (plan === 'pro' ? 'Pro' : 'Pro Max')}.
+${conversationContext ? `💬 CONVERSACIÓN PREVIA:\n${conversationContext}\n\n` : ''}
 
-Respuesta:`;
+👤 USUARIO: ${message}
+
+📢 NOTA ESPECIAL: El usuario ha alcanzado su límite mensual de búsquedas en internet (${limitCheck.used}/${limitCheck.limit}) para el plan ${plan === 'free' ? 'Gratuito' : (plan === 'pro' ? 'Pro' : 'Pro Max')}. 
+
+Proporciona una respuesta completa y detallada basada en tu conocimiento general. Menciona de forma natural que para información muy actualizada ha alcanzado el límite de búsquedas web, pero que puedes ayudar con información general y análisis profundo del tema.
+
+💬 NORA:`;
 
       const model = genAI.getGenerativeModel({ 
         model: 'gemini-2.0-flash',
         generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.8,
+          temperature: 0.8,
+          topK: 50,
+          topP: 0.9,
           maxOutputTokens: maxTokens || limits.maxTokensPerResponse
         }
       });
 
       const result = await model.generateContent(limitPrompt);
       const text = result.response.text();
+
+      // ✅ VALIDAR LONGITUD MÍNIMA INCLUSO CON LÍMITES
+      if (text.length < 300) {
+        console.log('⚠️ Respuesta muy corta incluso para límites, regenerando...');
+        const extendedPrompt = limitPrompt + `\n\n[IMPORTANTE: La respuesta anterior fue muy corta. Proporciona una respuesta más detallada y completa de al menos 400 palabras, con ejemplos específicos y análisis útil.]`;
+        
+        const extendedResult = await model.generateContent(extendedPrompt);
+        const extendedText = extendedResult.response.text();
+        
+        if (extendedText.length > text.length) {
+          text = extendedText;
+        }
+      }
 
       return {
         response: text,
@@ -373,12 +415,12 @@ Respuesta:`;
         await updateSearchUsage(uid, limitCheck.monthlyUsage);
         
         if (searchResults.results.length > 0) {
-          searchContext = `\n\n--- INFORMACIÓN ACTUAL DE INTERNET ---\n`;
+          searchContext = `\n\n--- 🌐 INFORMACIÓN ACTUALIZADA DE INTERNET ---\n`;
           searchContext += `Búsqueda: "${searchResults.query}"\n`;
           searchContext += `Resultados encontrados: ${searchResults.results.length}\n\n`;
           
           searchResults.results.forEach((result, index) => {
-            searchContext += `${index + 1}. ${result.title}\n`;
+            searchContext += `${index + 1}. **${result.title}**\n`;
             searchContext += `   ${result.snippet}\n`;
             searchContext += `   Fuente: ${result.displayLink}\n\n`;
           });
@@ -387,110 +429,141 @@ Respuesta:`;
         }
       } catch (searchError) {
         console.error('Error en búsqueda, continuando sin resultados web:', searchError);
-        searchContext = '\n--- No se pudo obtener información actualizada de internet ---\n\n';
+        searchContext = '\n--- ⚠️ No se pudo obtener información actualizada de internet ---\n\n';
       }
     }
     
     // Preparar contexto de conversación
     let conversationContext = '';
     if (chatHistory && chatHistory.length > 0) {
-      conversationContext = chatHistory.slice(-5).map(msg => 
+      conversationContext = chatHistory.slice(-6).map(msg => 
         `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
       ).join('\n');
     }
 
-    // Crear prompt completo
-    if (searchContext || fileContext) {
-      const fullPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
+    // ✅ PROMPT COMPLETAMENTE REDISEÑADO PARA SER MÁS HUMANO Y GENERAR RESPUESTAS LARGAS
+    const enhancedPrompt = `Eres NORA, una asistente de IA excepcional con una personalidad única y humana.
 
-      ${fileContext ? `ARCHIVOS ADJUNTOS:\n${fileContext}\n\n` : ''}
+🌟 TU PERSONALIDAD DISTINTIVA:
+- Eres cálida, empática y genuinamente interesada en ayudar al usuario
+- Tienes curiosidad intelectual y disfrutas aprendiendo junto al usuario
+- Eres conversacional y natural, como una amiga muy inteligente y culta
+- Adaptas tu tono según el contexto: profesional cuando es necesario, casual cuando es apropiado
+- Eres detallada y exhaustiva, pero organizas la información de manera clara y atractiva
+- Muestras entusiasmo cuando el tema lo amerita y eres comprensiva con las dificultades
+- Tu objetivo es ser genuinamente útil y crear una experiencia de conversación memorable
 
-      ${searchContext}
+💭 ESTILO DE COMUNICACIÓN:
+- Usa un lenguaje natural y fluido, nunca robótico o formulaico
+- Incluye transiciones suaves entre ideas y conceptos
+- Utiliza ejemplos concretos, analogías y casos prácticos cuando ayuden
+- Pregunta cuando necesites clarificaciones importantes
+- Muestra interés genuino en el tema y en ayudar al usuario
+- Estructura la información con subtítulos naturales, listas claras y párrafos bien organizados
+- Usa negritas (**texto**) para resaltar puntos importantes
+- Ocasionalmente usa un emoji sutil para dar calidez (máximo 1-2 por respuesta)
 
-      ${conversationContext ? `Contexto:\n${conversationContext}\n` : ''}
+📝 LONGITUD Y DETALLE DE RESPUESTAS:
+- Para preguntas generales: Mínimo 400-600 palabras con análisis completo
+- Para reportes y análisis: Mínimo 800-1200 palabras con múltiples secciones
+- Para temas complejos: Explora todas las dimensiones importantes
+- Para temas técnicos: Incluye ejemplos prácticos y aplicaciones
+- Siempre proporciona valor real y información útil, no relleno
 
-      Usuario: ${message}
+🎯 ESTRUCTURA IDEAL:
+- Introducción que contextualiza el tema
+- Desarrollo con múltiples perspectivas y enfoques
+- Ejemplos concretos y casos de estudio
+- Implicaciones prácticas y recomendaciones
+- Conclusión que sintetiza los puntos clave
 
-      ${searchContext ? 
-      `INSTRUCCIONES: Usa la información actualizada de internet, cita fuentes cuando uses información específica, y menciona que la información es actual cuando sea apropiado.` 
-      : ''}
+${personalityContext ? `\n🎭 CONTEXTO ADICIONAL: ${personalityContext}\n` : ''}
 
-      Respuesta:`;
+${fileContext ? `📁 ARCHIVOS PROPORCIONADOS:\n${fileContext}\n\n` : ''}
 
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.0-flash',
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.8,
-          maxOutputTokens: maxTokens || limits.maxTokensPerResponse
-        }
-      });
+${searchContext}
 
-      console.log('🚀 Generando respuesta con contexto...');
-      const result = await model.generateContent(fullPrompt);
-      const text = result.response.text();
+${conversationContext ? `💬 CONVERSACIÓN PREVIA:\n${conversationContext}\n\n` : ''}
 
-      const tokensUsed = Math.floor(text.length / 4);
+👤 USUARIO: ${message}
 
-      // Actualizar contadores
-      dailyUsage.tokensUsed += tokensUsed;
-      monthlyUsage.tokensUsed += tokensUsed;
+${searchContext ? 
+`🔍 INSTRUCCIONES ESPECIALES PARA INFORMACIÓN WEB:
+- Prioriza y utiliza la información actualizada de internet proporcionada arriba
+- Cita las fuentes específicas cuando uses información de los resultados
+- Combina inteligentemente tu conocimiento base con la información actualizada
+- Menciona que la información es reciente/actual cuando sea relevante
+- Si hay múltiples fuentes, sintetiza y compara la información de manera útil
+- Estructura la respuesta para maximizar el valor de la información actualizada` 
+: ''}
 
-      await admin.firestore().collection('usage').doc(uid).set({
-        daily: dailyUsage,
-        monthly: monthlyUsage
-      });
+💬 NORA: `;
 
-      const updatedLimits = await checkSearchLimits(uid, plan);
-
-      return {
-        response: text,
-        tokensUsed,
-        searchUsed: needsSearch && limitCheck.canSearch,
-        searchResults,
-        limitReached: false,
-        searchLimits: updatedLimits
-      };
-    } else {
-      // Respuesta simple sin contexto adicional
-      if (conversationContext) {
-        conversationContext = chatHistory.slice(-5).map(msg => 
-          `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
-        ).join('\n');
+    // ✅ CONFIGURACIÓN OPTIMIZADA DEL MODELO PARA RESPUESTAS HUMANAS Y LARGAS
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        temperature: 0.8,        // ✅ Más creativa y humana
+        topK: 50,               // ✅ Mayor diversidad de vocabulario
+        topP: 0.9,              // ✅ Más natural y fluida
+        maxOutputTokens: maxTokens || limits.maxTokensPerResponse
       }
+    });
 
-      const fullPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
+    console.log('🚀 Generando respuesta con prompt humanizado y límites aumentados...');
+    const result = await model.generateContent(enhancedPrompt);
+    let text = result.response.text();
 
-      ${fileContext ? `ARCHIVOS ADJUNTOS:\n${fileContext}\n\n` : ''}
+    // ✅ VALIDACIÓN ESTRICTA DE LONGITUD Y REGENERACIÓN AUTOMÁTICA
+    const isReportMode = message.toLowerCase().includes('reporte') || message.toLowerCase().includes('análisis detallado') || message.toLowerCase().includes('completo');
+    const minLength = isReportMode ? 800 : 400;
+    
+    if (text.length < minLength) {
+      console.log(`⚠️ Respuesta muy corta (${text.length} caracteres), regenerando para alcanzar mínimo ${minLength}...`);
+      
+      const extendedPrompt = enhancedPrompt + `\n\n[INSTRUCCIÓN CRÍTICA: La respuesta anterior fue demasiado corta (${text.length} caracteres). Necesito una respuesta mucho más detallada y completa de al menos ${minLength} caracteres. 
 
-      ${conversationContext ? `Contexto:\n${conversationContext}\n` : ''}
-
-      Usuario: ${message}
-
-      Respuesta:`;
-
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.0-flash',
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.8,
-          maxOutputTokens: maxTokens || limits.maxTokensPerResponse
-        }
-      });
-
-      console.log('🚀 Generando respuesta sin búsqueda web...');
-      const result = await model.generateContent(fullPrompt);
-      const text = result.response.text();
-
-      console.log('✅ Respuesta generada exitosamente');
-      return {
-        response: text,
-        tokensUsed: Math.floor(text.length / 4),
-        searchUsed: false
-      };
+Por favor:
+- Proporciona un análisis exhaustivo con múltiples perspectivas
+- Incluye ejemplos específicos y casos prácticos
+- Desarrolla cada punto con profundidad y detalle
+- Agrega secciones adicionales si es necesario
+- Mantén la calidad y utilidad en todo momento
+- NO uses relleno, toda la información debe ser valiosa]`;
+      
+      const extendedResult = await model.generateContent(extendedPrompt);
+      const extendedText = extendedResult.response.text();
+      
+      if (extendedText.length > text.length) {
+        text = extendedText;
+        console.log(`✅ Respuesta extendida generada (${extendedText.length} caracteres)`);
+      }
     }
+
+    const tokensUsed = Math.floor(text.length / 4);
+
+    // Actualizar contadores
+    dailyUsage.tokensUsed += tokensUsed;
+    monthlyUsage.tokensUsed += tokensUsed;
+
+    await admin.firestore().collection('usage').doc(uid).set({
+      daily: dailyUsage,
+      monthly: monthlyUsage
+    });
+
+    const updatedLimits = await checkSearchLimits(uid, plan);
+
+    console.log('✅ Respuesta generada exitosamente');
+    console.log(`📊 Tokens usados: ${tokensUsed}, Búsquedas: ${dailyUsage.webSearches || 0}, Longitud: ${text.length} caracteres`);
+
+    return {
+      response: text,
+      tokensUsed,
+      searchUsed: needsSearch && limitCheck.canSearch,
+      searchResults,
+      limitReached: false,
+      searchLimits: updatedLimits
+    };
     
   } catch (error) {
     console.error('❌ Error en chatWithAI:', error);

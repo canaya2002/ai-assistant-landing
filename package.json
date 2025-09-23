@@ -71,6 +71,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.6.0",
+    "react-markdown": "^9.1.0",
     "stripe": "^12.0.0"
   },
   "devDependencies": {
@@ -80,7 +81,7 @@
     "@testing-library/user-event": "^14.5.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^18.15.13",
-    "@types/react": "^19",
+    "@types/react": "^18.3.24",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",

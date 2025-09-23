@@ -394,6 +394,30 @@ input, textarea {
   animation: sparkle 3s linear infinite;
 }
 
+/* ✅ CORRECCIÓN PARA BOTONES DE CERRAR */
+button[title="Cerrar"],
+button[title="Cerrar Generador de Imágenes"], 
+.close-button,
+button.close-button {
+  pointer-events: auto !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  user-select: none !important;
+  z-index: 9999999 !important;
+  position: relative !important;
+}
+
+/* ✅ ASEGURAR QUE TODOS LOS BOTONES FUNCIONEN */
+button {
+  pointer-events: auto !important;
+}
+
+/* ✅ CORREGIR ESPECÍFICAMENTE PARA ICONOS DENTRO DE BOTONES */
+button svg,
+button .lucide {
+  pointer-events: none !important;
+}
+
 @keyframes sparkle {
   0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
   100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
