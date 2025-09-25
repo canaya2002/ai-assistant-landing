@@ -1,19 +1,18 @@
 "use client";
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef, useMemo } from 'react';
 import Image from 'next/image';
-import { 
-  AlertTriangle, Bot, Menu, X, Plus
-} from 'lucide-react';
+import { Bot, Menu, X, Plus } from 'lucide-react';
+import { useInView } from 'react-intersection-observer';
 
-// Configuration - LINK DE DESCARGA QUITADO
+// CONFIGURATION
 const CONFIG = {
-  VERSION: '1.0.0',
+  VERSION: '1.0.4', 
 };
 
-// Types
-interface Language { 
-  code: 'en'; 
-  name: string; 
+// TYPES
+interface Language {
+  code: 'en';
+  name: string;
 }
 
 interface Platform {
@@ -24,7 +23,7 @@ interface Platform {
   features: string[];
 }
 
-// Multilingual content
+// MULTILINGUAL CONTENT
 const content = {
   en: {
     navDownload: 'Download',
@@ -62,87 +61,86 @@ const content = {
       }
     ],
     platforms: [
-      { 
-        id: 'iphone', 
-        name: 'iPhone', 
+        {
+        id: 'iphone',
+        name: 'iPhone',
         description: 'Available on App Store for iOS 14 and above.',
         longDescription: 'Experience NORA on your iPhone with our beautifully designed native app. Get instant access to AI-powered conversations, voice commands, and seamless integration with iOS features. Our iPhone app is optimized for performance and battery life.',
-        features: [
-        ]
+        features: ['Voice Commands', 'iOS Widget Integration', 'Haptic Feedback', 'Real-time Sync']
       },
-      { 
-        id: 'watch', 
-        name: 'Apple Watch', 
-        description: 'Access NORA directly from your wrist with our optimized app.',
-        longDescription: 'NORA on Apple Watch brings AI assistance directly to your wrist. Perfect for quick questions, voice commands, and staying productive on the go. Our Watch app is designed for quick interactions and essential AI features.',
-        features: [
-        ]
-      },
-      { 
-        id: 'macos', 
-        name: 'macOS', 
+      {
+        id: 'macos',
+        name: 'macOS',
         description: 'Native Mac application with full functionality.',
         longDescription: 'The most powerful NORA experience is on macOS. With our native Mac app, you get full-featured AI assistance, file integration, and seamless workflow automation. Perfect for professionals and power users.',
-        features: [
-        ]
+        features: ['Menu Bar Access', 'File Drag & Drop', 'System-wide Shortcuts', 'Offline Capabilities']
       },
-      { 
-        id: 'android', 
-        name: 'Android', 
+      {
+        id: 'android',
+        name: 'Android',
         description: 'Available on Google Play Store for Android 8.0 and above.',
         longDescription: 'NORA for Android delivers the full AI experience with Material Design 3. Enjoy seamless integration with Google services, customizable widgets, and powerful automation features that work across all your Android devices.',
-        features: [
-        ]
+        features: ['Google Assistant Integration', 'Customizable Widgets', 'Dynamic Theming', 'Cross-device Sync']
       },
-      { 
-        id: 'windows', 
-        name: 'Windows', 
+      {
+        id: 'windows',
+        name: 'Windows',
         description: 'Native Windows application with full functionality.',
         longDescription: 'NORA for Windows delivers a powerful desktop experience with deep system integration. Enjoy advanced features like file analysis, clipboard integration, and workflow automation. Our Windows app is optimized for productivity and multitasking.',
-        features: [
-        ]
+        features: ['System Tray Icon', 'Clipboard Integration', 'Fluent Design System', 'High-Performance Core']
       },
-      { 
-        id: 'web', 
-        name: 'Web', 
+      {
+        id: 'web',
+        name: 'Web',
         description: 'Use NORA directly in your favorite web browser.',
         longDescription: 'Access NORA from any device with our progressive web app. No downloads required - just open your browser and start chatting. Full feature parity with native apps, plus the convenience of universal access.',
-        features: [
-        ]
+        features: ['Progressive Web App (PWA)', 'Real-time Collaboration', 'Browser Extensions', 'Universal Accessibility']
       }
     ]
   }
 };
 
-// Background video component - SIN CAMBIOS
+interface AnimateOnScrollProps {
+  children: React.ReactNode;
+  className?: string;
+  threshold?: number;
+}
+
+const AnimateOnScroll = ({ children, className = '', threshold = 0.1 }: AnimateOnScrollProps) => {
+  const { ref, inView } = useInView({
+    triggerOnce: true,
+    threshold,
+  });
+
+  return (
+    <div ref={ref} className={`${className} transition-all duration-1000 ${inView ? 'opacity-100 translate-y-0 blur-0' : 'opacity-0 translate-y-8 blur-sm'}`}>
+      {children}
+    </div>
+  );
+};
+
 const VideoBackground = memo(function VideoBackground() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
-      <video 
+      <video
         className="absolute inset-0 w-full h-full object-cover md:object-center object-top"
         style={{ objectPosition: 'center 40%' }}
-        autoPlay 
-        muted 
-        loop 
+        autoPlay
+        muted
+        loop
         playsInline
         preload="metadata"
       >
         <source src="/images/fondo-nora-tres.mp4" type="video/mp4" />
         <source src="/fondo.webm" type="video/webm" />
       </video>
-      {/* Overlay gradients */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 z-10" />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-20" />
     </div>
   );
 });
 
-// Enhanced Navigation - CAMBIADO A /download
-const Navigation = memo(function Navigation({
-  lang
-}: {
-  lang: Language['code'];
-}) {
+const Navigation = memo(function Navigation({ lang }: { lang: Language['code'] }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleWebAppClick = () => {
@@ -156,38 +154,37 @@ const Navigation = memo(function Navigation({
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent transition-all duration-300">
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-        {/* Logo as image */}
         <div className="flex items-center">
-          <Image 
-            src="/images/nora.png" 
-            alt="NORA Logo" 
+          <Image
+            src="/images/nora.png"
+            alt="NORA Logo"
             width={96}
             height={96}
             className="hover:scale-105 transition-transform duration-300"
+            priority
           />
         </div>
-
-        {/* Enhanced buttons */}
         <div className="hidden md:flex items-center space-x-4">
-          <button 
-            onClick={handleWebAppClick}
-            className="px-6 py-2 bg-black/20 backdrop-blur-sm border border-white/10 rounded-full text-white hover:bg-white/5 hover:border-white/20 transition-all duration-300 flex items-center space-x-2"
-          >
-            <span className="text-sm font-light">Web App</span>
-            <Bot className="w-4 h-4" />
-          </button>
-          
           <button
-            onClick={() => window.location.href = '/download'}
-            className="px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300"
+            onClick={handleWebAppClick}
+            className="group relative px-6 py-2 bg-black/20 backdrop-blur-sm border border-white/10 rounded-full text-white hover:border-white/20 transition-all duration-300 overflow-hidden"
           >
-            {content[lang].navDownload}
+            <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+            <span className="relative flex items-center space-x-2">
+              <span className="text-sm font-light">Web App</span>
+              <Bot className="w-4 h-4" />
+            </span>
+          </button>
+          <button
+            onClick={handleDownloadClick}
+            className="group relative px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300 overflow-hidden"
+          >
+             <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+             <span className="relative">{content[lang].navDownload}</span>
           </button>
         </div>
-
-        {/* Mobile menu button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden p-2 text-white/80 hover:text-white transition-colors"
@@ -195,19 +192,16 @@ const Navigation = memo(function Navigation({
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
-
-      {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-black/90 backdrop-blur-md border-b border-white/10">
           <div className="container mx-auto px-6 py-4 space-y-3">
-            <button 
+            <button
               onClick={handleWebAppClick}
               className="w-full px-6 py-3 bg-black/20 backdrop-blur-sm border border-white/10 rounded-full text-white hover:bg-white/5 hover:border-white/20 transition-all duration-300 flex items-center justify-center space-x-2"
             >
               <span className="text-sm font-light">Web App</span>
               <Bot className="w-4 h-4" />
             </button>
-            
             <button
               onClick={handleDownloadClick}
               className="w-full px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300"
@@ -221,581 +215,583 @@ const Navigation = memo(function Navigation({
   );
 });
 
-// Enhanced Hero Section - SIN CAMBIOS
 const HeroSection = memo(function HeroSection({ lang }: { lang: Language['code'] }) {
   const currentContent = content[lang];
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <VideoBackground />
-      
       <div className="relative z-30 container mx-auto px-6 text-center">
         <div className="max-w-4xl mx-auto">
-          {/* Title with animation */}
-          <div className="mb-1 animate-fade-up mt-32 md:mt-72">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 md:mb-20 tracking-wide" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+          <AnimateOnScroll className="mt-24 md:mt-48">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 md:mb-16 tracking-wide" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
               NORA : Your AI Assistant
             </h1>
-          </div>
-
-          <p className="text-lg md:text-3xl text-white/90 mb-12 md:mb-16 max-w-3xl mx-auto leading-relaxed font-light animate-fade-up" style={{ animationDelay: '0.5s' }}>
-            {currentContent.heroDescription}
-          </p>
-
-          {/* Store buttons */}
-          <div className="flex flex-row items-center justify-center space-x-8 md:space-x-44 animate-fade-up mb-32 md:mb-60" style={{ animationDelay: '2s' }}>
-            <button className="hover:scale-105 transition-transform duration-300">
-              <Image 
-                src="/images/appstore.png" 
-                alt="Download on App Store" 
-                width={180}
-                height={60}
-                className="h-12 md:h-16 w-auto"
-              />
-            </button>
-            
-            <button className="hover:scale-105 transition-transform duration-300">
-              <Image 
-                src="/images/googleplay.png" 
-                alt="Get it on Google Play" 
-                width={180}
-                height={60}
-                className="h-12 md:h-16 w-auto"
-              />
-            </button>
-          </div>
+          </AnimateOnScroll>
+          <AnimateOnScroll className="delay-200">
+             <p className="text-lg md:text-3xl text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+               {currentContent.heroDescription}
+            </p>
+          </AnimateOnScroll>
+          <AnimateOnScroll className="delay-400">
+            <div className="flex flex-row items-center justify-center space-x-8 md:space-x-44 mb-24 md:mb-48">
+              <button className="transition-transform duration-300 filter hover:brightness-110 animate-float">
+                <Image
+                  src="/images/appstore.png"
+                  alt="Download on App Store"
+                  width={180}
+                  height={60}
+                  className="h-12 md:h-16 w-auto"
+                />
+              </button>
+              <button className="transition-transform duration-300 filter hover:brightness-110 animate-float [animation-delay:300ms]">
+                <Image
+                  src="/images/googleplay.png"
+                  alt="Get it on Google Play"
+                  width={180}
+                  height={60}
+                  className="h-12 md:h-16 w-auto"
+                />
+              </button>
+            </div>
+          </AnimateOnScroll>
         </div>
       </div>
     </section>
   );
 });
 
-// Section with AI model image - ESPACIADO REDUCIDO MÓVIL
-const ModelImageSection = memo(function ModelImageSection() {
-  return (
-    <section className="py-16 md:py-40 bg-black relative overflow-hidden">
-      <div className="container mx-auto px-6 relative z-10">
-        {/* Main AI model image */}
-        <div className="relative max-w-4xl mx-auto text-center">
-          <div className="relative animate-fade-up">
-            {/* Model image */}
-            <div className="mb-8 md:mb-12">
-              <Image 
-                src="/images/modeloia.png" 
-                alt="NORA AI Model" 
-                width={768}
-                height={512}
-                className="w-full max-w-3xl mx-auto hover:scale-105 transition-transform duration-500"
-              />
-            </div>
-            
-            {/* Descriptive information */}
-            <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl font-light text-white mb-4 md:mb-6" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-                Advanced Artificial Intelligence
-              </h2>
-              <p className="text-lg text-gray-400 leading-relaxed font-light mb-6 md:mb-8">
-                NORA uses the most advanced artificial intelligence models, combining GPT-4o and Gemini to offer you precise, creative, and natural responses at any time of day.
-              </p>
-              <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500 mb-8 md:mb-12">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span>Instant responses</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  <span>Multiple languages</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                  <span>Advanced context</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-});
+// PARTICLE BACKGROUND & PARTICLE CLASS
+interface ParticleBackgroundProps {
+  particleCount?: number;
+  particleColor?: string;
+  lineColor?: string;
+}
 
-// Section with animated phrases - FONDO ARREGLADO SIN CORTES Y ESPACIADO REDUCIDO MÓVIL
-const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
-  const [currentPhrase, setCurrentPhrase] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
-  
-  const phrases = [
-    "Your personal AI assistant always available",
-    "Intelligent answers for all your questions",
-    "Creativity and innovation in every conversation",
-    "Boost your productivity with artificial intelligence",
-    "The future of digital assistance is here"
-  ];
+class Particle {
+  x: number;
+  y: number;
+  directionX: number;
+  directionY: number;
+  size: number;
+  color: string;
+
+  constructor(x: number, y: number, directionX: number, directionY: number, size: number, color: string) {
+    this.x = x;
+    this.y = y;
+    this.directionX = directionX;
+    this.directionY = directionY;
+    this.size = size;
+    this.color = color;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+  }
+
+  update(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
+    if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+    if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+    this.x += this.directionX;
+    this.y += this.directionY;
+    this.draw(ctx);
+  }
+}
+
+const ParticleBackground = ({ 
+    particleCount = 70, 
+    particleColor = 'rgba(128, 128, 128, 0.5)',
+    lineColor = 'rgba(128, 128, 128, 0.5)'
+}: ParticleBackgroundProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIsVisible(false);
-      setTimeout(() => {
-        setCurrentPhrase((prev) => (prev + 1) % phrases.length);
-        setIsVisible(true);
-      }, 500);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [phrases.length]);
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
 
-  return (
-    <section className="relative py-16 md:py-32 overflow-hidden">
-      {/* Background video - FONDO COMPLETO SIN CORTES */}
-      <div className="absolute inset-0 z-0">
-        <video 
-          className="absolute inset-0 w-full h-full object-cover scale-110"
-          style={{ 
-            objectPosition: 'center center',
-          }}
-          autoPlay 
-          muted 
-          loop 
-          playsInline
-          preload="metadata"
-        >
-          <source src="/images/fondo-nora-dos.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-black/50 z-10" />
-      </div>
+    if (canvas && ctx) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
 
-      {/* Content */}
-      <div className="relative z-20 container mx-auto px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="min-h-[200px] flex items-center justify-center">
-            <h2 
-              className={`text-2xl md:text-5xl lg:text-6xl font-light text-white leading-tight transition-all duration-700 ease-in-out transform ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-              style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
-            >
-              {phrases[currentPhrase]}
-            </h2>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-});
+      let particlesArray: Particle[] = [];
 
-// Enhanced "Available On" section - DISEÑO MEJORADO CON PUNCH Y WINDOWS AGREGADO Y ESPACIADO REDUCIDO MÓVIL
-const AvailableSection = memo(function AvailableSection({ lang }: { lang: Language['code'] }) {
-  const [activeTab, setActiveTab] = useState('web');
-  const currentContent = content[lang];
+      const init = () => {
+        particlesArray = [];
+        for (let i = 0; i < particleCount; i++) {
+          let size = (Math.random() * 2) + 1;
+          let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+          let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+          let directionX = (Math.random() * .4) - .2;
+          let directionY = (Math.random() * .4) - .2;
+          particlesArray.push(new Particle(x, y, directionX, directionY, size, particleColor));
+        }
+      }
 
-  const tabs = [
-    { 
-      id: 'iphone', 
-      image: '/images/iphone-icon.png', 
-      deviceImage: '/images/iphone-image.png',
-      label: 'iPhone' 
-    },
-    { 
-      id: 'watch', 
-      image: '/images/watch-icon.png', 
-      deviceImage: '/images/watch-image.png',
-      label: 'Watch' 
-    },
-    { 
-      id: 'macos', 
-      image: '/images/mac-icon.png', 
-      deviceImage: '/images/mac-image.png',
-      label: 'macOS' 
-    },
-    { 
-      id: 'android', 
-      image: '/images/android-icon.png', 
-      deviceImage: '/images/android-image.png',
-      label: 'Android' 
-    },
-    { 
-      id: 'windows', 
-      image: '/images/win-icon.png', 
-      deviceImage: '/images/win-image.png',
-      label: 'Windows' 
-    },
-    { 
-      id: 'web', 
-      image: '/images/web-icon.png', 
-      deviceImage: '/images/web-image.png',
-      label: 'Web' 
+      const connect = () => {
+        let opacityValue = 1;
+        for (let a = 0; a < particlesArray.length; a++) {
+          for (let b = a; b < particlesArray.length; b++) {
+            let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) +
+                             ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+
+            if (distance < (canvas.width / 7) * (canvas.height / 7)) {
+              opacityValue = 1 - (distance / 20000);
+              const finalLineColor = lineColor.replace(/,\s*\d*\.?\d*\)/, `, ${opacityValue})`);
+              ctx.strokeStyle = finalLineColor;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+              ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+    
+      let animationFrameId: number;
+      const animate = () => {
+        if (!ctx || !canvas) return;
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        particlesArray.forEach(p => p.update(ctx, canvas));
+        connect();
+        animationFrameId = requestAnimationFrame(animate);
+      }
+
+      init();
+      animate();
+
+      const handleResize = () => {
+        if (!canvas) return;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        init();
+      };
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        cancelAnimationFrame(animationFrameId);
+        window.removeEventListener('resize', handleResize);
+      };
     }
-  ];
+    return () => {};
+  }, [particleCount, particleColor, lineColor]);
 
-  const getCurrentPlatform = (): Platform => {
-    return currentContent.platforms.find((p: Platform) => p.id === activeTab) || currentContent.platforms[5];
-  };
+  return <canvas ref={canvasRef} className="absolute inset-0 z-0 w-full h-full" />;
+};
 
-  const getCurrentTab = () => {
-    return tabs.find(t => t.id === activeTab) || tabs[5];
-  };
 
-  return (
-    <section className="relative py-16 md:py-64 bg-black overflow-hidden">
-      {/* Fondo decorativo con efectos visuales para dar punch */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#737373]/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#737373]/15 rounded-full blur-2xl animate-float-delayed"></div>
-        <div className="absolute top-1/2 right-1/3 w-32 h-32 bg-[#737373]/8 rounded-full blur-xl animate-float-slow"></div>
-      </div>
-
-      <div className="container mx-auto px-6 relative z-10">
-        <h2 className="text-4xl md:text-5xl font-light text-white text-center mb-12 md:mb-16 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-          {currentContent.availableOn}
-        </h2>
-        
-        {/* Tab Headers - GRID RESPONSIVO PARA 6 ELEMENTOS */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-6 mb-12 md:mb-16 max-w-6xl mx-auto">
-          {tabs.map((tab, index) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`group p-3 md:p-6 rounded-2xl transition-all duration-700 transform hover:scale-110 ${
-                activeTab === tab.id 
-                  ? 'bg-gradient-to-br from-[#737373] to-[#737373]/80 border-2 border-[#737373] scale-110 shadow-2xl shadow-[#737373]/30' 
-                  : 'bg-[#737373]/20 border border-[#737373]/40 hover:border-[#737373]/60 hover:bg-[#737373]/30'
-              }`}
-              style={{ 
-                animationDelay: `${index * 100}ms`,
-              }}
-            >
-              <div className="flex flex-col items-center space-y-2 md:space-y-3">
-                <div className={`p-2 rounded-xl transition-all duration-700 ${
-                  activeTab === tab.id ? 'bg-white/20' : 'bg-transparent'
-                }`}>
-                  <Image 
-                    src={tab.image} 
-                    alt={tab.label}
-                    width={28}
-                    height={28}
-                    className={`md:w-8 md:h-8 transition-all duration-700 ${
-                      activeTab === tab.id ? 'opacity-100 scale-110 brightness-110' : 'opacity-80 group-hover:opacity-90'
-                    }`}
-                    loading="lazy"
-                  />
-                </div>
-                <span className={`text-xs md:text-sm font-light transition-all duration-700 ${
-                  activeTab === tab.id ? 'text-white font-medium' : 'text-gray-400 group-hover:text-gray-300'
-                }`}>
-                  {tab.label}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content - DISEÑO MEJORADO CON GRADIENTES Y EFECTOS */}
-        <div className="max-w-5xl mx-auto">
-          <div className="relative bg-gradient-to-br from-[#737373]/30 to-[#737373]/10 backdrop-blur-2xl rounded-3xl p-6 md:p-12 border border-[#737373]/40 transition-all duration-700 shadow-2xl overflow-hidden">
-            {/* Efecto de brillo */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#737373]/50 to-transparent"></div>
-            
-            <div className="text-center relative z-10">
-              {/* Device image - FONDO MEJORADO */}
-              <div className="mb-6 md:mb-12 animate-fade-up">
-                <div className="relative bg-gradient-to-br from-[#737373]/30 to-[#737373]/10 rounded-2xl p-4 md:p-6 mx-auto max-w-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#737373]/20 to-transparent rounded-2xl"></div>
-                  <Image 
-                    src={getCurrentTab().deviceImage} 
-                    alt={getCurrentPlatform().name}
-                    width={448}
-                    height={300}
-                    className="relative z-10 w-full hover:scale-105 transition-transform duration-700 rounded-xl"
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-              
-              {/* Content below */}
-              <div className="animate-slide-up">
-                <div className="mb-4 md:mb-8">
-                  <div className="w-14 h-14 md:w-20 md:h-20 bg-gradient-to-br from-[#737373]/80 to-[#737373]/60 rounded-2xl mx-auto flex items-center justify-center mb-3 md:mb-6 backdrop-blur-xl border border-[#737373]/50 shadow-xl">
-                    <Image 
-                      src={getCurrentTab().image} 
-                      alt={getCurrentPlatform().name}
-                      width={28}
-                      height={28}
-                      className="md:w-10 md:h-10 brightness-110"
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
-                
-                <h3 className="text-2xl md:text-4xl font-light text-white mb-3 md:mb-6 animate-fade-up" style={{ 
-                  fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif',
-                  animationDelay: '0.2s'
-                }}>
-                  {getCurrentPlatform().name}
-                </h3>
-                
-                <p className="text-gray-300 mb-4 md:mb-8 max-w-2xl mx-auto font-light leading-relaxed text-base md:text-lg animate-fade-up" style={{
-                  animationDelay: '0.4s'
-                }}>
-                  {getCurrentPlatform().longDescription}
-                </p>
-
-                {/* Features list with animations */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-                  {getCurrentPlatform().features.map((feature: string, index: number) => (
-                    <div 
-                      key={index}
-                      className="flex items-center space-x-3 p-4 bg-[#737373]/20 rounded-xl border border-[#737373]/30 animate-slide-in-left hover:bg-[#737373]/30 transition-all duration-300"
-                      style={{ animationDelay: `${0.6 + index * 0.1}s` }}
-                    >
-                      <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
-                      <span className="text-gray-300 font-light text-sm">{feature}</span>
+const ModelImageSection = memo(function ModelImageSection() {
+    return (
+        <section className="py-16 md:py-24 bg-black relative overflow-hidden [mask-image:linear-gradient(to_bottom,white_80%,transparent_100%)]">
+            <ParticleBackground particleCount={50} particleColor="rgba(107, 114, 128, 0.3)" lineColor="rgba(107, 114, 128, 0.3)" />
+            <div className="container mx-auto px-6 relative z-10">
+                 <AnimateOnScroll className="relative max-w-4xl mx-auto text-center">
+                    <div className="relative group">
+                        <div className="mb-8 md:mb-12">
+                            <Image
+                                src="/images/modeloianora.png"
+                                alt="NORA AI Model"
+                                width={768}
+                                height={512}
+                                className="w-full max-w-3xl mx-auto transition-transform duration-500 animate-float"
+                            />
+                        </div>
+                        <div className="max-w-2xl mx-auto text-center">
+                            <h2 className="text-3xl md:text-4xl font-light text-white mb-4 md:mb-6" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                                Advanced Artificial Intelligence
+                            </h2>
+                            <p className="text-lg text-gray-400 leading-relaxed font-light mb-6 md:mb-8">
+                                NORA uses the most advanced artificial intelligence models, combining GPT-4o and Gemini to offer you precise, creative, and natural responses at any time of day.
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400 mb-8 md:mb-12">
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                    <span>Instant responses</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse [animation-delay:200ms]"></div>
+                                    <span>Multiple languages</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse [animation-delay:400ms]"></div>
+                                    <span>Advanced context</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                 </AnimateOnScroll>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+        </section>
+    );
 });
 
-// Enhanced FAQ section - ANIMACIÓN MÁS PEQUEÑA Y ESPACIADO REDUCIDO MÓVIL
+
+const AnimatedPhrasesSection = memo(function AnimatedPhrasesSection() {
+    const [currentPhrase, setCurrentPhrase] = useState(0);
+    const [isVisible, setIsVisible] = useState(true);
+
+    const phrases = useMemo(() => [
+        "Your personal AI assistant always available",
+        "Intelligent answers for all your questions",
+        "Creativity and innovation in every conversation",
+        "Boost your productivity with artificial intelligence",
+        "The future of digital assistance is here"
+    ], []);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIsVisible(false);
+            setTimeout(() => {
+                setCurrentPhrase(prev => (prev + 1) % phrases.length);
+                setIsVisible(true);
+            }, 700); 
+        }, 4000);
+        return () => clearInterval(interval);
+    }, [phrases.length]);
+
+    return (
+        <section className="relative mt-16 md:mt-24 py-16 md:py-24 overflow-hidden">
+            <div className="absolute inset-0 z-0">
+                <video
+                    className="absolute inset-0 w-full h-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                >
+                    <source src="/images/fondo-nora-dos.mp4" type="video/mp4" />
+                </video>
+                <div className="absolute inset-0 bg-black/70 z-10" />
+            </div>
+            <div className="relative z-20 container mx-auto px-6">
+                <div className="max-w-4xl mx-auto text-center">
+                    <div className="h-[450px] flex items-center justify-center">
+                        <h2
+                            className={`text-2xl md:text-5xl lg:text-6xl font-light text-white leading-tight transition-all duration-700 ease-in-out transform ${isVisible ? 'opacity-100 translate-y-0 blur-0' : 'opacity-0 translate-y-4 blur-sm'}`}
+                            style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                        >
+                            {phrases[currentPhrase]}
+                        </h2>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+});
+
+const AvailableSection = memo(function AvailableSection({ lang }: { lang: Language['code'] }) {
+    const [activeTab, setActiveTab] = useState('web');
+    const currentContent = content[lang];
+    
+    const cardRef = useRef<HTMLDivElement>(null);
+    const [mousePos, setMousePos] = useState({ x: -999, y: -999 });
+    const [cardStyle, setCardStyle] = useState({});
+
+    const tabs = useMemo(() => [
+        { id: 'iphone', image: '/images/iphone-icon.png', deviceImage: '/images/iphone-images.gif', label: 'iPhone' },
+        { id: 'macos', image: '/images/mac-icon.png', deviceImage: '/images/mac-images.gif', label: 'macOS' },
+        { id: 'android', image: '/images/android-icons.png', deviceImage: '/images/android-images.gif', label: 'Android' },
+        { id: 'windows', image: '/images/win-icon.png', deviceImage: '/images/win-images.gif', label: 'Windows' },
+        { id: 'web', image: '/images/web-icon.png', deviceImage: '/images/win-images.gif', label: 'Web' }
+    ], []);
+    
+    const activePlatform = useMemo(() => {
+        return currentContent.platforms.find((p: Platform) => p.id === activeTab) || currentContent.platforms.find((p:Platform) => p.id === 'web') || currentContent.platforms[0];
+    }, [activeTab, currentContent.platforms]);
+
+    const activeTabData = useMemo(() => {
+        return tabs.find(t => t.id === activeTab) || tabs.find(t => t.id === 'web') || tabs[0];
+    }, [activeTab, tabs]);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!cardRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setMousePos({ x, y });
+
+        const rotateX = (y / rect.height - 0.5) * -6; 
+        const rotateY = (x / rect.width - 0.5) * 6;
+        
+        setCardStyle({
+            transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
+            transition: 'transform 0.1s ease-out'
+        });
+    };
+    
+    const handleMouseLeave = () => {
+        setMousePos({ x: -999, y: -999 });
+        setCardStyle({
+            transform: 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)',
+            transition: 'transform 0.5s ease-in-out'
+        });
+    };
+
+    return (
+        <section className="relative py-16 md:py-24 bg-black overflow-hidden">
+            {/* CHANGE: Removed background elements for a full black background */}
+            <div className="container mx-auto px-6 relative z-10">
+                <AnimateOnScroll>
+                    <h2 className="text-4xl md:text-5xl font-light text-white text-center mb-12 md:mb-16" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                        {currentContent.availableOn}
+                    </h2>
+                </AnimateOnScroll>
+                
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-12 md:mb-16 max-w-4xl mx-auto">
+                    {tabs.map((tab, index) => (
+                         <AnimateOnScroll key={tab.id} className={`delay-${index * 100}`}>
+                            <button
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`w-full p-3 md:p-4 rounded-2xl transition-all duration-300 border hover:-translate-y-1 ${activeTab === tab.id ? 'border-white/50 bg-white/20 scale-105 shadow-[0_0_15px_rgba(255,255,255,0.25)]' : 'border-white/20 bg-white/10'}`}
+                            >
+                                <div className="flex flex-col items-center space-y-2">
+                                    <Image src={tab.image} alt={tab.label} width={24} height={24} className={`md:w-6 md:h-6 transition-all duration-500 ${activeTab === tab.id ? 'opacity-100' : 'opacity-80'}`} loading="lazy" />
+                                    <span className={`text-xs font-light transition-colors duration-500 ${activeTab === tab.id ? 'text-white' : 'text-gray-400'}`}>
+                                        {tab.label}
+                                    </span>
+                                </div>
+                            </button>
+                         </AnimateOnScroll>
+                    ))}
+                </div>
+
+                <AnimateOnScroll>
+                    <div 
+                        ref={cardRef}
+                        onMouseMove={handleMouseMove}
+                        onMouseLeave={handleMouseLeave}
+                        style={cardStyle}
+                        className="group relative bg-black/50 backdrop-blur-2xl rounded-3xl p-6 md:p-12 border border-white/20 transition-shadow duration-300 shadow-lg hover:shadow-2xl hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] overflow-hidden max-w-5xl mx-auto"
+                    >
+                        <div 
+                            className="absolute rounded-full bg-[radial-gradient(circle_farthest-side,rgba(255,255,255,0.1),transparent)] w-96 h-96 pointer-events-none"
+                            style={{ top: mousePos.y, left: mousePos.x, transform: 'translate(-50%, -50%)' }}
+                        />
+                        <div className="relative z-10 text-center">
+                            <div className="mb-6 md:mb-12 flex justify-center items-center">
+                                <div 
+                                    className="relative w-72 h-72 md:w-96 md:h-96 rounded-full overflow-hidden border-2 border-white/10 shadow-lg"
+                                    style={{ transform: 'translateZ(20px)' }}
+                                >
+                                    <Image 
+                                        src={activeTabData.deviceImage} 
+                                        alt={activePlatform.name} 
+                                        width={600}
+                                        height={600}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        key={activeTab}
+                                    />
+                                </div>
+                            </div>
+                          
+                            <h3 className="text-2xl md:text-4xl font-light text-white mb-3 md:mb-6" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                                {activePlatform.name}
+                            </h3>
+                            <p className="text-gray-300 mb-4 md:mb-8 max-w-2xl mx-auto font-light leading-relaxed text-base md:text-lg">
+                                {activePlatform.longDescription}
+                            </p>
+                            {activePlatform.features.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+                                    {activePlatform.features.map((feature: string, index: number) => (
+                                        <AnimateOnScroll key={index} className={`delay-${index * 150}`}>
+                                            <div className="flex items-center space-x-3 p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+                                                <div className="w-2 h-2 bg-white/50 rounded-full flex-shrink-0"></div>
+                                                <span className="text-gray-300 font-light text-sm">{feature}</span>
+                                            </div>
+                                        </AnimateOnScroll>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </AnimateOnScroll>
+            </div>
+        </section>
+    );
+});
+
 const FAQSection = memo(function FAQSection({ lang }: { lang: Language['code'] }) {
-  const [activeQuestion, setActiveQuestion] = useState(0);
-  const currentContent = content[lang];
+    const [activeQuestion, setActiveQuestion] = useState(0);
+    const currentContent = content[lang];
 
-  return (
-    <section className="relative py-12 md:py-32 mt-6 md:mt-16 overflow-hidden">
-      {/* Background video - ANIMACIÓN MÁS PEQUEÑA */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center">
-        <div className="w-82 h-82 md:w-100 md:h-100 rounded-3xl overflow-hidden opacity-100">
-          <video 
-            autoPlay 
-            muted 
-            loop 
-            playsInline
-            preload="none"
-          >
-            <source src="/images/fondo-animado-noru-bola.mp4" type="video/mp4" />
-          </video>
-        </div>
-        <div className="absolute inset-0 bg-black/20 z-10" />
-      </div>
-
-      <div className="relative z-20 container mx-auto px-6">
-        <div className="text-center mb-8 md:mb-16">
-          <h2 className="text-4xl md:text-5xl font-light text-white mb-4 md:mb-6 animate-fade-up" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-            {currentContent.askAnything}
-          </h2>
-          <p className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed font-light animate-fade-up" style={{ animationDelay: '200ms' }}>
-            {currentContent.askSubtitle}
-          </p>
-        </div>
-
-        {/* FAQ Items with #737373 colors */}
-        <div className="max-w-4xl mx-auto space-y-6">
-          {currentContent.features.map((faq: { title: string; description: string }, index: number) => (
-            <div 
-              key={index}
-              className="bg-[#737373]/30 backdrop-blur-xl rounded-2xl border border-[#737373]/30 overflow-hidden transition-all duration-1000 ease-in-out hover:border-[#737373]/50 hover:bg-[#737373]/20"
-            >
-              <button
-                onClick={() => setActiveQuestion(activeQuestion === index ? -1 : index)}
-                className="w-full p-6 text-left flex items-center justify-between hover:bg-[#737373]/20 transition-all duration-1000 ease-in-out"
-              >
-                <h3 className="text-lg font-light text-white flex-1 pr-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-                  {faq.title}
-                </h3>
-                <div className={`transition-all duration-1000 ease-in-out ${activeQuestion === index ? 'rotate-45 scale-110' : 'rotate-0 scale-100'}`}>
-                  <Plus className="w-5 h-5 text-gray-400" />
+    return (
+        <section className="relative py-16 md:py-24 bg-black overflow-hidden">
+            <div className="absolute inset-0 z-0 flex justify-center opacity-60 [mask-image:radial-gradient(ellipse_at_center,white_30%,transparent_80%)] pt-48">
+                <div className="w-full h-full max-w-[800px] max-h-[800px] md:max-w-[1100px] md:max-h-[1100px] rounded-3xl overflow-hidden">
+                    <video autoPlay muted loop playsInline preload="none">
+                        <source src="/images/fondo-animado-noru-bola.mp4" type="video/mp4" />
+                    </video>
                 </div>
-              </button>
-              
-              <div className={`overflow-hidden transition-all duration-1500 ease-in-out ${
-                activeQuestion === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-              }`}>
-                <div className="p-6 pt-0">
-                  <div className={`transform transition-all duration-1000 ease-in-out ${
-                    activeQuestion === index ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
-                  }`}>
-                    <p className="text-gray-300 font-light leading-relaxed">
-                      {faq.description}
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+
+            <div className="relative z-20 container mx-auto px-6">
+                 <AnimateOnScroll className="text-center mb-8 md:mb-16">
+                    <h2 className="text-4xl md:text-5xl font-light text-white mb-4 md:mb-6" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                        {currentContent.askAnything}
+                    </h2>
+                    <p className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed font-light">
+                        {currentContent.askSubtitle}
+                    </p>
+                 </AnimateOnScroll>
+
+                <div className="max-w-4xl mx-auto space-y-4">
+                    {currentContent.features.map((faq, index) => (
+                        <AnimateOnScroll key={index} className={`delay-${index * 100}`}>
+                            <div className={`relative bg-white/5 backdrop-blur-xl rounded-2xl border transition-all duration-500 hover:border-white/20 ${activeQuestion === index ? 'border-white/50 bg-white/10' : 'border-white/10'}`}>
+                                <button
+                                    onClick={() => setActiveQuestion(activeQuestion === index ? -1 : index)}
+                                    className="w-full p-6 text-left flex items-center justify-between"
+                                >
+                                    <h3 className="text-lg font-light text-white flex-1 pr-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                                        {faq.title}
+                                    </h3>
+                                    <div className={`transition-transform duration-500 ease-in-out ${activeQuestion === index ? 'rotate-45' : 'rotate-0'}`}>
+                                        <Plus className="w-5 h-5 text-gray-400" />
+                                    </div>
+                                </button>
+                                <div className={`grid transition-all duration-700 ease-in-out ${activeQuestion === index ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                                    <div className="overflow-hidden">
+                                         <p className="text-gray-300 font-light leading-relaxed px-6 pb-6 pt-0">
+                                            {faq.description}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </AnimateOnScroll>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
 });
 
-// Footer - SIN CAMBIOS
 const Footer = memo(function Footer() {
-  return (
-    <footer className="py-20 mt-20 bg-black">
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-          {/* Logo section */}
-          <div className="md:col-span-1">
-            <Image 
-              src="/images/nora.png" 
-              alt="NORA Logo" 
-              width={80}
-              height={80}
-              className="mb-4"
-            />
-          </div>
-
-          {/* Links sections */}
-          <div>
-            <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Products</h3>
-            <ul className="space-y-2 text-gray-400 font-light">
-              <li><a href="#" className="hover:text-white transition-colors">NORA for iPhone</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">NORA for iPad</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">NORA for Apple Watch</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">NORA for Mac</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">NORA for Android</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Information</h3>
-            <ul className="space-y-2 text-gray-400 font-light">
-              <li><a href="#" className="hover:text-white transition-colors">What is NORA?</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">NORA for Work</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">NORA for Tasks</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">NORA for Essays</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Community</h3>
-            <ul className="space-y-2 text-gray-400 font-light">
-              <li><a href="#" className="hover:text-white transition-colors">Twitter</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Instagram</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Company</h3>
-            <ul className="space-y-2 text-gray-400 font-light">
-              <li><a href="/versions" className="hover:text-white transition-colors">Versions</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
-              <li><a href="/privacy" className="hover:text-white transition-colors">Privacy</a></li>
-              <li><a href="/terms" className="hover:text-white transition-colors">Terms</a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
+    return (
+        <footer className="py-16 mt-16 bg-black">
+            <div className="container mx-auto px-6">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-8">
+                    <div className="md:col-span-2">
+                        <Image
+                            src="/images/nora.png"
+                            alt="NORA Logo"
+                            width={80}
+                            height={80}
+                            className="mb-4"
+                        />
+                        <p className="text-gray-400 font-light max-w-xs">The next generation AI assistant for all your needs.</p>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Products</h3>
+                        <ul className="space-y-2 text-gray-400 font-light">
+                            <li><a href="/iphone" className="hover:text-white transition-colors">NORA for iPhone</a></li>
+                            <li><a href="/android" className="hover:text-white transition-colors">NORA for Android</a></li>
+                            <li><a href="/mac" className="hover:text-white transition-colors">NORA for Mac</a></li>
+                            <li><a href="/windows" className="hover:text-white transition-colors">NORA for Windows</a></li>
+                            <li><a href="/webapp" className="hover:text-white transition-colors">NORA for Web</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Resources</h3>
+                        <ul className="space-y-2 text-gray-400 font-light">
+                            <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">API Docs</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Status Page</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Community</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Community</h3>
+                        <ul className="space-y-2 text-gray-400 font-light">
+                            <li><a href="https://www.tiktok.com/@car2002121?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">TikTok</a></li>
+                            <li><a href="https://www.instagram.com/noraaiapp/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Instagram</a></li>
+                            <li><a href="https://www.facebook.com/profile.php?id=61576232000413&locale=es_LA" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Facebook</a></li>
+                            <li><a href="https://www.linkedin.com/company/norappai/?viewAsMember=true" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">LinkedIn</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-medium mb-4" style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>Company</h3>
+                        <ul className="space-y-2 text-gray-400 font-light">
+                            <li><a href="/versions" className="hover:text-white transition-colors">Versions</a></li>
+                            <li><a href="/about" className="hover:text-white transition-colors">About</a></li>
+                            <li><a href="/faq" className="hover:text-white transition-colors">FAQ</a></li>
+                            <li><a href="/privacy" className="hover:text-white transition-colors">Privacy</a></li>
+                            <li><a href="/terms" className="hover:text-white transition-colors">Terms</a></li>
+                        </ul>
+                    </div>
+                </div>
+                 <div className="mt-16 pt-8 text-center text-gray-500 font-light text-sm">
+                    <p>&copy; {new Date().getFullYear()} NORA AI. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+    );
 });
 
-// Main component - SIN handleDownload
 const NuroNovaStyle: React.FC = () => {
-  const [lang] = useState<Language['code']>('en');
+    const [lang] = useState<Language['code']>('en');
 
-  return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
-      <Navigation lang={lang} />
-      
-      <main>
-        <HeroSection lang={lang} />
-        <ModelImageSection />
-        <AnimatedPhrasesSection />
-        <AvailableSection lang={lang} />
-        <FAQSection lang={lang} />
-      </main>
+    return (
+        <div className="min-h-screen bg-black text-white overflow-x-hidden">
+            <Navigation lang={lang} />
+            <main>
+                <HeroSection lang={lang} />
+                <ModelImageSection />
+                <AnimatedPhrasesSection />
+                <AvailableSection lang={lang} />
+                <FAQSection lang={lang} />
+            </main>
+            <Footer />
 
-      <Footer />
-      
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
-        
-        @keyframes fade-up {
-          0% { opacity: 0; transform: translateY(20px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slide-up {
-          0% { opacity: 0; transform: translateY(30px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slide-in-left {
-          0% { opacity: 0; transform: translateX(-20px); }
-          100% { opacity: 1; transform: translateX(0); }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-15px) rotate(2deg); }
-        }
-        
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        
-        .animate-fade-up { 
-          animation: fade-up 0.8s ease-out forwards; 
-          opacity: 0; 
-        }
-        .animate-slide-up { 
-          animation: slide-up 0.8s ease-out forwards; 
-          opacity: 0; 
-        }
-        .animate-slide-in-left { 
-          animation: slide-in-left 0.6s ease-out forwards; 
-          opacity: 0; 
-        }
-        .animate-float { 
-          animation: float 6s ease-in-out infinite; 
-        }
-        .animate-float-delayed { 
-          animation: float-delayed 8s ease-in-out infinite; 
-        }
-        .animate-float-slow { 
-          animation: float-slow 10s ease-in-out infinite; 
-        }
+            <style jsx global>{`
+                /* Font Import */
+                @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
+                
+                /* ANIMATIONS */
+                @keyframes float {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-8px); }
+                }
+                .animate-float {
+                    animation: float 4s ease-in-out infinite;
+                }
 
-        /* Ensure smooth scrolling */
-        html {
-          scroll-behavior: smooth;
-        }
+                @keyframes pan {
+                    0% { background-position: 0% 0%; }
+                    100% { background-position: 100% 100%; }
+                }
+                .animate-pan {
+                    animation: pan 30s linear infinite;
+                }
 
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-          background: #1f2937;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: #4b5563;
-          border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: #6b7280;
-        }
+                /* General Styles */
+                html {
+                    scroll-behavior: smooth;
+                }
+                body {
+                    font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background-color: #000;
+                }
+                
+                /* Custom Scrollbar */
+                ::-webkit-scrollbar { width: 8px; }
+                ::-webkit-scrollbar-track { background: #111; }
+                ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+                ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
 
-        /* Lastica font fallbacks */
-        body {
-          font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-      `}</style>
-    </div>
-  );
+                /* Delay utilities for staggered animations */
+                .delay-100 { transition-delay: 100ms; }
+                .delay-150 { transition-delay: 150ms; }
+                .delay-200 { transition-delay: 200ms; }
+                .delay-300 { transition-delay: 300ms; }
+                .delay-400 { transition-delay: 400ms; }
+                .delay-500 { transition-delay: 500ms; }
+            `}</style>
+        </div>
+    );
 };
 
 export default NuroNovaStyle;
