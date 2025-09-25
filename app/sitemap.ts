@@ -1,46 +1,41 @@
 // app/sitemap.ts
 import { MetadataRoute } from 'next'
- 
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://nuro-ai.com' // Cambiar por tu dominio real
+  const baseUrl = 'https://mynoraai.com' // Tu dominio real
   const currentDate = new Date()
-  
+
+  const staticPages = [
+    { url: `${baseUrl}/`, priority: 1, changeFrequency: 'weekly' },
+    { url: `${baseUrl}/download`, priority: 0.9, changeFrequency: 'monthly' },
+    { url: `${baseUrl}/about`, priority: 0.8, changeFrequency: 'yearly' },
+    { url: `${baseUrl}/pricing`, priority: 0.8, changeFrequency: 'monthly' },
+    { url: `${baseUrl}/faq`, priority: 0.7, changeFrequency: 'monthly' },
+    { url: `${baseUrl}/versions`, priority: 0.7, changeFrequency: 'weekly' },
+    { url: `${baseUrl}/privacy`, priority: 0.5, changeFrequency: 'yearly' },
+    { url: `${baseUrl}/terms`, priority: 0.5, changeFrequency: 'yearly' }
+  ];
+
+  const productPages = [
+    { url: `${baseUrl}/iphone`, priority: 0.9, changeFrequency: 'quarterly' },
+    { url: `${baseUrl}/android`, priority: 0.9, changeFrequency: 'quarterly' },
+    { url: `${baseUrl}/mac`, priority: 0.9, changeFrequency: 'quarterly' },
+    { url: `${baseUrl}/windows`, priority: 0.9, changeFrequency: 'quarterly' },
+    { url: `${baseUrl}/webapp`, priority: 0.9, changeFrequency: 'quarterly' }
+  ];
+
   return [
-    {
-      url: baseUrl,
+    ...staticPages.map(page => ({
+      url: page.url,
       lastModified: currentDate,
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/docs`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/faq`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/changelog`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/terms`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
+      changeFrequency: page.changeFrequency as 'weekly' | 'monthly' | 'yearly' | 'always' | 'hourly' | 'daily' | 'never' | undefined,
+      priority: page.priority,
+    })),
+    ...productPages.map(page => ({
+        url: page.url,
+        lastModified: currentDate,
+        changeFrequency: page.changeFrequency as 'quarterly' | 'weekly' | 'monthly' | 'yearly' | 'always' | 'hourly' | 'daily' | 'never' | undefined,
+        priority: page.priority,
+      })),
   ]
 }

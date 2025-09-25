@@ -1,58 +1,50 @@
-# robots.txt - NURO AI Assistant
-# Optimizado para SEO y crawling eficiente
+# app/robots.txt - NURO AI Assistant
+# Optimizado para SEO y protección de contenido
 
-# Allow all major search engines
 User-agent: *
-Allow: /
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /auth # Bloquear página de login/registro
+Disallow: /chat # Bloquear interfaz de chat
+Disallow: /success # Bloquear página de éxito de pago
+Allow: /$ # Permitir la página de inicio
+Allow: /_next/static/ # Permitir recursos estáticos cruciales
+Allow: /images/ # Permitir que se indexen las imágenes
 
-# Specific rules for major crawlers
+# Reglas específicas para los principales rastreadores
 User-agent: Googlebot
 Allow: /
 Crawl-delay: 1
 
-User-agent: Bingbot  
+User-agent: Bingbot
 Allow: /
 Crawl-delay: 1
 
-User-agent: Slurp
-Allow: /
-Crawl-delay: 2
-
-# Block access to API routes and internal paths
-Disallow: /api/
-Disallow: /_next/
-Disallow: /admin/
-Disallow: /.well-known/
-Disallow: /_vercel/
-
-# Block problematic or aggressive crawlers
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: MJ12bot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-User-agent: DotBot
-Disallow: /
-
-# Block AI training crawlers (optional)
-User-agent: ChatGPT-User
-Disallow: /
-
+# Bloquear bots de IA para proteger tu contenido
 User-agent: GPTBot
 Disallow: /
 
-User-agent: CCBot
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Google-Extended
 Disallow: /
 
 User-agent: anthropic-ai
 Disallow: /
 
-# Sitemap location
-Sitemap: https://nuro-ai.com/sitemap.xml
+User-agent: CCBot
+Disallow: /
 
-# Host preference (helps with canonicalization)
-Host: https://nuro-ai.com
+# Bloquear bots de SEO agresivos
+User-agent: AhrefsBot
+Disallow: /
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Disallow: /
+Crawl-delay: 10
+
+# Ubicación del Sitemap (absoluta)
+Sitemap: https://mynoraai.com/sitemap.xml
