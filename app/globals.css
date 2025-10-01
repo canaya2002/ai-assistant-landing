@@ -1,12 +1,11 @@
-/* app/globals.css */
-/* Importar fuentes de Google - DEBE IR PRIMERO */
+/* app/globals.css - ESTILOS ACTUALIZADOS CON GLASS iOS 18 */
 @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Variables CSS personalizadas */
+/* ===== VARIABLES CSS ===== */
 :root {
   --nora-primary: #3b82f6;
   --nora-secondary: #8b5cf6;
@@ -15,7 +14,7 @@
   --nora-gray: #1e293b;
 }
 
-/* Estilos base */
+/* ===== BASE STYLES ===== */
 * {
   margin: 0;
   padding: 0;
@@ -34,7 +33,35 @@ body {
   color: #ffffff;
 }
 
-/* Prevenir selección y arrastre de elementos específicos */
+/* ===== GLASS EFFECT iOS 18 ===== */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-effect-dark {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-effect-light {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.1), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* ===== SELECTION CONTROLS ===== */
 .no-select,
 .no-drag,
 img,
@@ -51,7 +78,6 @@ video {
   -webkit-touch-callout: none;
 }
 
-/* Permitir selección para elementos de texto */
 .allow-select,
 p,
 span,
@@ -65,7 +91,7 @@ textarea,
   user-select: text;
 }
 
-/* Scrollbar personalizada */
+/* ===== CUSTOM SCROLLBAR ===== */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -96,171 +122,92 @@ textarea,
   scrollbar-color: rgba(75, 85, 99, 0.7) rgba(31, 41, 55, 0.5);
 }
 
-/* Animaciones personalizadas */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
+/* ===== BUTTONS ===== */
+button {
+  pointer-events: auto !important;
+}
+
+button svg,
+button .lucide {
+  pointer-events: none !important;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fade-up {
+  0% { 
+    opacity: 0; 
+    transform: translateY(40px); 
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  100% { 
+    opacity: 1; 
+    transform: translateY(0); 
   }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
+@keyframes slide-right {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(0); }
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
   }
 }
 
-@keyframes typewriter {
-  from { width: 0; }
-  to { width: 100%; }
+.animate-fade-up { 
+  animation: fade-up 0.8s ease-out forwards; 
+  opacity: 0; 
 }
 
-@keyframes blink {
-  from, to { border-color: transparent; }
-  50% { border-color: currentColor; }
-}
-
-@keyframes gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-/* Clases de utilidad */
-.animate-fadeInUp {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.4s ease-out;
-}
-
-.animate-slideInRight {
-  animation: slideInRight 0.5s ease-out;
-}
-
-.animate-slideInLeft {
-  animation: slideInLeft 0.5s ease-out;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+.animate-slide-right {
+  animation: slide-right 0.8s ease-out forwards;
 }
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.animate-typewriter {
-  animation: typewriter 2s steps(40) 1s both;
+/* ===== MARKDOWN CONTENT STYLES ===== */
+.markdown-content {
+  @apply text-gray-100;
 }
 
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  @apply text-white font-bold;
 }
 
-/* Gradientes personalizados */
-.bg-gradient-nora {
-  background: linear-gradient(135deg, var(--nora-primary), var(--nora-secondary));
+.markdown-content code {
+  @apply bg-gray-700 px-2 py-1 rounded text-sm text-gray-200 font-mono;
 }
 
-.bg-gradient-nora-dark {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+.markdown-content pre {
+  @apply bg-gray-800 p-4 rounded-lg text-sm overflow-x-auto my-4;
 }
 
-.text-gradient-nora {
-  background: linear-gradient(135deg, var(--nora-primary), var(--nora-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.markdown-content a {
+  @apply text-blue-400 hover:text-blue-300 underline;
 }
 
-/* Efectos de cristal */
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.markdown-content blockquote {
+  @apply border-l-4 border-gray-600 pl-4 italic text-gray-300 my-4 bg-gray-800/50 py-2 rounded-r-lg;
 }
 
-.glass-dark {
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.markdown-content ul,
+.markdown-content ol {
+  @apply my-4 space-y-2;
 }
 
-/* Estados de hover mejorados */
-.hover-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.markdown-content li {
+  @apply ml-4 text-gray-100;
 }
 
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-/* Botones personalizados */
-.btn-nora {
-  @apply bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl;
-}
-
-.btn-nora-outline {
-  @apply border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-medium py-3 px-6 rounded-xl transition-all duration-300;
-}
-
-/* Input personalizado */
-.input-nora {
-  @apply bg-gray-800/50 border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200;
-}
-
-/* Cards personalizadas */
-.card-nora {
-  @apply bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm hover:bg-white/10 hover:border-white/20 transition-all duration-300;
-}
-
-/* Estados de carga */
+/* ===== LOADING STATES ===== */
 .loading-dots::after {
   content: '';
   animation: loading-dots 1.5s steps(4, end) infinite;
@@ -273,7 +220,7 @@ textarea,
   80%, 100% { content: '...'; }
 }
 
-/* Responsive typography */
+/* ===== RESPONSIVE TYPOGRAPHY ===== */
 @media (max-width: 640px) {
   html {
     font-size: 14px;
@@ -292,7 +239,7 @@ textarea,
   }
 }
 
-/* Mejoras de accesibilidad */
+/* ===== REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -303,12 +250,12 @@ textarea,
   }
 }
 
-/* Focus states para accesibilidad */
+/* ===== FOCUS STATES ===== */
 .focus-ring:focus {
   @apply outline-none ring-2 ring-blue-500/50 ring-offset-2 ring-offset-gray-900;
 }
 
-/* Ocultar elementos solo visualmente (para screen readers) */
+/* ===== ACCESSIBILITY ===== */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -321,104 +268,54 @@ textarea,
   border: 0;
 }
 
-/* Utilidades para el loading screen */
-.draggable-false {
-  -webkit-user-drag: none !important;
-  -khtml-user-drag: none !important;
-  -moz-user-drag: none !important;
-  -o-user-drag: none !important;
-  user-drag: none !important;
+/* ===== MESSAGE BUBBLES ===== */
+.message-bubble {
+  @apply rounded-2xl p-4 max-w-sm break-words;
 }
 
-/* Evitar context menu en imágenes y videos */
-img, video {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  pointer-events: none;
+.message-user {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.1), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* Permitir interacción en elementos interactivos */
-button, input, textarea, select, a {
-  pointer-events: auto;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+.message-ai {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Permitir selección de texto en inputs y textareas */
-input, textarea {
+/* ===== INPUT FIELDS ===== */
+input,
+textarea {
   -webkit-user-select: text;
   -moz-user-select: text;
   -ms-user-select: text;
   user-select: text;
 }
 
-/* Estilos para el menú hamburguesa animado */
-.hamburger-line {
-  transition: all 0.3s ease;
-  transform-origin: center;
+textarea {
+  resize: none;
 }
 
-/* Estilos para mensajes de chat */
-.message-bubble {
-  @apply rounded-2xl p-4 max-w-sm break-words;
+/* ===== UTILITY CLASSES ===== */
+.backdrop-blur-glass {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
-.message-user {
-  @apply bg-gradient-to-r from-blue-600 to-blue-700 text-white ml-auto;
+.shadow-glass {
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.message-ai {
-  @apply bg-gray-800 text-white;
-}
-
-/* Efectos especiales para la welcome screen */
-.sparkle-effect {
-  position: relative;
-  overflow: hidden;
-}
-
-.sparkle-effect::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  animation: sparkle 3s linear infinite;
-}
-
-/* ✅ CORRECCIÓN PARA BOTONES DE CERRAR */
-button[title="Cerrar"],
-button[title="Cerrar Generador de Imágenes"], 
-.close-button,
-button.close-button {
-  pointer-events: auto !important;
-  -webkit-user-select: none !important;
-  -moz-user-select: none !important;
-  user-select: none !important;
-  z-index: 9999999 !important;
-  position: relative !important;
-}
-
-/* ✅ ASEGURAR QUE TODOS LOS BOTONES FUNCIONEN */
-button {
-  pointer-events: auto !important;
-}
-
-/* ✅ CORREGIR ESPECÍFICAMENTE PARA ICONOS DENTRO DE BOTONES */
-button svg,
-button .lucide {
-  pointer-events: none !important;
-}
-
-@keyframes sparkle {
-  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+.shadow-glass-light {
+  box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.1), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }

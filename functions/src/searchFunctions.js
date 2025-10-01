@@ -1,19 +1,10 @@
-// functions/src/searchFunctions.js - FUNCIONES DE BÚSQUEDA WEB CON SEGURIDAD MEJORADA
+// functions/searchFunctions.js - BÃšSQUEDA WEB Y PROCESAMIENTO PDF COMPLETO
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-
-// ✅ IMPORTAR VERIFICACIÓN DE SUSCRIPCIÓN SEGURA
-// Nota: Se importa dinámicamente para evitar dependencias circulares
-let verifyUserSubscription = null;
-const getVerifyFunction = () => {
-  if (!verifyUserSubscription) {
-    verifyUserSubscription = require('./index').verifyUserSubscription;
-  }
-  return verifyUserSubscription;
-};
+const axios = require('axios');
 
 // ========================================
-// 🔍 LÍMITES DE BÚSQUEDA POR PLAN CON VERIFICACIÓN
+// ðŸ“Š LÃMITES DE BÃšSQUEDA POR PLAN
 // ========================================
 const SEARCH_LIMITS = {
   'free': { monthly: 50 },
@@ -22,180 +13,127 @@ const SEARCH_LIMITS = {
 };
 
 // ========================================
-// ✅ FUNCIÓN PRINCIPAL: VERIFICAR LÍMITES DE BÚSQUEDA SEGURA
+// âœ… FUNCIÃ“N: VERIFICAR LÃMITES DE BÃšSQUEDA
 // ========================================
 async function checkSearchLimits(uid, plan) {
   try {
-    // ✅ VERIFICACIÓN ADICIONAL DE PLAN (OPCIONAL)
-    if (getVerifyFunction()) {
-      const verification = await getVerifyFunction()(uid);
-      if (!verification.isValid) {
-        console.warn(`⚠️ Verificación de suscripción falló para búsqueda: ${verification.error}`);
-        // Continuar con plan básico pero registrar advertencia
-      } else if (verification.plan !== plan) {
-        console.warn(`⚠️ Plan inconsistente - Esperado: ${plan}, Actual: ${verification.plan}`);
-        plan = verification.plan; // Usar plan verificado
-      }
-    }
-
     const today = new Date();
     const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     
     const searchUsageDoc = await admin.firestore().collection('search_usage').doc(uid).get();
     const searchUsageData = searchUsageDoc.data();
     
-    const monthlyUsage = searchUsageData?.monthly || { searchesUsed: 0, month: monthStr };
+    let monthlyUsage = searchUsageData?.monthly || { searchesUsed: 0, month: monthStr };
     
-    // Reset automático si cambió el mes
+    // Reset automÃ¡tico si cambiÃ³ el mes
     if (monthlyUsage.month !== monthStr) {
-      monthlyUsage.searchesUsed = 0;
-      monthlyUsage.month = monthStr;
+      monthlyUsage = { searchesUsed: 0, month: monthStr };
     }
     
-    // ✅ OBTENER LÍMITES SEGUROS
     const limit = SEARCH_LIMITS[plan]?.monthly || SEARCH_LIMITS['free'].monthly;
-    const remaining = limit - monthlyUsage.searchesUsed;
+    const remaining = Math.max(0, limit - monthlyUsage.searchesUsed);
     
-    console.log(`🔍 Verificando límites de búsqueda - Plan: ${plan}, Usado: ${monthlyUsage.searchesUsed}/${limit}, Restante: ${remaining}`);
+    console.log(`ðŸ” LÃ­mites de bÃºsqueda - Plan: ${plan}, Usado: ${monthlyUsage.searchesUsed}/${limit}`);
     
     return {
       canSearch: remaining > 0,
       used: monthlyUsage.searchesUsed,
       limit: limit,
       remaining: remaining,
-      monthlyUsage: monthlyUsage,
-      // ✅ INFORMACIÓN ADICIONAL DE VERIFICACIÓN
-      verifiedPlan: plan,
-      lastChecked: new Date()
+      monthlyUsage: monthlyUsage
     };
   } catch (error) {
-    console.error('❌ Error verificando límites de búsqueda:', error);
+    console.error('âŒ Error verificando lÃ­mites de bÃºsqueda:', error);
     return {
       canSearch: false,
       used: 0,
       limit: 0,
       remaining: 0,
-      monthlyUsage: { searchesUsed: 0, month: 'error' },
-      error: error.message
+      monthlyUsage: { searchesUsed: 0, month: 'error' }
     };
   }
 }
 
 // ========================================
-// ✅ FUNCIÓN ACTUALIZAR USO DE BÚSQUEDA CON VERIFICACIÓN
+// âœ… FUNCIÃ“N: ACTUALIZAR USO DE BÃšSQUEDA
 // ========================================
 async function updateSearchUsage(uid, monthlyUsage) {
   try {
-    // ✅ VERIFICACIÓN ADICIONAL ANTES DE ACTUALIZAR
-    if (!uid || !monthlyUsage) {
-      throw new Error('Parámetros inválidos para actualización de búsqueda');
-    }
-
-    const previousCount = monthlyUsage.searchesUsed;
     monthlyUsage.searchesUsed += 1;
     
-    // ✅ ACTUALIZACIÓN ATÓMICA CON VERIFICACIÓN
     await admin.firestore().collection('search_usage').doc(uid).set({
       monthly: monthlyUsage,
-      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      // ✅ METADATOS DE AUDITORÍA
-      updateSource: 'search_function',
-      previousCount: previousCount,
-      increment: 1
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    console.log(`✅ Contador de búsqueda actualizado: ${previousCount} → ${monthlyUsage.searchesUsed}`);
+    console.log(`âœ… Contador de bÃºsqueda actualizado: ${monthlyUsage.searchesUsed}`);
   } catch (error) {
-    console.error('❌ Error actualizando contador de búsquedas:', error);
-    throw error; // Re-lanzar para manejo en función llamadora
+    console.error('âŒ Error actualizando contador de bÃºsquedas:', error);
+    throw error;
   }
 }
 
 // ========================================
-// ✅ FUNCIÓN BUSCAR EN INTERNET CON VERIFICACIÓN MEJORADA
+// âœ… FUNCIÃ“N: BUSCAR EN INTERNET
 // ========================================
 async function searchInternet(query, maxResults = 5) {
   try {
-    // ✅ VALIDACIONES DE ENTRADA ESTRICTAS
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
-      throw new Error('Query de búsqueda inválido');
+      throw new Error('Query de bÃºsqueda invÃ¡lido');
     }
 
     if (maxResults < 1 || maxResults > 10) {
-      throw new Error('Número de resultados debe estar entre 1 y 10');
+      throw new Error('NÃºmero de resultados debe estar entre 1 y 10');
     }
 
-    // ✅ CONFIGURACIÓN SEGURA DE APIs
     const apiKey = functions.config().google?.search_api_key;
     const searchEngineId = functions.config().google?.search_engine_id;
     
     if (!apiKey || !searchEngineId) {
-      throw new Error('APIs de búsqueda no configuradas correctamente');
+      throw new Error('APIs de bÃºsqueda no configuradas');
     }
 
-    // ✅ SANITIZAR QUERY PARA PREVENIR INYECCIONES
-    const sanitizedQuery = query.trim()
-      .replace(/[<>]/g, '') // Remover caracteres potencialmente peligrosos
-      .substring(0, 200); // Limitar longitud
-
+    const sanitizedQuery = query.trim().substring(0, 200);
     const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(sanitizedQuery)}&num=${maxResults}&lr=lang_es&safe=active`;
     
-    console.log('🔍 Ejecutando búsqueda segura:', sanitizedQuery);
+    console.log('ðŸ” Ejecutando bÃºsqueda:', sanitizedQuery);
     
-    const response = await fetch(searchUrl);
+    const response = await axios.get(searchUrl);
     
-    if (!response.ok) {
-      throw new Error(`Error en Google Search API: ${response.status} - ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    // ✅ VALIDAR RESPUESTA DE LA API
-    if (!data.items) {
-      console.log('ℹ️ No se encontraron resultados para:', sanitizedQuery);
+    if (!response.data.items) {
+      console.log('â„¹ï¸ No se encontraron resultados');
       return {
         success: true,
         query: sanitizedQuery,
         results: [],
-        totalResults: 0,
-        searchTime: Date.now()
+        totalResults: 0
       };
     }
     
-    // ✅ PROCESAR Y SANITIZAR RESULTADOS
-    const results = data.items.slice(0, maxResults).map(item => ({
-      title: item.title ? item.title.substring(0, 200) : 'Sin título',
-      snippet: item.snippet ? item.snippet.substring(0, 300) : 'Sin descripción',
+    const results = response.data.items.slice(0, maxResults).map(item => ({
+      title: item.title || 'Sin tÃ­tulo',
+      snippet: item.snippet || 'Sin descripciÃ³n',
       link: item.link,
-      displayLink: item.displayLink,
-      // ✅ CAMPOS ADICIONALES SEGUROS
-      formattedUrl: item.formattedUrl,
-      kind: item.kind || 'web'
+      displayLink: item.displayLink
     }));
     
-    console.log(`✅ Búsqueda exitosa: ${results.length} resultados encontrados`);
+    console.log(`âœ… BÃºsqueda exitosa: ${results.length} resultados`);
     
     return {
       success: true,
       query: sanitizedQuery,
       results: results,
-      totalResults: parseInt(data.searchInformation?.totalResults) || results.length,
-      searchTime: parseFloat(data.searchInformation?.searchTime) || 0,
-      // ✅ METADATOS DE VERIFICACIÓN
-      apiResponse: {
-        kind: data.kind,
-        searchInformation: data.searchInformation
-      }
+      totalResults: parseInt(response.data.searchInformation?.totalResults) || results.length
     };
     
   } catch (error) {
-    console.error('❌ Error en búsqueda de internet:', error);
-    throw new Error(`Búsqueda fallida: ${error.message}`);
+    console.error('âŒ Error en bÃºsqueda:', error);
+    throw new Error(`BÃºsqueda fallida: ${error.message}`);
   }
 }
 
 // ========================================
-// ✅ FUNCIÓN DETERMINAR SI NECESITA BÚSQUEDA WEB (MEJORADA)
+// âœ… FUNCIÃ“N: DETERMINAR SI NECESITA BÃšSQUEDA WEB
 // ========================================
 function shouldSearchInternet(message) {
   if (!message || typeof message !== 'string') {
@@ -204,71 +142,36 @@ function shouldSearchInternet(message) {
 
   const query = message.toLowerCase().trim();
   
-  // ✅ PATTERNS MÁS ESPECÍFICOS PARA BÚSQUEDA
   const searchPatterns = [
-    // Información actual/reciente
-    /\b(actual|reciente|último|nueva|nuevo|hoy|ayer|esta semana|este mes|2024|2025)\b/,
-    /\b(noticias|noticia|actualidad|breaking|último momento)\b/,
-    
-    // Preguntas específicas que requieren datos actuales
-    /\b(precio|cotización|valor|costo|cuánto cuesta|cuánto vale)\b/,
-    /\b(clima|tiempo|temperatura|pronóstico)\b/,
+    /\b(actual|reciente|Ãºltimo|nueva|nuevo|hoy|ayer|esta semana|este mes|2024|2025)\b/,
+    /\b(noticias|noticia|actualidad|breaking)\b/,
+    /\b(precio|cotizaciÃ³n|valor|costo|cuÃ¡nto cuesta)\b/,
+    /\b(clima|tiempo|temperatura|pronÃ³stico)\b/,
     /\b(horarios|abierto|cerrado|disponible ahora)\b/,
-    
-    // Eventos y fechas
-    /\b(cuándo|fecha|horario|evento|concierto|partido)\b/,
-    /\b(calendario|agenda|programación)\b/,
-    
-    // Información de empresas/organizaciones
-    /\b(empresa|compañía|organización|institución|universidad)\b.*\b(información|datos|contacto)\b/,
-    
-    // Búsquedas específicas
-    /\b(buscar|encontrar|información sobre|datos sobre)\b/,
-    /\b(dónde|ubicación|dirección|mapa|cerca de)\b/,
-    
-    // Comparaciones que requieren datos actuales
-    /\b(comparar|vs|versus|diferencia entre|mejor que)\b/,
-    /\b(ranking|top|mejor|peor|lista de)\b/,
-    
-    // Preguntas que típicamente requieren información actualizada
-    /^(qué|cuál|cómo|dónde|cuándo|quién).*\b(ahora|actual|último|reciente)\b/
+    /\b(cuÃ¡ndo|fecha|horario|evento)\b/,
+    /\b(buscar|encontrar|informaciÃ³n sobre)\b/,
+    /\b(dÃ³nde|ubicaciÃ³n|direcciÃ³n|cerca de)\b/,
+    /\b(comparar|vs|mejor|ranking|top)\b/
   ];
   
-  // ✅ ANTI-PATTERNS - NO BUSCAR PARA ESTOS CASOS
   const noSearchPatterns = [
-    /\b(define|definición|qué es|explica|explicar)\b/,
-    /\b(cómo hacer|tutorial|pasos|instrucciones)\b/,
-    /\b(ejemplo|ejemplos|muestra|muéstrame)\b/,
-    /\b(código|programar|script|función)\b/,
-    /\b(matemática|matemáticas|cálculo|ecuación)\b/,
-    /\b(historia|histórico|antiguo|pasado)\b/,
-    /\b(teoría|concepto|filosofía|literatura)\b/
+    /\b(define|definiciÃ³n|quÃ© es|explica)\b/,
+    /\b(cÃ³mo hacer|tutorial|pasos)\b/,
+    /\b(ejemplo|ejemplos|muestra)\b/,
+    /\b(cÃ³digo|programar|funciÃ³n)\b/,
+    /\b(matemÃ¡tica|cÃ¡lculo|ecuaciÃ³n)\b/,
+    /\b(historia|histÃ³rico|antiguo)\b/,
+    /\b(teorÃ­a|concepto|filosofÃ­a)\b/
   ];
   
-  // Verificar anti-patterns primero
   for (const pattern of noSearchPatterns) {
     if (pattern.test(query)) {
       return false;
     }
   }
   
-  // Verificar patterns de búsqueda
   for (const pattern of searchPatterns) {
     if (pattern.test(query)) {
-      return true;
-    }
-  }
-  
-  // ✅ LÓGICA ADICIONAL: DETECTAR PREGUNTAS SOBRE ENTIDADES ESPECÍFICAS
-  const entityPatterns = [
-    /\b[A-Z][a-z]+ [A-Z][a-z]+\b/, // Nombres propios (Elon Musk, Apple Inc)
-    /\b[A-Z]{2,}\b/, // Siglas (NASA, UEFA)
-    /@\w+/, // Menciones de redes sociales
-    /www\.|\.com|\.org|\.net/ // URLs o dominios
-  ];
-  
-  for (const pattern of entityPatterns) {
-    if (pattern.test(message)) {
       return true;
     }
   }
@@ -277,17 +180,15 @@ function shouldSearchInternet(message) {
 }
 
 // ========================================
-// ✅ FUNCIÓN GENERAR RESPUESTA CON BÚSQUEDA (MEJORADA)
+// âœ… FUNCIÃ“N: GENERAR RESPUESTA CON BÃšSQUEDA
 // ========================================
-async function generateResponseWithSearch(uid, plan, message, chatHistory = [], genAI) {
+async function generateResponseWithSearch(uid, plan, message, chatHistory, genAI, limits) {
   try {
-    // ✅ VERIFICAR LÍMITES CON SEGURIDAD MEJORADA
     const limitCheck = await checkSearchLimits(uid, plan);
     
     if (!limitCheck.canSearch) {
-      console.log(`⚠️ Usuario ${uid} alcanzó límite de búsquedas: ${limitCheck.used}/${limitCheck.limit}`);
+      console.log(`âš ï¸ Usuario ${uid} alcanzÃ³ lÃ­mite de bÃºsquedas`);
       
-      // Preparar contexto de conversación
       let conversationContext = '';
       if (chatHistory && chatHistory.length > 0) {
         conversationContext = chatHistory.slice(-5).map(msg => 
@@ -295,15 +196,15 @@ async function generateResponseWithSearch(uid, plan, message, chatHistory = [], 
         ).join('\n');
       }
 
-      const limitPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
+      const limitPrompt = `Eres NORA, una asistente de IA empÃ¡tica y conversacional.
 
-${conversationContext ? `Contexto de conversación:\n${conversationContext}\n\n` : ''}
+${conversationContext ? `Contexto de conversaciÃ³n:\n${conversationContext}\n\n` : ''}
 
 Usuario: ${message}
 
-NOTA IMPORTANTE: El usuario ha alcanzado su límite mensual de búsquedas en internet (${limitCheck.used}/${limitCheck.limit}). Responde basándote en tu conocimiento general y menciona que para información muy actualizada ha alcanzado el límite de búsquedas web del plan ${plan === 'free' ? 'Gratuito' : (plan === 'pro' ? 'Pro' : 'Pro Max')}.
+NOTA: El usuario ha alcanzado su lÃ­mite mensual de bÃºsquedas web (${limitCheck.used}/${limitCheck.limit}). Proporciona una respuesta detallada basada en tu conocimiento general. Menciona de forma natural que para informaciÃ³n muy actualizada ha alcanzado el lÃ­mite de bÃºsquedas web.
 
-Respuesta:`;
+NORA:`;
 
       const model = genAI.getGenerativeModel({ 
         model: 'gemini-2.0-flash',
@@ -311,7 +212,7 @@ Respuesta:`;
           temperature: 0.7,
           topK: 40,
           topP: 0.8,
-          maxOutputTokens: plan === 'free' ? 2000 : (plan === 'pro' ? 4000 : 10000)
+          maxOutputTokens: limits.maxTokensPerResponse
         }
       });
 
@@ -327,60 +228,42 @@ Respuesta:`;
       };
     }
     
-    // Determinar si necesita búsqueda
     const needsSearch = shouldSearchInternet(message);
     
     let searchResults = null;
     let searchContext = '';
     
     if (needsSearch) {
-      console.log('🔍 Consulta requiere búsqueda en internet y hay límite disponible');
+      console.log('ðŸ” Realizando bÃºsqueda web');
       
       try {
-        // ✅ CREAR QUERY OPTIMIZADA PARA BÚSQUEDA MÁS EFECTIVA
-        let searchQuery = message;
-        
-        // Limpiar el query para búsqueda más efectiva
-        searchQuery = searchQuery
-          .replace(/por favor|puedes|podrías|me ayudas|dime|cuéntame/gi, '')
+        let searchQuery = message
+          .replace(/por favor|puedes|podrÃ­as|me ayudas/gi, '')
           .replace(/\?/g, '')
-          .replace(/^(qué|cómo|cuál|dónde|cuándo|por qué)\s+/gi, '')
-          .trim();
+          .trim()
+          .substring(0, 100);
         
-        // Limitar longitud del query
-        if (searchQuery.length > 100) {
-          searchQuery = searchQuery.substring(0, 100);
-        }
-        
-        // ✅ EJECUTAR BÚSQUEDA CON MANEJO DE ERRORES ROBUSTO
         searchResults = await searchInternet(searchQuery, 5);
-        
-        // ✅ ACTUALIZAR CONTADOR SOLO DESPUÉS DE BÚSQUEDA EXITOSA
         await updateSearchUsage(uid, limitCheck.monthlyUsage);
         
         if (searchResults.results && searchResults.results.length > 0) {
-          searchContext = `\n\n--- INFORMACIÓN ACTUAL DE INTERNET ---\n`;
-          searchContext += `Búsqueda: "${searchResults.query}"\n`;
-          searchContext += `Resultados encontrados: ${searchResults.results.length}\n`;
-          searchContext += `Tiempo de búsqueda: ${searchResults.searchTime}s\n\n`;
+          searchContext = `\n\n--- ðŸŒ INFORMACIÃ“N DE INTERNET ---\n`;
+          searchContext += `BÃºsqueda: "${searchResults.query}"\n\n`;
           
           searchResults.results.forEach((result, index) => {
             searchContext += `${index + 1}. ${result.title}\n`;
             searchContext += `   ${result.snippet}\n`;
-            searchContext += `   Fuente: ${result.displayLink}\n`;
-            searchContext += `   URL: ${result.link}\n\n`;
+            searchContext += `   Fuente: ${result.displayLink}\n\n`;
           });
           
-          searchContext += `--- FIN INFORMACIÓN DE INTERNET ---\n\n`;
+          searchContext += `--- FIN INFORMACIÃ“N DE INTERNET ---\n\n`;
         }
       } catch (searchError) {
-        console.error('❌ Error en búsqueda, continuando sin resultados web:', searchError);
-        searchContext = '\n--- ⚠️ No se pudo obtener información actualizada de internet ---\n';
-        searchContext += `Motivo: ${searchError.message}\n\n`;
+        console.error('âŒ Error en bÃºsqueda:', searchError);
+        searchContext = '\n--- âš ï¸ No se pudo obtener informaciÃ³n de internet ---\n\n';
       }
     }
     
-    // Preparar contexto de conversación
     let conversationContext = '';
     if (chatHistory && chatHistory.length > 0) {
       conversationContext = chatHistory.slice(-5).map(msg => 
@@ -388,42 +271,37 @@ Respuesta:`;
       ).join('\n');
     }
     
-    // ✅ CREAR PROMPT MEJORADO CON CONTEXTO DE BÚSQUEDA
-    const enhancedPrompt = `Eres NORA, un asistente de IA útil. Responde en español.
+    const enhancedPrompt = `Eres NORA, una asistente de IA Ãºtil.
 
 ${searchContext}
 
-${conversationContext ? `Contexto de conversación:\n${conversationContext}\n\n` : ''}
+${conversationContext ? `Contexto:\n${conversationContext}\n\n` : ''}
 
 Usuario: ${message}
 
 ${searchContext ? 
-`INSTRUCCIONES ESPECIALES: 
-- Usa la información actualizada de internet proporcionada arriba
-- Cita las fuentes cuando uses información específica de los resultados
-- Si la información de internet es relevante, priorízala sobre tu conocimiento base
-- Menciona que la información es actual/reciente cuando sea apropiado
-- Si hay múltiples fuentes, compara o sintetiza la información cuando sea útil` 
+`INSTRUCCIONES:
+- Usa la informaciÃ³n actualizada de internet
+- Cita las fuentes especÃ­ficas
+- Combina tu conocimiento con la informaciÃ³n web
+- Menciona que la informaciÃ³n es actual` 
 : ''}
 
 Respuesta:`;
 
-    // ✅ CONFIGURAR MODELO SEGÚN EL PLAN VERIFICADO
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.0-flash',
       generationConfig: {
         temperature: 0.7,
         topK: 40,
         topP: 0.8,
-        maxOutputTokens: plan === 'free' ? 2000 : (plan === 'pro' ? 4000 : 10000)
+        maxOutputTokens: limits.maxTokensPerResponse
       }
     });
 
-    console.log('🤖 Generando respuesta con contexto web...');
     const result = await model.generateContent(enhancedPrompt);
     const text = result.response.text();
 
-    // Obtener límites actualizados
     const updatedLimits = await checkSearchLimits(uid, plan);
 
     return {
@@ -432,107 +310,124 @@ Respuesta:`;
       searchUsed: needsSearch,
       searchResults: searchResults,
       limitReached: false,
-      searchLimits: updatedLimits,
-      // ✅ METADATOS ADICIONALES
-      searchQuery: searchResults?.query || null,
-      sourcesUsed: searchResults?.results?.length || 0
+      searchLimits: updatedLimits
     };
     
   } catch (error) {
-    console.error('❌ Error generando respuesta con búsqueda:', error);
+    console.error('âŒ Error generando respuesta:', error);
     throw error;
   }
 }
 
 // ========================================
-// ✅ FUNCIÓN AUXILIAR: EXTRAER TEXTO DE PDF (MEJORADA)
+// ðŸ“„ FUNCIÃ“N: EXTRAER TEXTO DE PDF (MEJORADA)
 // ========================================
 async function extractTextFromPDF(base64Data) {
   try {
-    // ✅ VALIDACIONES DE ENTRADA
+    console.log('ðŸ“„ Iniciando extracciÃ³n de PDF');
+    
     if (!base64Data || typeof base64Data !== 'string') {
-      throw new Error('Datos de PDF inválidos');
+      throw new Error('Datos de PDF invÃ¡lidos');
     }
 
-    // Intentar con pdf-parse si está disponible
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    if (buffer.length > 10 * 1024 * 1024) {
+      throw new Error('Archivo PDF demasiado grande (mÃ¡ximo 10MB)');
+    }
+    
+    console.log(`ðŸ“Š TamaÃ±o del PDF: ${Math.round(buffer.length / 1024)} KB`);
+
+    // MÃ‰TODO 1: Intentar con pdf-parse
     try {
       const pdf = require('pdf-parse');
-      const buffer = Buffer.from(base64Data, 'base64');
-      
-      // ✅ VALIDAR TAMAÑO DEL ARCHIVO
-      if (buffer.length > 10 * 1024 * 1024) { // 10MB límite
-        throw new Error('Archivo PDF demasiado grande');
-      }
-      
       const data = await pdf(buffer);
-      return data.text;
-    } catch (pdfParseError) {
-      console.log('📄 pdf-parse no disponible, usando método básico:', pdfParseError.message);
       
-      // ✅ MÉTODO BÁSICO DE EXTRACCIÓN CON VALIDACIONES
-      try {
-        const buffer = Buffer.from(base64Data, 'base64');
-        
-        if (buffer.length > 10 * 1024 * 1024) {
-          throw new Error('Archivo demasiado grande para procesamiento básico');
-        }
-        
-        const pdfString = buffer.toString('binary');
-        
-        // Buscar texto en el PDF usando patrones mejorados
-        const textMatches = pdfString.match(/\(([^)]+)\)/g);
-        if (textMatches && textMatches.length > 0) {
-          const extractedText = textMatches
-            .map(match => match.slice(1, -1))
-            .filter(text => text.length > 1 && /[a-zA-ZáéíóúñÑ]/.test(text))
-            .join(' ');
-          
-          return extractedText.length > 10 ? extractedText : null;
-        }
-        
-        return null;
-      } catch (basicError) {
-        console.error('❌ Error con extracción básica:', basicError);
-        return null;
+      if (data.text && data.text.trim().length > 50) {
+        console.log(`âœ… Texto extraÃ­do con pdf-parse: ${data.text.length} caracteres`);
+        return cleanExtractedText(data.text);
       }
+      
+      console.log('âš ï¸ pdf-parse no extrajo suficiente texto');
+    } catch (pdfParseError) {
+      console.log('âš ï¸ pdf-parse no disponible:', pdfParseError.message);
     }
+
+    // MÃ‰TODO 2: ExtracciÃ³n bÃ¡sica con regex
+    try {
+      const pdfString = buffer.toString('binary');
+      
+      const textPattern1 = /\(([^)]+)\)/g;
+      const matches1 = pdfString.match(textPattern1);
+      
+      const textPattern2 = /<([^>]+)>/g;
+      const matches2 = pdfString.match(textPattern2);
+      
+      const allMatches = [
+        ...(matches1 || []).map(m => m.slice(1, -1)),
+        ...(matches2 || []).map(m => m.slice(1, -1))
+      ];
+      
+      if (allMatches.length > 0) {
+        const extractedText = allMatches
+          .filter(text => {
+            return text.length > 1 && 
+                   /[a-zA-ZÃ¡Ã©Ã­Ã³ÃºÃ±Ã‘]/.test(text) && 
+                   !text.startsWith('/') && 
+                   !text.includes('<<');
+          })
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        if (extractedText.length > 50) {
+          console.log(`âœ… Texto extraÃ­do con mÃ©todo bÃ¡sico: ${extractedText.length} caracteres`);
+          return cleanExtractedText(extractedText);
+        }
+      }
+      
+      console.log('âš ï¸ No se pudo extraer texto suficiente');
+      return 'El archivo PDF no contiene texto extraÃ­ble o estÃ¡ protegido. Puede contener imÃ¡genes que requieren OCR.';
+      
+    } catch (basicError) {
+      console.error('âŒ Error en extracciÃ³n bÃ¡sica:', basicError);
+      throw new Error('No se pudo procesar el PDF');
+    }
+    
   } catch (error) {
-    console.error('❌ Error general extrayendo texto de PDF:', error);
-    return null;
+    console.error('âŒ Error general en extractTextFromPDF:', error);
+    throw new Error(`Error procesando PDF: ${error.message}`);
   }
 }
 
 // ========================================
-// ✅ FUNCIÓN DE VALIDACIÓN DE CONFIGURACIÓN
+// ðŸ§¹ FUNCIÃ“N: LIMPIAR TEXTO EXTRAÃDO
 // ========================================
-function validateSearchConfiguration() {
-  const apiKey = functions.config().google?.search_api_key;
-  const searchEngineId = functions.config().google?.search_engine_id;
+function cleanExtractedText(text) {
+  if (!text) return '';
   
-  if (!apiKey || !searchEngineId) {
-    console.warn('⚠️ Configuración de búsqueda web incompleta');
-    return false;
-  }
-  
-  return true;
+  return text
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/  +/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // ========================================
-// 🔧 FUNCIONES DE UTILIDAD ADICIONALES
+// ðŸ”§ FUNCIONES DE UTILIDAD
 // ========================================
 
-// Función para limpiar y sanitizar queries de búsqueda
 function sanitizeSearchQuery(query) {
   if (!query || typeof query !== 'string') return '';
   
   return query
     .trim()
-    .replace(/[<>]/g, '') // Remover caracteres peligrosos
-    .replace(/\s+/g, ' ') // Normalizar espacios
-    .substring(0, 200); // Limitar longitud
+    .replace(/[<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .substring(0, 200);
 }
 
-// Función para validar resultados de búsqueda
 function validateSearchResults(results) {
   if (!results || !Array.isArray(results)) return [];
   
@@ -545,23 +440,31 @@ function validateSearchResults(results) {
   );
 }
 
+function validateSearchConfiguration() {
+  const apiKey = functions.config().google?.search_api_key;
+  const searchEngineId = functions.config().google?.search_engine_id;
+  
+  if (!apiKey || !searchEngineId) {
+    console.warn('âš ï¸ ConfiguraciÃ³n de bÃºsqueda web incompleta');
+    return false;
+  }
+  
+  return true;
+}
+
 // ========================================
-// 📊 EXPORTAR TODAS LAS FUNCIONES
+// ðŸ“¦ EXPORTAR TODAS LAS FUNCIONES
 // ========================================
 module.exports = {
-  // Funciones principales
   searchInternet,
   shouldSearchInternet,
   generateResponseWithSearch,
   extractTextFromPDF,
   checkSearchLimits,
   updateSearchUsage,
-  
-  // Funciones de utilidad
   sanitizeSearchQuery,
   validateSearchResults,
   validateSearchConfiguration,
-  
-  // Constantes
+  cleanExtractedText,
   SEARCH_LIMITS
 };

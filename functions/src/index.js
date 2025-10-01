@@ -1,15 +1,14 @@
-// functions/src/index.js - ARCHIVO PRINCIPAL COMPLETAMENTE CORREGIDO
+// functions/index.js - ARCHIVO COMPLETO AL 100% CON MODOS AVANZADOS
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-// ✅ CONFIGURACIÓN SEGURA DE STRIPE
 const stripe = require('stripe')(functions.config().stripe?.secret_key || process.env.STRIPE_SECRET_KEY);
 const OpenAI = require('openai');
 
 // Inicializar Firebase Admin
 admin.initializeApp();
 
-// Importar funciones existentes
+// Importar funciones de video existentes
 const {
   getVideoUsageStatus,
   generateVideo,
@@ -17,14 +16,14 @@ const {
   getSignedVideoUrl
 } = require('./videoFunctions');
 
-// Importar nuevas funciones especializadas
+// Importar funciones especializadas existentes
 const {
   getSpecialistModeLimits,
   developerModeChat,
   specialistModeChat
 } = require('./specialistFunctions');
 
-// ✅ IMPORTAR FUNCIONES DE BÚSQUEDA WEB
+// Importar funciones de bÃºsqueda web
 const {
   searchInternet,
   shouldSearchInternet,
@@ -36,7 +35,7 @@ const {
 } = require('./searchFunctions');
 
 // ========================================
-// 🔒 FUNCIÓN DE VERIFICACIÓN DE SUSCRIPCIÓN SEGURA
+// ðŸ”’ VERIFICACIÃ“N DE SUSCRIPCIÃ“N
 // ========================================
 async function verifyUserSubscription(uid, requiredPlan = null) {
   try {
@@ -49,7 +48,6 @@ async function verifyUserSubscription(uid, requiredPlan = null) {
     const userData = userDoc.data();
     const currentPlan = userData.plan || 'free';
 
-    // ✅ VERIFICACIÓN BÁSICA DE PLAN
     if (requiredPlan && currentPlan !== requiredPlan) {
       return { 
         isValid: false, 
@@ -58,34 +56,26 @@ async function verifyUserSubscription(uid, requiredPlan = null) {
       };
     }
 
-    // ✅ VERIFICACIÓN ADICIONAL PARA PLANES PREMIUM
     if (currentPlan !== 'free') {
-      // Verificar que tenga datos de Stripe
       if (!userData.stripeSubscriptionId || !userData.stripeCustomerId) {
-        console.warn(`⚠️ Usuario ${uid} tiene plan ${currentPlan} pero faltan datos de Stripe`);
-        // En producción, esto debería downgrade a free
-        // Por ahora solo advertencia para no romper funcionalidad existente
+        console.warn(`âš ï¸ Usuario ${uid} tiene plan ${currentPlan} pero faltan datos de Stripe`);
       }
 
-      // Verificar que la suscripción no esté vencida
       if (userData.currentPeriodEnd) {
         const endDate = userData.currentPeriodEnd.toDate ? userData.currentPeriodEnd.toDate() : new Date(userData.currentPeriodEnd);
         if (endDate < new Date()) {
-          console.warn(`⚠️ Suscripción vencida para usuario ${uid}`);
-          // En producción, downgrade a free
+          console.warn(`âš ï¸ SuscripciÃ³n vencida para usuario ${uid}`);
         }
       }
 
-      // ✅ VERIFICACIÓN CON STRIPE (OPCIONAL - COSTOSA)
-      if (userData.stripeSubscriptionId && Math.random() < 0.1) { // 10% de verificaciones aleatorias
+      if (userData.stripeSubscriptionId && Math.random() < 0.1) {
         try {
           const subscription = await stripe.subscriptions.retrieve(userData.stripeSubscriptionId);
           if (subscription.status !== 'active') {
-            console.error(`❌ Suscripción inactiva en Stripe para usuario ${uid}: ${subscription.status}`);
-            // En producción, actualizar a free
+            console.error(`âŒ SuscripciÃ³n inactiva en Stripe para usuario ${uid}: ${subscription.status}`);
           }
         } catch (stripeError) {
-          console.error(`❌ Error verificando suscripción Stripe:`, stripeError);
+          console.error(`âŒ Error verificando suscripciÃ³n Stripe:`, stripeError);
         }
       }
     }
@@ -96,31 +86,31 @@ async function verifyUserSubscription(uid, requiredPlan = null) {
       userData
     };
   } catch (error) {
-    console.error('❌ Error verificando suscripción:', error);
-    throw new functions.https.HttpsError('internal', 'Error verificando suscripción');
+    console.error('âŒ Error verificando suscripciÃ³n:', error);
+    throw new functions.https.HttpsError('internal', 'Error verificando suscripciÃ³n');
   }
 }
 
 // ========================================
-// ✅ LÍMITES COMPLETAMENTE CORREGIDOS PARA RESPUESTAS MÁS LARGAS
+// âœ… LÃMITES DE TOKENS
 // ========================================
 const TOKEN_LIMITS = {
   'free': {
     daily: 66666,
     monthly: 2000000,
-    maxTokensPerResponse: 1500  // ✅ AUMENTADO DE 150 A 1500 (10x más)
+    maxTokensPerResponse: 1500
   },
   'pro': {
     daily: 333333,
     monthly: 10000000,
-    maxTokensPerResponse: 4000  // ✅ AUMENTADO DE 500 A 4000 (8x más)
+    maxTokensPerResponse: 4000
   },
   'pro_max': {
     daily: 666666,
     monthly: 20000000,
     dailyPro: 100000,
     monthlyPro: 3000000,
-    maxTokensPerResponse: 8000,  // ✅ AUMENTADO DE 1000 A 8000 (8x más)
+    maxTokensPerResponse: 8000,
     maxTokensPerResponsePro: -1
   }
 };
@@ -132,7 +122,7 @@ const IMAGE_LIMITS = {
 };
 
 // ========================================
-// FUNCIONES DE VIDEO (EXISTENTES) - CON VERIFICACIÓN
+// EXPORTAR FUNCIONES DE VIDEO
 // ========================================
 exports.getVideoUsageStatus = getVideoUsageStatus;
 exports.generateVideo = generateVideo;
@@ -140,14 +130,14 @@ exports.checkVideoStatus = checkVideoStatus;
 exports.getSignedVideoUrl = getSignedVideoUrl;
 
 // ========================================
-// NUEVAS FUNCIONES - MODOS ESPECIALIZADOS - CON VERIFICACIÓN
+// EXPORTAR FUNCIONES ESPECIALIZADAS
 // ========================================
 exports.getSpecialistModeLimits = getSpecialistModeLimits;
 exports.developerModeChat = developerModeChat;
 exports.specialistModeChat = specialistModeChat;
 
 // ========================================
-// FUNCIÓN PERFIL ACTUALIZADA CON BÚSQUEDA WEB Y SEGURIDAD
+// ðŸ“Š FUNCIÃ“N PERFIL DE USUARIO
 // ========================================
 exports.getUserProfile = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -157,7 +147,6 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
   const uid = context.auth.uid;
 
   try {
-    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
     const verification = await verifyUserSubscription(uid);
     if (!verification.isValid) {
       throw new functions.https.HttpsError('permission-denied', verification.error);
@@ -165,19 +154,16 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
 
     const { plan, userData } = verification;
 
-    // Obtener uso actual
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 
-    // Obtener estadísticas de uso existentes
     const usageDoc = await admin.firestore().collection('usage').doc(uid).get();
     const usageData = usageDoc.data() || {};
 
     const dailyUsage = usageData.daily || { tokensUsed: 0, date: todayStr };
     const monthlyUsage = usageData.monthly || { tokensUsed: 0, month: monthStr };
 
-    // Reset automático si cambió el día/mes
     if (dailyUsage.date !== todayStr) {
       dailyUsage.tokensUsed = 0;
       dailyUsage.date = todayStr;
@@ -187,10 +173,8 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
       monthlyUsage.month = monthStr;
     }
 
-    // ✅ OBTENER LÍMITES DE BÚSQUEDA WEB SEGUROS
     const searchLimits = await checkSearchLimits(uid, plan);
 
-    // Calcular límites
     const limits = TOKEN_LIMITS[plan] || TOKEN_LIMITS['free'];
     const dailyRemaining = Math.max(0, limits.daily - dailyUsage.tokensUsed);
     const monthlyRemaining = Math.max(0, limits.monthly - monthlyUsage.tokensUsed);
@@ -201,7 +185,6 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
         email: userData.email,
         name: userData.name,
         plan: plan,
-        // ✅ INCLUIR DATOS DE VERIFICACIÓN (OPCIONAL)
         verified: userData.verified || false,
         subscriptionStatus: userData.subscriptionStatus || 'unknown',
         currentPeriodEnd: userData.currentPeriodEnd,
@@ -225,7 +208,6 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
         monthly: limits.monthly,
         maxTokensPerResponse: limits.maxTokensPerResponse
       },
-      // ✅ INCLUIR ESTADO DE BÚSQUEDA WEB
       searchLimits: {
         monthly: searchLimits.limit,
         used: searchLimits.used,
@@ -244,67 +226,297 @@ exports.getUserProfile = functions.https.onCall(async (data, context) => {
 });
 
 // ========================================
-// ✅ FUNCIÓN CHAT COMPLETAMENTE CORREGIDA PARA IA MÁS HUMANA Y RESPUESTAS LARGAS
+// âœ… DETECTAR TIPO DE MENSAJE
+// ========================================
+function detectMessageType(message, fileContext, chatHistory) {
+  const lowerMessage = message.toLowerCase().trim();
+  const wordCount = message.trim().split(/\s+/).length;
+  
+  const greetings = ['hola', 'hi', 'hey', 'buenos dÃ­as', 'buenas tardes', 'buenas noches', 'quÃ© tal', 'hello'];
+  if (wordCount <= 3 && greetings.some(g => lowerMessage.includes(g))) {
+    return 'greeting';
+  }
+  
+  if (wordCount <= 5 && !fileContext) {
+    return 'simple';
+  }
+  
+  if (lowerMessage.includes('reporte') || 
+      lowerMessage.includes('anÃ¡lisis completo') || 
+      lowerMessage.includes('anÃ¡lisis detallado') ||
+      lowerMessage.includes('informe') ||
+      lowerMessage.includes('documento completo')) {
+    return 'report';
+  }
+  
+  if (fileContext && fileContext.length > 100) {
+    return 'file_analysis';
+  }
+  
+  if (wordCount > 10 || 
+      lowerMessage.includes('explica') || 
+      lowerMessage.includes('cÃ³mo funciona') ||
+      lowerMessage.includes('por quÃ©') ||
+      lowerMessage.includes('diferencia entre')) {
+    return 'complex';
+  }
+  
+  return 'normal';
+}
+
+// ========================================
+// âœ… CONSTRUIR PROMPT SEGÃšN TIPO
+// ========================================
+function buildPromptByType(type, message, fileContext, searchContext, conversationContext, deepThinking) {
+  let basePrompt = '';
+  
+  switch(type) {
+    case 'greeting':
+      basePrompt = `Eres NORA, una asistente de IA amigable y conversacional.
+
+${conversationContext ? `Contexto:\n${conversationContext}\n\n` : ''}
+
+Usuario: ${message}
+
+INSTRUCCIONES:
+- Responde de forma BREVE, CÃLIDA y NATURAL (mÃ¡ximo 3-4 lÃ­neas)
+- Solo saluda y pregunta en quÃ© puedes ayudar
+- NO des listas de capacidades ni explicaciones largas
+- SÃ© amigable pero concisa
+
+NORA:`;
+      break;
+      
+    case 'simple':
+      basePrompt = `Eres NORA, una asistente de IA eficiente.
+
+${conversationContext ? `Contexto:\n${conversationContext}\n\n` : ''}
+
+Usuario: ${message}
+
+INSTRUCCIONES:
+- Responde DIRECTAMENTE la pregunta (mÃ¡ximo 2-3 pÃ¡rrafos cortos)
+- Sin introducciones largas ni listas innecesarias
+- SÃ© precisa y concisa
+- Solo expande si la pregunta lo requiere
+
+NORA:`;
+      break;
+      
+    case 'report':
+      basePrompt = `Eres NORA, una asistente de IA especializada en anÃ¡lisis profundos.
+
+${fileContext}${searchContext}
+
+${conversationContext ? `Contexto:\n${conversationContext}\n\n` : ''}
+
+Usuario: ${message}
+
+INSTRUCCIONES:
+- Crea un reporte COMPLETO y DETALLADO (mÃ­nimo 800 palabras)
+- Incluye: introducciÃ³n, anÃ¡lisis por secciones, ejemplos, conclusiones
+- Usa estructura clara con subtÃ­tulos
+- Proporciona informaciÃ³n valiosa y exhaustiva
+- Incluye datos, estadÃ­sticas y ejemplos concretos
+
+NORA:`;
+      break;
+      
+    case 'file_analysis':
+      basePrompt = `Eres NORA, una asistente de IA experta en anÃ¡lisis de documentos.
+
+${fileContext}
+
+${searchContext}
+
+${conversationContext ? `Contexto:\n${conversationContext}\n\n` : ''}
+
+Usuario: ${message}
+
+INSTRUCCIONES:
+- Analiza DETALLADAMENTE el contenido del archivo proporcionado
+- Responde especÃ­ficamente sobre el contenido del documento
+- Menciona hallazgos clave, patrones o informaciÃ³n relevante
+- Si el usuario pregunta algo especÃ­fico, usa el contenido del archivo para responder
+- Proporciona un anÃ¡lisis completo y Ãºtil (400-600 palabras mÃ­nimo)
+
+NORA:`;
+      break;
+      
+    case 'complex':
+      basePrompt = `Eres NORA, una asistente de IA empÃ¡tica e inteligente.
+
+${fileContext}${searchContext}
+
+${conversationContext ? `Contexto:\n${conversationContext}\n\n` : ''}
+
+Usuario: ${message}
+
+INSTRUCCIONES:
+- Proporciona una explicaciÃ³n COMPLETA y DETALLADA
+- Incluye ejemplos prÃ¡cticos y casos de uso
+- Usa analogÃ­as cuando ayuden a entender
+- Estructura: introducciÃ³n, desarrollo, ejemplos, conclusiÃ³n
+- Longitud apropiada: 400-600 palabras
+- SÃ© clara, precisa y Ãºtil
+
+NORA:`;
+      break;
+      
+    case 'normal':
+    default:
+      basePrompt = `Eres NORA, una asistente de IA conversacional y Ãºtil.
+
+${fileContext}${searchContext}
+
+${conversationContext ? `Contexto:\n${conversationContext}\n\n` : ''}
+
+Usuario: ${message}
+
+INSTRUCCIONES:
+- Responde de forma NATURAL y CONVERSACIONAL
+- Adapta la longitud segÃºn la complejidad (100-300 palabras normalmente)
+- SÃ© amigable pero eficiente
+- Proporciona informaciÃ³n Ãºtil sin ser excesiva
+- Usa ejemplos cuando ayuden
+
+NORA:`;
+  }
+  
+  if (deepThinking) {
+    basePrompt = basePrompt.replace('INSTRUCCIONES:', 
+      'MODO DEEP SEARCH ACTIVADO - Proporciona anÃ¡lisis EXTREMADAMENTE profundo y detallado.\n\nINSTRUCCIONES:');
+  }
+  
+  return basePrompt;
+}
+
+// ========================================
+// âœ… CONFIGURACIÃ“N DE GENERACIÃ“N
+// ========================================
+function getGenerationConfigByType(type, maxTokens, limits) {
+  const baseMaxTokens = maxTokens || limits.maxTokensPerResponse;
+  
+  switch(type) {
+    case 'greeting':
+      return {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.8,
+        maxOutputTokens: 200
+      };
+      
+    case 'simple':
+      return {
+        temperature: 0.6,
+        topK: 40,
+        topP: 0.8,
+        maxOutputTokens: 500
+      };
+      
+    case 'report':
+      return {
+        temperature: 0.8,
+        topK: 50,
+        topP: 0.9,
+        maxOutputTokens: baseMaxTokens
+      };
+      
+    case 'file_analysis':
+      return {
+        temperature: 0.7,
+        topK: 45,
+        topP: 0.85,
+        maxOutputTokens: Math.floor(baseMaxTokens * 0.8)
+      };
+      
+    case 'complex':
+      return {
+        temperature: 0.75,
+        topK: 45,
+        topP: 0.85,
+        maxOutputTokens: Math.floor(baseMaxTokens * 0.7)
+      };
+      
+    case 'normal':
+    default:
+      return {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.8,
+        maxOutputTokens: Math.floor(baseMaxTokens * 0.5)
+      };
+  }
+}
+
+// ========================================
+// ðŸ’¬ FUNCIÃ“N CHAT CON IA - MEJORADA
 // ========================================
 exports.chatWithAI = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
   }
 
-  const { 
-    message, 
-    fileContext = '', 
-    chatHistory = [], 
-    maxTokens, 
-    enableWebSearch = false,
-    personalityContext = '' 
-  } = data;
-  const uid = context.auth.uid;
-
-  if (!message || typeof message !== 'string') {
-    throw new functions.https.HttpsError('invalid-argument', 'Mensaje requerido');
-  }
-
   try {
-    console.log(`💬 Chat request from user: ${uid}`);
-    
-    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN SEGURA
-    const verification = await verifyUserSubscription(uid);
-    if (!verification.isValid) {
-      throw new functions.https.HttpsError('permission-denied', verification.error);
+    const uid = context.auth.uid;
+    const { 
+      message, 
+      fileContext = '', 
+      chatHistory = [], 
+      maxTokens,
+      enableWebSearch = false,
+      systemPrompt,
+      deepThinking = false
+    } = data;
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      throw new functions.https.HttpsError('invalid-argument', 'Mensaje invÃ¡lido');
     }
 
-    const { plan, userData } = verification;
+    const userDoc = await admin.firestore().collection('users').doc(uid).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Usuario no encontrado');
+    }
 
-    // Verificar límites de tokens
+    const userData = userDoc.data();
+    const plan = userData.plan || 'free';
     const limits = TOKEN_LIMITS[plan] || TOKEN_LIMITS['free'];
+
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const currentMonth = new Date().toISOString().slice(0, 7);
 
-    const usageDoc = await admin.firestore().collection('usage').doc(uid).get();
-    const usageData = usageDoc.data() || {};
+    const usageRef = admin.firestore().collection('usage').doc(uid);
+    const usageDoc = await usageRef.get();
 
-    const dailyUsage = usageData.daily || { tokensUsed: 0, date: todayStr };
-    const monthlyUsage = usageData.monthly || { tokensUsed: 0, month: monthStr };
+    let dailyUsage = { tokensUsed: 0, date: todayStr };
+    let monthlyUsage = { tokensUsed: 0, month: currentMonth };
 
-    if (dailyUsage.date !== todayStr) {
-      dailyUsage.tokensUsed = 0;
-      dailyUsage.date = todayStr;
-    }
-    if (monthlyUsage.month !== monthStr) {
-      monthlyUsage.tokensUsed = 0;
-      monthlyUsage.month = monthStr;
+    if (usageDoc.exists) {
+      const usageData = usageDoc.data();
+      
+      if (usageData.daily && usageData.daily.date === todayStr) {
+        dailyUsage = usageData.daily;
+      }
+      
+      if (usageData.monthly && usageData.monthly.month === currentMonth) {
+        monthlyUsage = usageData.monthly;
+      }
     }
 
     if (dailyUsage.tokensUsed >= limits.daily) {
-      throw new functions.https.HttpsError('resource-exhausted', `Límite diario de tokens alcanzado para el plan ${plan}`);
-    }
-    if (monthlyUsage.tokensUsed >= limits.monthly) {
-      throw new functions.https.HttpsError('resource-exhausted', `Límite mensual de tokens alcanzado para el plan ${plan}`);
+      throw new functions.https.HttpsError('resource-exhausted', 
+        `LÃ­mite diario alcanzado. Plan ${plan}: ${limits.daily} tokens por dÃ­a.`);
     }
 
-    // ✅ CONFIGURAR GEMINI CON CLAVES SEGURAS
+    if (monthlyUsage.tokensUsed >= limits.monthly) {
+      throw new functions.https.HttpsError('resource-exhausted', 
+        `LÃ­mite mensual alcanzado. Plan ${plan}: ${limits.monthly} tokens por mes.`);
+    }
+
+    const messageType = detectMessageType(message, fileContext, chatHistory);
+    console.log('ðŸ“Š Tipo de mensaje detectado:', messageType);
+
     const geminiApiKey = plan === 'free' 
       ? functions.config().gemini?.api_key_free 
       : (plan === 'pro' 
@@ -312,237 +524,113 @@ exports.chatWithAI = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).h
           : functions.config().gemini?.api_key_pro);
     
     if (!geminiApiKey) {
-      throw new functions.https.HttpsError('internal', 'Configuración de API no disponible');
+      throw new functions.https.HttpsError('internal', 'ConfiguraciÃ³n de API no disponible');
     }
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
 
-    // ✅ LÓGICA DE BÚSQUEDA WEB SEGURA (MANTENER EXISTENTE)
-    const limitCheck = await checkSearchLimits(uid, plan);
-    
-    if (!limitCheck.canSearch && shouldSearchInternet(message)) {
-      console.log(`⚠️ Usuario alcanzó límite de búsquedas: ${limitCheck.used}/${limitCheck.limit}`);
+    let searchContext = '';
+    let searchResults = null;
+    let needsSearch = false;
+
+    if (enableWebSearch && messageType !== 'greeting' && messageType !== 'simple') {
+      const limitCheck = await checkSearchLimits(uid, plan);
       
-      let conversationContext = '';
-      if (chatHistory && chatHistory.length > 0) {
-        conversationContext = chatHistory.slice(-5).map(msg => 
-          `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
-        ).join('\n');
-      }
+      if (limitCheck.canSearch) {
+        needsSearch = true;
+        try {
+          console.log('ðŸ” Realizando bÃºsqueda web...');
+          const searchResponse = await searchInternet(message);
+          searchResults = searchResponse;
+          
+          if (searchResults && searchResults.results && searchResults.results.length > 0) {
+            searchContext = '\n\n--- ðŸŒ INFORMACIÃ“N ACTUALIZADA DE INTERNET ---\n\n';
+            searchResults.results.forEach((result, index) => {
+              searchContext += `${index + 1}. ${result.title}\n`;
+              searchContext += `   ${result.snippet}\n`;
+              searchContext += `   Fuente: ${result.displayLink}\n`;
+              searchContext += `   URL: ${result.link}\n\n`;
+            });
+            searchContext += `--- FIN INFORMACIÃ“N DE INTERNET ---\n\n`;
+          }
 
-      // ✅ PROMPT MEJORADO PARA PERSONALIDAD MÁS HUMANA INCLUSO CON LÍMITES
-      const limitPrompt = `Eres NORA, una asistente de IA excepcional con una personalidad cálida y humana.
-
-🌟 TU PERSONALIDAD:
-- Eres empática, comprensiva y genuinamente interesada en ayudar
-- Tienes una conversación natural y fluida, como una amiga muy inteligente
-- Eres detallada cuando es necesario, pero siempre mantienes un tono humano
-- Adaptas tu comunicación al contexto: profesional cuando se requiere, casual cuando es apropiado
-- Muestras entusiasmo e interés genuino por los temas
-- Eres comprensiva y paciente con las dificultades del usuario
-
-💭 CÓMO RESPONDER:
-- Usa un lenguaje natural y conversacional, nunca robótico
-- Incluye transiciones suaves entre ideas
-- Usa ejemplos concretos cuando ayuden
-- Sé específica y útil en tus explicaciones
-- Estructura la información de manera clara pero natural
-- Para temas generales: 300-500 palabras mínimo
-- Para reportes y análisis: 600-800 palabras mínimo
-
-${conversationContext ? `💬 CONVERSACIÓN PREVIA:\n${conversationContext}\n\n` : ''}
-
-👤 USUARIO: ${message}
-
-📢 NOTA ESPECIAL: El usuario ha alcanzado su límite mensual de búsquedas en internet (${limitCheck.used}/${limitCheck.limit}) para el plan ${plan === 'free' ? 'Gratuito' : (plan === 'pro' ? 'Pro' : 'Pro Max')}. 
-
-Proporciona una respuesta completa y detallada basada en tu conocimiento general. Menciona de forma natural que para información muy actualizada ha alcanzado el límite de búsquedas web, pero que puedes ayudar con información general y análisis profundo del tema.
-
-💬 NORA:`;
-
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.0-flash',
-        generationConfig: {
-          temperature: 0.8,
-          topK: 50,
-          topP: 0.9,
-          maxOutputTokens: maxTokens || limits.maxTokensPerResponse
+          dailyUsage.webSearches = (dailyUsage.webSearches || 0) + 1;
+        } catch (searchError) {
+          console.error('âŒ Error en bÃºsqueda web:', searchError);
+          searchContext = '\n--- âš ï¸ No se pudo obtener informaciÃ³n actualizada de internet ---\n\n';
         }
-      });
+      }
+    }
 
-      const result = await model.generateContent(limitPrompt);
-      const text = result.response.text();
+    let processedFileContext = fileContext;
+    if (fileContext && fileContext.includes('[PDF PARA PROCESAR EN BACKEND]')) {
+      console.log('ðŸ“„ Detectado PDF para procesar...');
+      
+      const base64Match = fileContext.match(/Base64: ([A-Za-z0-9+/=]+)/);
+      if (base64Match && base64Match[1]) {
+        try {
+          const extractedText = await extractTextFromPDF(base64Match[1]);
+          if (extractedText && extractedText.length > 50) {
+            processedFileContext = `\n\n--- ðŸ“„ CONTENIDO DEL PDF ---\n\n${extractedText}\n\n--- FIN DEL PDF ---\n\n`;
+            console.log('âœ… PDF procesado exitosamente, longitud:', extractedText.length);
+          } else {
+            processedFileContext = '\n--- âš ï¸ El PDF no contiene texto extraÃ­ble o estÃ¡ vacÃ­o ---\n\n';
+            console.warn('âš ï¸ No se pudo extraer texto del PDF');
+          }
+        } catch (pdfError) {
+          console.error('âŒ Error extrayendo texto del PDF:', pdfError);
+          processedFileContext = '\n--- âŒ Error procesando PDF ---\n\n';
+        }
+      }
+    }
 
-      // ✅ VALIDAR LONGITUD MÍNIMA INCLUSO CON LÍMITES
-      if (text.length < 300) {
-        console.log('⚠️ Respuesta muy corta incluso para límites, regenerando...');
-        const extendedPrompt = limitPrompt + `\n\n[IMPORTANTE: La respuesta anterior fue muy corta. Proporciona una respuesta más detallada y completa de al menos 400 palabras, con ejemplos específicos y análisis útil.]`;
+    let conversationContext = '';
+    if (chatHistory && chatHistory.length > 0) {
+      conversationContext = chatHistory.slice(-5).map(msg => 
+        `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
+      ).join('\n');
+    }
+
+    const enhancedPrompt = buildPromptByType(
+      messageType, 
+      message, 
+      processedFileContext, 
+      searchContext, 
+      conversationContext,
+      deepThinking
+    );
+
+    const generationConfig = getGenerationConfigByType(messageType, maxTokens, limits);
+
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.0-flash',
+      generationConfig
+    });
+
+    console.log('ðŸš€ Generando respuesta...');
+    const result = await model.generateContent(enhancedPrompt);
+    let text = result.response.text();
+
+    if (messageType === 'complex' || messageType === 'report' || deepThinking) {
+      const minLength = messageType === 'report' || deepThinking ? 800 : 400;
+      
+      if (text.length < minLength) {
+        console.log(`âš ï¸ Respuesta corta (${text.length} caracteres), regenerando...`);
+        
+        const extendedPrompt = enhancedPrompt + `\n\n[INSTRUCCIÃ“N CRÃTICA: La respuesta fue muy corta (${text.length} caracteres). Proporciona una respuesta mÃ¡s detallada de al menos ${minLength} caracteres con anÃ¡lisis profundo y ejemplos concretos.]`;
         
         const extendedResult = await model.generateContent(extendedPrompt);
         const extendedText = extendedResult.response.text();
         
         if (extendedText.length > text.length) {
           text = extendedText;
+          console.log(`âœ… Respuesta extendida generada (${extendedText.length} caracteres)`);
         }
-      }
-
-      return {
-        response: text,
-        tokensUsed: Math.floor(text.length / 4),
-        searchUsed: false,
-        limitReached: true,
-        searchLimits: limitCheck
-      };
-    }
-    
-    // Determinar si necesita búsqueda
-    const needsSearch = shouldSearchInternet(message);
-    
-    let searchResults = null;
-    let searchContext = '';
-    
-    if (needsSearch && limitCheck.canSearch) {
-      console.log('🔍 Consulta requiere búsqueda en internet y hay límite disponible');
-      
-      try {
-        let searchQuery = message;
-        searchQuery = searchQuery
-          .replace(/por favor|puedes|podrías|me ayudas/gi, '')
-          .replace(/\?/g, '')
-          .trim();
-        
-        searchResults = await searchInternet(searchQuery, 5);
-        await updateSearchUsage(uid, limitCheck.monthlyUsage);
-        
-        if (searchResults.results.length > 0) {
-          searchContext = `\n\n--- 🌐 INFORMACIÓN ACTUALIZADA DE INTERNET ---\n`;
-          searchContext += `Búsqueda: "${searchResults.query}"\n`;
-          searchContext += `Resultados encontrados: ${searchResults.results.length}\n\n`;
-          
-          searchResults.results.forEach((result, index) => {
-            searchContext += `${index + 1}. **${result.title}**\n`;
-            searchContext += `   ${result.snippet}\n`;
-            searchContext += `   Fuente: ${result.displayLink}\n\n`;
-          });
-          
-          searchContext += `--- FIN INFORMACIÓN DE INTERNET ---\n\n`;
-        }
-      } catch (searchError) {
-        console.error('Error en búsqueda, continuando sin resultados web:', searchError);
-        searchContext = '\n--- ⚠️ No se pudo obtener información actualizada de internet ---\n\n';
-      }
-    }
-    
-    // Preparar contexto de conversación
-    let conversationContext = '';
-    if (chatHistory && chatHistory.length > 0) {
-      conversationContext = chatHistory.slice(-6).map(msg => 
-        `${msg.type === 'user' ? 'Usuario' : 'NORA'}: ${msg.message}`
-      ).join('\n');
-    }
-
-    // ✅ PROMPT COMPLETAMENTE REDISEÑADO PARA SER MÁS HUMANO Y GENERAR RESPUESTAS LARGAS
-    const enhancedPrompt = `Eres NORA, una asistente de IA excepcional con una personalidad única y humana.
-
-🌟 TU PERSONALIDAD DISTINTIVA:
-- Eres cálida, empática y genuinamente interesada en ayudar al usuario
-- Tienes curiosidad intelectual y disfrutas aprendiendo junto al usuario
-- Eres conversacional y natural, como una amiga muy inteligente y culta
-- Adaptas tu tono según el contexto: profesional cuando es necesario, casual cuando es apropiado
-- Eres detallada y exhaustiva, pero organizas la información de manera clara y atractiva
-- Muestras entusiasmo cuando el tema lo amerita y eres comprensiva con las dificultades
-- Tu objetivo es ser genuinamente útil y crear una experiencia de conversación memorable
-
-💭 ESTILO DE COMUNICACIÓN:
-- Usa un lenguaje natural y fluido, nunca robótico o formulaico
-- Incluye transiciones suaves entre ideas y conceptos
-- Utiliza ejemplos concretos, analogías y casos prácticos cuando ayuden
-- Pregunta cuando necesites clarificaciones importantes
-- Muestra interés genuino en el tema y en ayudar al usuario
-- Estructura la información con subtítulos naturales, listas claras y párrafos bien organizados
-- Usa negritas (**texto**) para resaltar puntos importantes
-- Ocasionalmente usa un emoji sutil para dar calidez (máximo 1-2 por respuesta)
-
-📝 LONGITUD Y DETALLE DE RESPUESTAS:
-- Para preguntas generales: Mínimo 400-600 palabras con análisis completo
-- Para reportes y análisis: Mínimo 800-1200 palabras con múltiples secciones
-- Para temas complejos: Explora todas las dimensiones importantes
-- Para temas técnicos: Incluye ejemplos prácticos y aplicaciones
-- Siempre proporciona valor real y información útil, no relleno
-
-🎯 ESTRUCTURA IDEAL:
-- Introducción que contextualiza el tema
-- Desarrollo con múltiples perspectivas y enfoques
-- Ejemplos concretos y casos de estudio
-- Implicaciones prácticas y recomendaciones
-- Conclusión que sintetiza los puntos clave
-
-${personalityContext ? `\n🎭 CONTEXTO ADICIONAL: ${personalityContext}\n` : ''}
-
-${fileContext ? `📁 ARCHIVOS PROPORCIONADOS:\n${fileContext}\n\n` : ''}
-
-${searchContext}
-
-${conversationContext ? `💬 CONVERSACIÓN PREVIA:\n${conversationContext}\n\n` : ''}
-
-👤 USUARIO: ${message}
-
-${searchContext ? 
-`🔍 INSTRUCCIONES ESPECIALES PARA INFORMACIÓN WEB:
-- Prioriza y utiliza la información actualizada de internet proporcionada arriba
-- Cita las fuentes específicas cuando uses información de los resultados
-- Combina inteligentemente tu conocimiento base con la información actualizada
-- Menciona que la información es reciente/actual cuando sea relevante
-- Si hay múltiples fuentes, sintetiza y compara la información de manera útil
-- Estructura la respuesta para maximizar el valor de la información actualizada` 
-: ''}
-
-💬 NORA: `;
-
-    // ✅ CONFIGURACIÓN OPTIMIZADA DEL MODELO PARA RESPUESTAS HUMANAS Y LARGAS
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.0-flash',
-      generationConfig: {
-        temperature: 0.8,        // ✅ Más creativa y humana
-        topK: 50,               // ✅ Mayor diversidad de vocabulario
-        topP: 0.9,              // ✅ Más natural y fluida
-        maxOutputTokens: maxTokens || limits.maxTokensPerResponse
-      }
-    });
-
-    console.log('🚀 Generando respuesta con prompt humanizado y límites aumentados...');
-    const result = await model.generateContent(enhancedPrompt);
-    let text = result.response.text();
-
-    // ✅ VALIDACIÓN ESTRICTA DE LONGITUD Y REGENERACIÓN AUTOMÁTICA
-    const isReportMode = message.toLowerCase().includes('reporte') || message.toLowerCase().includes('análisis detallado') || message.toLowerCase().includes('completo');
-    const minLength = isReportMode ? 800 : 400;
-    
-    if (text.length < minLength) {
-      console.log(`⚠️ Respuesta muy corta (${text.length} caracteres), regenerando para alcanzar mínimo ${minLength}...`);
-      
-      const extendedPrompt = enhancedPrompt + `\n\n[INSTRUCCIÓN CRÍTICA: La respuesta anterior fue demasiado corta (${text.length} caracteres). Necesito una respuesta mucho más detallada y completa de al menos ${minLength} caracteres. 
-
-Por favor:
-- Proporciona un análisis exhaustivo con múltiples perspectivas
-- Incluye ejemplos específicos y casos prácticos
-- Desarrolla cada punto con profundidad y detalle
-- Agrega secciones adicionales si es necesario
-- Mantén la calidad y utilidad en todo momento
-- NO uses relleno, toda la información debe ser valiosa]`;
-      
-      const extendedResult = await model.generateContent(extendedPrompt);
-      const extendedText = extendedResult.response.text();
-      
-      if (extendedText.length > text.length) {
-        text = extendedText;
-        console.log(`✅ Respuesta extendida generada (${extendedText.length} caracteres)`);
       }
     }
 
     const tokensUsed = Math.floor(text.length / 4);
 
-    // Actualizar contadores
     dailyUsage.tokensUsed += tokensUsed;
     monthlyUsage.tokensUsed += tokensUsed;
 
@@ -553,29 +641,30 @@ Por favor:
 
     const updatedLimits = await checkSearchLimits(uid, plan);
 
-    console.log('✅ Respuesta generada exitosamente');
-    console.log(`📊 Tokens usados: ${tokensUsed}, Búsquedas: ${dailyUsage.webSearches || 0}, Longitud: ${text.length} caracteres`);
+    console.log('âœ… Respuesta generada exitosamente');
+    console.log(`ðŸ“Š Tokens: ${tokensUsed}, Tipo: ${messageType}, Longitud: ${text.length} caracteres`);
 
     return {
       response: text,
       tokensUsed,
-      searchUsed: needsSearch && limitCheck.canSearch,
+      searchUsed: needsSearch,
       searchResults,
       limitReached: false,
-      searchLimits: updatedLimits
+      searchLimits: updatedLimits,
+      messageType
     };
     
   } catch (error) {
-    console.error('❌ Error en chatWithAI:', error);
+    console.error('âŒ Error en chatWithAI:', error);
     if (error instanceof functions.https.HttpsError) {
       throw error;
     }
-    throw new functions.https.HttpsError('internal', `Error: ${error.message}`);
+    throw new functions.https.HttpsError('internal', 'Error procesando solicitud');
   }
 });
 
 // ========================================
-// ✅ FUNCIÓN BÚSQUEDA WEB CON VERIFICACIÓN DE SUSCRIPCIÓN
+// ðŸ” BÃšSQUEDA WEB
 // ========================================
 exports.getWebSearchStatus = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -585,7 +674,6 @@ exports.getWebSearchStatus = functions.https.onCall(async (data, context) => {
   const uid = context.auth.uid;
   
   try {
-    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
     const verification = await verifyUserSubscription(uid);
     if (!verification.isValid) {
       throw new functions.https.HttpsError('permission-denied', verification.error);
@@ -606,17 +694,14 @@ exports.getWebSearchStatus = functions.https.onCall(async (data, context) => {
     };
 
   } catch (error) {
-    console.error('Error obteniendo estado de búsquedas web:', error);
+    console.error('Error obteniendo estado de bÃºsquedas web:', error);
     if (error instanceof functions.https.HttpsError) {
       throw error;
     }
-    throw new functions.https.HttpsError('internal', 'Error obteniendo estado de búsquedas web');
+    throw new functions.https.HttpsError('internal', 'Error obteniendo estado de bÃºsquedas web');
   }
 });
 
-// ========================================
-// ✅ FUNCIÓN BÚSQUEDA WEB DIRECTA CON VERIFICACIÓN
-// ========================================
 exports.searchWeb = functions.runWith({ 
   timeoutSeconds: 60, 
   memory: '512MB' 
@@ -629,11 +714,10 @@ exports.searchWeb = functions.runWith({
   const uid = context.auth.uid;
   
   if (!query || typeof query !== 'string') {
-    throw new functions.https.HttpsError('invalid-argument', 'Query de búsqueda requerido');
+    throw new functions.https.HttpsError('invalid-argument', 'Query de bÃºsqueda requerido');
   }
 
   try {
-    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
     const verification = await verifyUserSubscription(uid);
     if (!verification.isValid) {
       throw new functions.https.HttpsError('permission-denied', verification.error);
@@ -644,7 +728,7 @@ exports.searchWeb = functions.runWith({
     
     if (!limitCheck.canSearch) {
       throw new functions.https.HttpsError('resource-exhausted', 
-        `Límite de búsquedas web alcanzado (${limitCheck.used}/${limitCheck.limit})`);
+        `LÃ­mite de bÃºsquedas web alcanzado (${limitCheck.used}/${limitCheck.limit})`);
     }
 
     const results = await searchInternet(query.trim(), maxResults);
@@ -656,16 +740,16 @@ exports.searchWeb = functions.runWith({
       searchLimits: await checkSearchLimits(uid, plan)
     };
   } catch (error) {
-    console.error('Error en búsqueda web:', error);
+    console.error('Error en bÃºsqueda web:', error);
     if (error instanceof functions.https.HttpsError) {
       throw error;
     }
-    throw new functions.https.HttpsError('internal', `Error en búsqueda: ${error.message}`);
+    throw new functions.https.HttpsError('internal', `Error en bÃºsqueda: ${error.message}`);
   }
 });
 
 // ========================================
-// ✅ FUNCIÓN DE IMÁGENES CON VERIFICACIÓN DE SUSCRIPCIÓN
+// ðŸ–¼ï¸ IMÃGENES
 // ========================================
 exports.getImageUsageStatus = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -675,7 +759,6 @@ exports.getImageUsageStatus = functions.https.onCall(async (data, context) => {
   const uid = context.auth.uid;
   
   try {
-    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
     const verification = await verifyUserSubscription(uid);
     if (!verification.isValid) {
       throw new functions.https.HttpsError('permission-denied', verification.error);
@@ -739,17 +822,14 @@ exports.getImageUsageStatus = functions.https.onCall(async (data, context) => {
     };
 
   } catch (error) {
-    console.error('Error obteniendo estado de imágenes:', error);
+    console.error('Error obteniendo estado de imÃ¡genes:', error);
     if (error instanceof functions.https.HttpsError) {
       throw error;
     }
-    throw new functions.https.HttpsError('internal', 'Error obteniendo estado de imágenes');
+    throw new functions.https.HttpsError('internal', 'Error obteniendo estado de imÃ¡genes');
   }
 });
 
-// ========================================
-// ✅ FUNCIÓN GENERAR IMAGEN CON VERIFICACIÓN SEGURA
-// ========================================
 exports.generateImage = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
@@ -763,7 +843,6 @@ exports.generateImage = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }
   }
 
   try {
-    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN CRÍTICA
     const verification = await verifyUserSubscription(uid);
     if (!verification.isValid) {
       throw new functions.https.HttpsError('permission-denied', verification.error);
@@ -771,9 +850,8 @@ exports.generateImage = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }
 
     const { plan } = verification;
 
-    // Verificar que no sea plan gratuito
     if (plan === 'free') {
-      throw new functions.https.HttpsError('permission-denied', 'La generación de imágenes requiere un plan premium');
+      throw new functions.https.HttpsError('permission-denied', 'La generaciÃ³n de imÃ¡genes requiere un plan premium');
     }
 
     const config = IMAGE_LIMITS[plan] || IMAGE_LIMITS['pro'];
@@ -793,18 +871,16 @@ exports.generateImage = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }
     }
 
     if (monthlyUsage.imagesGenerated >= monthlyLimit) {
-      throw new functions.https.HttpsError('resource-exhausted', 'Límite mensual de imágenes alcanzado');
+      throw new functions.https.HttpsError('resource-exhausted', 'LÃ­mite mensual de imÃ¡genes alcanzado');
     }
 
-    // ✅ CONFIGURAR OPENAI CON CLAVE SEGURA
     const openaiApiKey = functions.config().openai?.api_key || process.env.OPENAI_API_KEY;
     if (!openaiApiKey) {
-      throw new functions.https.HttpsError('internal', 'Configuración de OpenAI no disponible');
+      throw new functions.https.HttpsError('internal', 'ConfiguraciÃ³n de OpenAI no disponible');
     }
 
     const openai = new OpenAI({ apiKey: openaiApiKey });
 
-    // Crear imagen con DALL-E
     const response = await openai.images.generate({
       model: 'dall-e-3',
       prompt: prompt.trim(),
@@ -818,7 +894,6 @@ exports.generateImage = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }
     const imageUrl = response.data[0].url;
     const imageId = admin.firestore().collection('generated_images').doc().id;
 
-    // Guardar imagen en Firestore
     await admin.firestore().collection('generated_images').doc(imageId).set({
       id: imageId,
       userId: uid,
@@ -860,7 +935,7 @@ exports.generateImage = functions.runWith({ timeoutSeconds: 540, memory: '2GB' }
 });
 
 // ========================================
-// ✅ FUNCIONES DE STRIPE CON VERIFICACIÓN MEJORADA
+// ðŸ’³ STRIPE
 // ========================================
 exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -870,18 +945,16 @@ exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
   const { plan, priceId } = data;
   const uid = context.auth.uid;
 
-  // ✅ DESPUÉS
   const validPriceIds = {
     pro: 'price_1S8id6Pa2fV72c7wyqjkxdpw',
     pro_max: 'price_1S12wKPa2fV72c7wX2NRAwQF'
   };
 
   if (!validPriceIds[plan] || priceId !== validPriceIds[plan]) {
-    throw new functions.https.HttpsError('invalid-argument', 'Plan o precio inválido');
+    throw new functions.https.HttpsError('invalid-argument', 'Plan o precio invÃ¡lido');
   }
 
   try {
-    // ✅ VERIFICAR QUE EL USUARIO EXISTE
     const verification = await verifyUserSubscription(uid);
     if (!verification.isValid) {
       throw new functions.https.HttpsError('permission-denied', verification.error);
@@ -889,7 +962,6 @@ exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
 
     const { userData } = verification;
 
-    // ✅ CREAR SESSION SEGURA CON METADATA
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -906,7 +978,6 @@ exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
         userId: uid,
         plan: plan,
         timestamp: Date.now().toString(),
-        // ✅ METADATA PARA VERIFICACIÓN
         securityHash: require('crypto').createHash('sha256').update(`${uid}-${plan}-${priceId}`).digest('hex').substring(0, 16)
       }
     });
@@ -926,7 +997,6 @@ exports.createStripeCheckout = functions.https.onCall(async (data, context) => {
   }
 });
 
-// ✅ FUNCIÓN MANAGE SUBSCRIPTION ACTUALIZADA
 exports.manageSubscription = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
@@ -935,7 +1005,6 @@ exports.manageSubscription = functions.https.onCall(async (data, context) => {
   const uid = context.auth.uid;
 
   try {
-    // ✅ VERIFICACIÓN DE SUSCRIPCIÓN
     const verification = await verifyUserSubscription(uid);
     if (!verification.isValid) {
       throw new functions.https.HttpsError('permission-denied', verification.error);
@@ -943,12 +1012,10 @@ exports.manageSubscription = functions.https.onCall(async (data, context) => {
 
     const { userData } = verification;
 
-    // Verificar que tenga suscripción activa
     if (!userData.stripeCustomerId) {
-      throw new functions.https.HttpsError('failed-precondition', 'No tienes una suscripción activa');
+      throw new functions.https.HttpsError('failed-precondition', 'No tienes una suscripciÃ³n activa');
     }
 
-    // ✅ CREAR PORTAL SESSION REAL
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: userData.stripeCustomerId,
       return_url: `${functions.config().app?.url || 'https://nora-ai.vercel.app'}/chat`,
@@ -960,15 +1027,24 @@ exports.manageSubscription = functions.https.onCall(async (data, context) => {
     };
 
   } catch (error) {
-    console.error('Error creando portal de facturación:', error);
+    console.error('Error creando portal de facturaciÃ³n:', error);
     if (error instanceof functions.https.HttpsError) {
       throw error;
     }
-    throw new functions.https.HttpsError('internal', 'Error accediendo a la gestión de suscripción');
+    throw new functions.https.HttpsError('internal', 'Error accediendo a la gestiÃ³n de suscripciÃ³n');
   }
 });
 
 // ========================================
-// 🔧 EXPORTAR FUNCIÓN DE VERIFICACIÓN PARA OTROS MÓDULOS
+// ðŸŒŸ EXPORTAR MODOS AVANZADOS
 // ========================================
+const advancedModes = require('./advancedModes');
+
+exports.travelPlanner = advancedModes.travelPlanner;
+exports.aiDetector = advancedModes.aiDetector;
+exports.textHumanizer = advancedModes.textHumanizer;
+exports.brandAnalyzer = advancedModes.brandAnalyzer;
+exports.documentDetective = advancedModes.documentDetective;
+exports.plantDoctor = advancedModes.plantDoctor;
+
 exports.verifyUserSubscription = verifyUserSubscription;

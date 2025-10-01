@@ -1,10 +1,17 @@
-// app/lib/types.ts - COMPLETO CON BÚSQUEDA WEB MANUAL
+// app/lib/types.ts - ARCHIVO 100% COMPLETO SIN OMISIONES
+
+// ========================================
+// TIPOS BÃSICOS DE PLAN
+// ========================================
 export type PlanType = 'free' | 'pro' | 'pro_max';
 
 export function isValidPlan(plan: any): plan is PlanType {
   return plan === 'free' || plan === 'pro' || plan === 'pro_max';
 }
 
+// ========================================
+// TIPOS DE USUARIO
+// ========================================
 export interface User {
   uid: string;
   email: string;
@@ -15,6 +22,9 @@ export interface User {
   isProMax: boolean;
 }
 
+// ========================================
+// TIPOS DE MENSAJES Y CONVERSACIONES
+// ========================================
 export interface ChatMessage {
   id: string;
   type: 'user' | 'ai';
@@ -24,14 +34,14 @@ export interface ChatMessage {
   conversationId: string;
   imageUrl?: string;
   imageId?: string;
-  // CAMPOS EXISTENTES para modos especializados
-  mode?: 'normal' | 'developer' | 'specialist';
+  mode?: 'normal' | 'developer' | 'specialist' | 'advanced';
   specialty?: SpecialtyType;
   specialtyName?: string;
-  // ✅ NUEVOS CAMPOS PARA BÚSQUEDA WEB
+  advancedMode?: AdvancedModeType;
   searchUsed?: boolean;
   searchResults?: SearchResults;
   limitReached?: boolean;
+  files?: string[];
 }
 
 export interface Conversation {
@@ -46,12 +56,13 @@ export interface Conversation {
   isArchived: boolean;
   tags: string[];
   summary?: string;
-  // CAMPOS EXISTENTES
   mode?: 'normal' | 'developer' | 'specialist';
   specialty?: SpecialtyType;
 }
 
-// USERPROFILE ACTUALIZADO MANTENIENDO COMPATIBILIDAD
+// ========================================
+// PERFIL DE USUARIO COMPLETO
+// ========================================
 export interface UserProfile {
   user: User;
   usage: {
@@ -67,7 +78,6 @@ export interface UserProfile {
       analysesLimit: number;
       analysesRemaining: number;
       chatMessagesCount: number;
-      // CAMPOS EXISTENTES (opcionales para compatibilidad)
       developerModeUsed?: number;
       developerModeLimit?: number;
       developerModeRemaining?: number;
@@ -87,14 +97,12 @@ export interface UserProfile {
       analysesLimit: number;
       analysesRemaining: number;
       chatMessagesCount: number;
-      // CAMPOS EXISTENTES
       developerModeUsed?: number;
       developerModeLimit?: number;
       developerModeRemaining?: number;
       specialistModeUsed?: number;
       specialistModeLimit?: number;
       specialistModeRemaining?: number;
-      // ✅ NUEVOS CAMPOS - BÚSQUEDAS WEB
       webSearchesUsed?: number;
       webSearchesLimit?: number;
       webSearchesRemaining?: number;
@@ -114,7 +122,6 @@ export interface UserProfile {
     imageGeneration?: boolean;
     videoGeneration?: boolean;
     maxVideoLength?: number;
-    // CAMPOS EXISTENTES
     developerModeEnabled?: boolean;
     specialistModeEnabled?: boolean;
     developerModeDaily?: number;
@@ -122,7 +129,6 @@ export interface UserProfile {
     specialistModeDaily?: number;
     specialistModeMonthly?: number;
     maxTokensPerSpecialistResponse?: number;
-    // ✅ NUEVOS LÍMITES - BÚSQUEDA WEB
     webSearchEnabled?: boolean;
     webSearchMonthly?: number;
     webSearchRemaining?: number;
@@ -139,12 +145,10 @@ export interface UserProfile {
       liveMode: boolean;
       imageGeneration: boolean;
       videoGeneration: boolean;
-      // CARACTERÍSTICAS EXISTENTES
       developerMode?: boolean;
       specialistMode?: boolean;
       unlimitedSpecialist?: boolean;
       priorityProcessing?: boolean;
-      // ✅ NUEVA CARACTERÍSTICA
       webSearch?: boolean;
       webSearchLimit?: number;
     };
@@ -160,6 +164,9 @@ export interface UserProfile {
   totalConversations: number;
 }
 
+// ========================================
+// TIPOS DE ARCHIVOS
+// ========================================
 export interface FileUpload {
   id: string;
   file: File;
@@ -171,13 +178,15 @@ export interface FileUpload {
 }
 
 // ========================================
-// ✅ TIPOS PARA BÚSQUEDAS WEB
+// TIPOS PARA BÃšSQUEDAS WEB
 // ========================================
 export interface SearchResult {
   title: string;
   link: string;
   snippet: string;
   displayLink: string;
+  formattedUrl?: string;
+  kind?: string;
 }
 
 export interface SearchResults {
@@ -218,7 +227,7 @@ export interface WebSearchStatusOutput {
 }
 
 // ========================================
-// TIPOS EXISTENTES PARA IMÁGENES - MANTENER
+// TIPOS PARA IMÃGENES
 // ========================================
 export interface GeneratedImage {
   id: string;
@@ -289,7 +298,7 @@ export interface ImageGalleryItem {
 }
 
 // ========================================
-// TIPOS EXISTENTES PARA VIDEOS - MANTENER
+// TIPOS PARA VIDEOS
 // ========================================
 export interface GeneratedVideo {
   id: string;
@@ -371,21 +380,22 @@ export interface VideoGeneratorUIState {
 }
 
 // ========================================
-// TIPOS EXISTENTES PARA CLOUD FUNCTIONS - ACTUALIZADOS
+// TIPOS PARA CLOUD FUNCTIONS INPUT/OUTPUT
 // ========================================
 export interface ChatWithAIInput {
   message: string;
   fileContext?: string;
   chatHistory: ChatMessage[];
   maxTokens?: number;
-  // ✅ NUEVO CAMPO PARA BÚSQUEDA MANUAL
   enableWebSearch?: boolean;
+  personalityContext?: string;
+  systemPrompt?: string;
+  deepThinking?: boolean;
 }
 
 export interface ChatWithAIOutput {
   response: string;
   tokensUsed: number;
-  // ✅ NUEVOS CAMPOS PARA BÚSQUEDA WEB
   searchUsed?: boolean;
   searchResults?: SearchResults;
   limitReached?: boolean;
@@ -395,6 +405,7 @@ export interface ChatWithAIOutput {
     remaining: number;
     canSearch: boolean;
   };
+  messageType?: string;
 }
 
 export interface GenerateImageInput {
@@ -433,11 +444,14 @@ export interface GetImageUsageStatusOutput {
     model: string;
     quality: string;
     aspectRatios: string[];
-    costPerImage: number; 
+    costPerImage: number;
+  };
+  usage: {
+    monthlyUsed: number;
+    usagePercentage: number;
+    warningAt80Percent: boolean;
   };
   history: GeneratedImage[];
-  warningAt80Percent?: boolean;
-  usagePercentage?: number;
 }
 
 export interface GenerateVideoInput {
@@ -510,15 +524,15 @@ export interface ManageSubscriptionOutput {
 }
 
 // ========================================
-// TIPOS EXISTENTES PARA MODOS ESPECIALIZADOS
+// TIPOS PARA MODOS ESPECIALIZADOS
 // ========================================
-export type SpecialtyType = 
-  | 'business' 
-  | 'science' 
-  | 'education' 
+export type SpecialtyType =
+  | 'business'
+  | 'science'
+  | 'education'
   | 'health'
   | 'marketing'
-  | 'finance' 
+  | 'finance'
   | 'legal'
   | 'psychology'
   | 'engineering'
@@ -581,6 +595,8 @@ export interface DeveloperModeChatOutput {
   remainingDaily: number;
   remainingMonthly: number;
   specialty: 'programming';
+  modelUsed?: string;
+  availableModels?: string[];
 }
 
 export interface SpecialistModeChatInput {
@@ -598,6 +614,33 @@ export interface SpecialistModeChatOutput {
   specialtyName: string;
   remainingDaily: number;
   remainingMonthly: number;
+  modelUsed?: string;
+  availableModels?: string[];
+}
+
+// ========================================
+// TIPOS PARA MODOS AVANZADOS
+// ========================================
+export type AdvancedModeType = 
+  | 'travel_planner'
+  | 'ai_detector'
+  | 'text_humanizer'
+  | 'brand_analyzer'
+  | 'document_detective'
+  | 'plant_doctor';
+
+export interface AdvancedModeInput {
+  message: string;
+  chatHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
+  fileContext?: any;
+  style?: 'professional' | 'casual' | 'academic';
+}
+
+export interface AdvancedModeOutput {
+  response: string;
+  tokensUsed: number;
+  mode: 'advanced';
+  advancedMode: AdvancedModeType;
 }
 
 // ========================================
@@ -651,29 +694,29 @@ export interface APIResponse<T> {
 }
 
 // ========================================
-// CONSTANTES EXISTENTES - MANTENER
+// CONSTANTES DE ESTILOS
 // ========================================
 export const VIDEO_STYLES = [
-  { value: 'cinematic', label: 'Cinematográfico' },
+  { value: 'cinematic', label: 'CinematogrÃ¡fico' },
   { value: 'realistic', label: 'Realista' },
-  { value: 'artistic', label: 'Artístico' },
-  { value: 'animation', label: 'Animación' }
+  { value: 'artistic', label: 'ArtÃ­stico' },
+  { value: 'animation', label: 'AnimaciÃ³n' }
 ] as const;
 
 export const VIDEO_ASPECT_RATIOS = [
-  { value: '16:9', label: 'Panorámico', free: true },
+  { value: '16:9', label: 'PanorÃ¡mico', free: true },
   { value: '9:16', label: 'Vertical', free: false },
   { value: '1:1', label: 'Cuadrado', free: false },
-  { value: '4:3', label: 'Clásico', free: false },
+  { value: '4:3', label: 'ClÃ¡sico', free: false },
   { value: '3:4', label: 'Retrato', free: false }
 ] as const;
 
 export const IMAGE_STYLES = [
   { value: 'realistic', label: 'Realista' },
-  { value: 'artistic', label: 'Artístico' },
+  { value: 'artistic', label: 'ArtÃ­stico' },
   { value: 'digital_art', label: 'Arte Digital' },
-  { value: 'illustration', label: 'Ilustración' },
-  { value: 'photography', label: 'Fotografía' },
+  { value: 'illustration', label: 'IlustraciÃ³n' },
+  { value: 'photography', label: 'FotografÃ­a' },
   { value: 'painting', label: 'Pintura' },
   { value: 'sketch', label: 'Boceto' },
   { value: 'cartoon', label: 'Caricatura' }
@@ -681,15 +724,18 @@ export const IMAGE_STYLES = [
 
 export const ASPECT_RATIOS = [
   { value: '1:1', label: 'Cuadrado', free: true },
-  { value: '16:9', label: 'Panorámico', free: true },
+  { value: '16:9', label: 'PanorÃ¡mico', free: true },
   { value: '9:16', label: 'Vertical', free: false },
-  { value: '4:3', label: 'Clásico', free: false },
+  { value: '4:3', label: 'ClÃ¡sico', free: false },
   { value: '3:4', label: 'Retrato', free: false },
-  { value: '21:9', label: 'Ultra Panorámico', free: false },
+  { value: '21:9', label: 'Ultra PanorÃ¡mico', free: false },
   { value: '1:2', label: 'Banner Vertical', free: false },
   { value: '2:1', label: 'Banner Horizontal', free: false }
 ] as const;
 
+// ========================================
+// LÃMITES POR PLAN
+// ========================================
 export const VIDEO_PLAN_LIMITS = {
   free: {
     dailyVideos: 0,
@@ -713,140 +759,154 @@ export const VIDEO_PLAN_LIMITS = {
 
 export const PLAN_LIMITS = {
   free: {
-    dailyTokens: 10000,
-    monthlyTokens: 100000,
-    dailyImages: 3,
-    monthlyImages: 30,
-    webSearchesPerMonth: 50, // ✅ NUEVO LÍMITE
-    features: ['basic_chat', 'basic_images', 'limited_web_search']
+    dailyTokens: 66666,
+    monthlyTokens: 2000000,
+    dailyImages: 0,
+    monthlyImages: 0,
+    dailyVideos: 0,
+    monthlyVideos: 0,
+    webSearchesPerMonth: 50,
+    maxFileSize: 10,
+    maxResponseTokens: 1500,
+    features: ['basic_chat', 'limited_web_search']
   },
   pro: {
-    dailyTokens: 100000,
-    monthlyTokens: 1000000,
-    dailyImages: 25,
-    monthlyImages: 500,
-    webSearchesPerMonth: 500, // ✅ NUEVO LÍMITE
-    features: ['advanced_chat', 'premium_images', 'file_upload', 'conversation_export', 'web_search']
+    dailyTokens: 333333,
+    monthlyTokens: 10000000,
+    dailyImages: 5,
+    monthlyImages: 50,
+    dailyVideos: 1,
+    monthlyVideos: 20,
+    webSearchesPerMonth: 500,
+    maxFileSize: 50,
+    maxResponseTokens: 4000,
+    features: ['advanced_chat', 'premium_images', 'file_upload', 'conversation_export', 'web_search', 'video_generation']
   },
   pro_max: {
-    dailyTokens: -1,
-    monthlyTokens: -1,
-    dailyImages: 100,
-    monthlyImages: 2000,
-    webSearchesPerMonth: 2000, // ✅ NUEVO LÍMITE
-    features: ['unlimited_chat', 'premium_images', 'priority_support', 'advanced_features', 'unlimited_web_search']
+    dailyTokens: 666666,
+    monthlyTokens: 20000000,
+    dailyImages: 20,
+    monthlyImages: 200,
+    dailyVideos: 2,
+    monthlyVideos: 30,
+    webSearchesPerMonth: 2000,
+    maxFileSize: 100,
+    maxResponseTokens: 8000,
+    features: ['unlimited_chat', 'premium_images', 'priority_support', 'advanced_features', 'unlimited_web_search', 'video_generation', 'priority_processing']
   }
 } as const;
 
-// CONSTANTES EXISTENTES PARA MODOS ESPECIALIZADOS
+// ========================================
+// MODOS ESPECIALISTAS
+// ========================================
 export const SPECIALIST_MODES = [
-  { 
-    id: 'business', 
-    name: 'Negocios', 
-    icon: '📊', 
-    color: 'green', 
-    description: 'Estrategia empresarial y análisis de mercado',
-    features: ['Análisis FODA', 'Plan de negocios', 'ROI', 'KPIs'],
-    systemPrompt: 'Eres un experto consultor de negocios especializado en estrategia empresarial, análisis de mercado, y optimización de procesos.'
+  {
+    id: 'business',
+    name: 'Negocios',
+    icon: 'ðŸ“Š',
+    color: 'green',
+    description: 'Estrategia empresarial y anÃ¡lisis de mercado',
+    features: ['AnÃ¡lisis FODA', 'Plan de negocios', 'ROI', 'KPIs'],
+    systemPrompt: 'Eres un experto consultor de negocios especializado en estrategia empresarial, anÃ¡lisis de mercado, y optimizaciÃ³n de procesos.'
   },
-  { 
-    id: 'science', 
-    name: 'Ciencias', 
-    icon: '🔬', 
-    color: 'purple', 
-    description: 'Investigación científica y análisis técnico',
-    features: ['Metodología', 'Estadística', 'Papers', 'Hipótesis'],
-    systemPrompt: 'Eres un científico experto con conocimientos profundos en investigación, metodología científica y análisis de datos.'
+  {
+    id: 'science',
+    name: 'Ciencias',
+    icon: 'ðŸ”¬',
+    color: 'purple',
+    description: 'InvestigaciÃ³n cientÃ­fica y anÃ¡lisis tÃ©cnico',
+    features: ['MetodologÃ­a', 'EstadÃ­stica', 'Papers', 'HipÃ³tesis'],
+    systemPrompt: 'Eres un cientÃ­fico experto con conocimientos profundos en investigaciÃ³n, metodologÃ­a cientÃ­fica y anÃ¡lisis de datos.'
   },
-  { 
-    id: 'education', 
-    name: 'Educación', 
-    icon: '📚', 
-    color: 'yellow', 
-    description: 'Pedagogía y métodos de enseñanza',
-    features: ['Pedagogía', 'Currículo', 'Evaluación', 'Didáctica'],
-    systemPrompt: 'Eres un pedagogo experto especializado en diseño curricular, métodos de enseñanza y psicología educativa.'
+  {
+    id: 'education',
+    name: 'EducaciÃ³n',
+    icon: 'ðŸ“š',
+    color: 'yellow',
+    description: 'PedagogÃ­a y mÃ©todos de enseÃ±anza',
+    features: ['PedagogÃ­a', 'CurrÃ­culum', 'EvaluaciÃ³n', 'DidÃ¡ctica'],
+    systemPrompt: 'Eres un pedagogo experto especializado en diseÃ±o curricular, mÃ©todos de enseÃ±anza y psicologÃ­a educativa.'
   },
-  { 
-    id: 'health', 
-    name: 'Salud', 
-    icon: '⚕️', 
-    color: 'red', 
+  {
+    id: 'health',
+    name: 'Salud',
+    icon: 'âš•ï¸',
+    color: 'red',
     description: 'Medicina preventiva y bienestar',
-    features: ['Prevención', 'Nutrición', 'Ejercicio', 'Wellness'],
-    systemPrompt: 'Eres un profesional de la salud especializado en medicina preventiva, nutrición y bienestar general.'
+    features: ['PrevenciÃ³n', 'NutriciÃ³n', 'Ejercicio', 'Wellness'],
+    systemPrompt: 'Eres un profesional de la salud especializado en medicina preventiva, nutriciÃ³n y bienestar general.'
   },
-  { 
-    id: 'marketing', 
-    name: 'Marketing', 
-    icon: '📢', 
-    color: 'orange', 
+  {
+    id: 'marketing',
+    name: 'Marketing',
+    icon: 'ðŸ“¢',
+    color: 'orange',
     description: 'Publicidad digital y estrategias de marca',
     features: ['SEO/SEM', 'Social Media', 'Branding', 'Analytics'],
     systemPrompt: 'Eres un experto en marketing digital, branding, publicidad y estrategias de crecimiento empresarial.'
   },
-  { 
-    id: 'finance', 
-    name: 'Finanzas', 
-    icon: '💰', 
-    color: 'emerald', 
-    description: 'Inversiones y planificación financiera',
-    features: ['Inversiones', 'Riesgo', 'Análisis', 'Portafolio'],
-    systemPrompt: 'Eres un analista financiero experto en inversiones, planificación financiera, análisis de riesgo y mercados.'
+  {
+    id: 'finance',
+    name: 'Finanzas',
+    icon: 'ðŸ’°',
+    color: 'emerald',
+    description: 'Inversiones y planificaciÃ³n financiera',
+    features: ['Inversiones', 'Riesgo', 'AnÃ¡lisis', 'Portafolio'],
+    systemPrompt: 'Eres un analista financiero experto en inversiones, planificaciÃ³n financiera, anÃ¡lisis de riesgo y mercados.'
   },
-  { 
-    id: 'legal', 
-    name: 'Legal', 
-    icon: '⚖️', 
-    color: 'indigo', 
-    description: 'Asesoría jurídica y cumplimiento',
-    features: ['Contratos', 'Compliance', 'Regulación', 'Derecho'],
+  {
+    id: 'legal',
+    name: 'Legal',
+    icon: 'âš–ï¸',
+    color: 'indigo',
+    description: 'AsesorÃ­a jurÃ­dica y cumplimiento',
+    features: ['Contratos', 'Compliance', 'RegulaciÃ³n', 'Derecho'],
     systemPrompt: 'Eres un asesor legal especializado en derecho corporativo, contratos, compliance y regulaciones.'
   },
-  { 
-    id: 'psychology', 
-    name: 'Psicología', 
-    icon: '🧠', 
-    color: 'pink', 
+  {
+    id: 'psychology',
+    name: 'PsicologÃ­a',
+    icon: 'ðŸ§ ',
+    color: 'pink',
     description: 'Coaching y desarrollo personal',
     features: ['Coaching', 'Mindset', 'Emocional', 'Liderazgo'],
-    systemPrompt: 'Eres un psicólogo y coach experto en desarrollo personal, inteligencia emocional y técnicas de coaching.'
+    systemPrompt: 'Eres un psicÃ³logo y coach experto en desarrollo personal, inteligencia emocional y tÃ©cnicas de coaching.'
   },
-  { 
-    id: 'engineering', 
-    name: 'Ingeniería', 
-    icon: '⚙️', 
-    color: 'slate', 
-    description: 'Sistemas técnicos y arquitectura',
+  {
+    id: 'engineering',
+    name: 'IngenierÃ­a',
+    icon: 'âš™ï¸',
+    color: 'slate',
+    description: 'Sistemas tÃ©cnicos y arquitectura',
     features: ['Arquitectura', 'Sistemas', 'DevOps', 'Cloud'],
-    systemPrompt: 'Eres un ingeniero experto en arquitectura de sistemas, tecnología, automatización y soluciones técnicas.'
+    systemPrompt: 'Eres un ingeniero experto en arquitectura de sistemas, tecnologÃ­a, automatizaciÃ³n y soluciones tÃ©cnicas.'
   },
-  { 
-    id: 'hr', 
-    name: 'Recursos Humanos', 
-    icon: '👥', 
-    color: 'teal', 
-    description: 'Gestión de talento y cultura organizacional',
+  {
+    id: 'hr',
+    name: 'Recursos Humanos',
+    icon: 'ðŸ‘¥',
+    color: 'teal',
+    description: 'GestiÃ³n de talento y cultura organizacional',
     features: ['Reclutamiento', 'Cultura', 'Performance', 'Talento'],
     systemPrompt: 'Eres un especialista en recursos humanos, reclutamiento, desarrollo de talento y cultura organizacional.'
   },
-  { 
-    id: 'sales', 
-    name: 'Ventas', 
-    icon: '🎯', 
-    color: 'rose', 
+  {
+    id: 'sales',
+    name: 'Ventas',
+    icon: 'ðŸŽ¯',
+    color: 'rose',
     description: 'Estrategias de ventas y CRM',
-    features: ['Negociación', 'CRM', 'Pipeline', 'Cierre'],
-    systemPrompt: 'Eres un experto en ventas, negociación, gestión de clientes y técnicas de cierre.'
+    features: ['NegociaciÃ³n', 'CRM', 'Pipeline', 'Cierre'],
+    systemPrompt: 'Eres un experto en ventas, negociaciÃ³n, gestiÃ³n de clientes y tÃ©cnicas de cierre.'
   },
-  { 
-    id: 'data', 
-    name: 'Análisis de Datos', 
-    icon: '📈', 
-    color: 'violet', 
+  {
+    id: 'data',
+    name: 'AnÃ¡lisis de Datos',
+    icon: 'ðŸ“ˆ',
+    color: 'violet',
     description: 'Big Data y Business Intelligence',
-    features: ['Big Data', 'BI', 'ML', 'Estadística'],
-    systemPrompt: 'Eres un científico de datos experto en análisis estadístico, machine learning y business intelligence.'
+    features: ['Big Data', 'BI', 'ML', 'EstadÃ­stica'],
+    systemPrompt: 'Eres un cientÃ­fico de datos experto en anÃ¡lisis estadÃ­stico, machine learning y business intelligence.'
   }
 ];
 

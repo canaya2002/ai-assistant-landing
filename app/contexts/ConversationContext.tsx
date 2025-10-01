@@ -1,4 +1,4 @@
-// contexts/ConversationContext.tsx - CONTEXT LIMPIO CORREGIDO
+// contexts/ConversationContext.tsx - âœ… VERSIÃ“N CORREGIDA
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -8,27 +8,18 @@ import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
 
 interface ConversationContextType {
-  // Estado actual
   currentConversation: Conversation | null;
   conversations: Conversation[];
   isLoading: boolean;
-  
-  // Acciones de conversación
   startNewConversation: () => void;
   loadConversation: (conversationId: string) => void;
   addMessage: (message: ChatMessage) => void;
   updateConversationTitle: (conversationId: string, title: string) => void;
   deleteConversation: (conversationId: string) => void;
-  
-  // Búsqueda y filtros
   searchConversations: (query: string) => Conversation[];
   getRecentConversations: (limit?: number) => Conversation[];
-  
-  // Backup y export
   exportConversations: () => void;
   importConversations: (file: File) => Promise<boolean>;
-  
-  // Estadísticas
   getUsageStats: () => {
     totalConversations: number;
     totalMessages: number;
@@ -54,7 +45,6 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar conversaciones al iniciar
   useEffect(() => {
     if (user) {
       loadAllConversations();
@@ -68,9 +58,9 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     try {
       setIsLoading(true);
       const stored = LocalConversationStorage.getConversations();
-      // Filtrar solo conversaciones del usuario actual
       const userConversations = stored.filter(conv => conv.userId === user?.uid);
       setConversations(userConversations);
+      console.log('ðŸ“š Conversaciones cargadas:', userConversations.length);
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast.error('Error cargando conversaciones');
@@ -80,12 +70,15 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
   };
 
   const startNewConversation = () => {
-    if (!user) return;
+    if (!user) {
+      console.error('âŒ No user para crear conversaciÃ³n');
+      return;
+    }
 
     const newConversation: Conversation = {
       id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       userId: user.uid,
-      title: 'Nueva conversación',
+      title: 'Nueva conversaciÃ³n',
       messages: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -95,6 +88,7 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
       tags: []
     };
 
+    console.log('ðŸ†• Nueva conversaciÃ³n creada:', newConversation.id);
     setCurrentConversation(newConversation);
   };
 
@@ -102,36 +96,64 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     try {
       const conversation = LocalConversationStorage.getConversation(conversationId);
       if (conversation && conversation.userId === user?.uid) {
+        console.log('ðŸ“– ConversaciÃ³n cargada:', conversationId, 'con', conversation.messages.length, 'mensajes');
         setCurrentConversation(conversation);
       } else {
-        toast.error('Conversación no encontrada');
+        toast.error('ConversaciÃ³n no encontrada');
       }
     } catch (error) {
       console.error('Error loading conversation:', error);
-      toast.error('Error cargando conversación');
+      toast.error('Error cargando conversaciÃ³n');
     }
   };
 
-  // ✅ FUNCIÓN ADDMESSAGE ARREGLADA CON TUS TIPOS ORIGINALES
+  // âœ… FUNCIÃ“N ADDMESSAGE CORREGIDA - LEE DE LOCALSTORAGE PRIMERO
   const addMessage = (message: ChatMessage) => {
-    if (!currentConversation || !user) return;
+    console.log('ðŸ“¥ ADDMESSAGE LLAMADO:', {
+      messageId: message.id,
+      type: message.type,
+      hasCurrentConv: !!currentConversation,
+      hasUser: !!user
+    });
+
+    if (!currentConversation) {
+      console.error('âŒ No hay currentConversation');
+      return;
+    }
+
+    if (!user) {
+      console.error('âŒ No hay user');
+      return;
+    }
 
     try {
+      // âœ… SOLUCIÃ“N: Leer la conversaciÃ³n MÃS RECIENTE de LocalStorage
+      // En lugar de usar currentConversation del estado (que puede estar desactualizado)
+      const freshConversation = LocalConversationStorage.getConversation(currentConversation.id);
+      
+      // Si no existe en storage, usar la del estado
+      const baseConversation = freshConversation || currentConversation;
+      
+      console.log('ðŸ“ Mensajes ANTES:', baseConversation.messages.length);
+      
       const updatedConversation: Conversation = {
-        ...currentConversation,
-        messages: [...currentConversation.messages, message],
+        ...baseConversation,
+        messages: [...baseConversation.messages, message],
         updatedAt: new Date(),
         lastActivity: new Date(),
-        messageCount: currentConversation.messages.length + 1
+        messageCount: baseConversation.messages.length + 1
       };
 
-      // ✅ CORREGIDO: Generar título automático solo para el primer mensaje del usuario
-      // Y usando TU propiedad 'message' no 'content'
+      console.log('ðŸ“ Mensajes DESPUÃ‰S:', updatedConversation.messages.length);
+
+      // Generar tÃ­tulo si es primer mensaje de usuario
       if (updatedConversation.messages.length === 1 && message.type === 'user' && message.message) {
         updatedConversation.title = LocalConversationStorage.generateTitle(message.message);
+        console.log('ðŸ“Œ TÃ­tulo generado:', updatedConversation.title);
       }
 
-      // Guardar localmente
+      // âœ… GUARDAR INMEDIATAMENTE EN LOCALSTORAGE
+      console.log('ðŸ’¾ Guardando en LocalStorage...');
       LocalConversationStorage.saveConversation(updatedConversation);
       
       // Actualizar estado
@@ -139,47 +161,50 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
       
       // Actualizar lista de conversaciones
       setConversations(prev => {
-        const existingIndex = prev.findIndex(conv => conv.id === updatedConversation.id);
+        const existingIndex = prev.findIndex(c => c.id === updatedConversation.id);
         if (existingIndex >= 0) {
           const updated = [...prev];
           updated[existingIndex] = updatedConversation;
           return updated;
-        } else {
-          return [updatedConversation, ...prev];
         }
+        return [updatedConversation, ...prev];
       });
+      
+      console.log('âœ… addMessage completado exitosamente');
     } catch (error) {
-      console.error('Error adding message:', error);
-      toast.error('Error al agregar mensaje');
+      console.error('âŒ Error en addMessage:', error);
+      toast.error('Error guardando mensaje');
     }
   };
 
   const updateConversationTitle = (conversationId: string, title: string) => {
     try {
       const conversation = LocalConversationStorage.getConversation(conversationId);
-      if (!conversation || conversation.userId !== user?.uid) return;
+      if (!conversation) {
+        toast.error('ConversaciÃ³n no encontrada');
+        return;
+      }
 
-      const updatedConversation: Conversation = {
+      const updatedConversation = {
         ...conversation,
-        title: title.trim() || 'Sin título',
+        title: title.trim() || 'Nueva conversaciÃ³n',
         updatedAt: new Date()
       };
 
       LocalConversationStorage.saveConversation(updatedConversation);
       
-      // Actualizar estado
       if (currentConversation?.id === conversationId) {
         setCurrentConversation(updatedConversation);
       }
       
-      setConversations(prev => 
-        prev.map(conv => 
+      setConversations(prev =>
+        prev.map(conv =>
           conv.id === conversationId ? updatedConversation : conv
         )
       );
     } catch (error) {
       console.error('Error updating conversation title:', error);
-      toast.error('Error actualizando título');
+      toast.error('Error actualizando tÃ­tulo');
     }
   };
 
@@ -187,18 +212,16 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     try {
       LocalConversationStorage.deleteConversation(conversationId);
       
-      // Actualizar estado local
       setConversations(prev => prev.filter(conv => conv.id !== conversationId));
       
-      // Si es la conversación actual, limpiarla
       if (currentConversation?.id === conversationId) {
         setCurrentConversation(null);
       }
       
-      toast.success('Conversación eliminada');
+      toast.success('ConversaciÃ³n eliminada');
     } catch (error) {
       console.error('Error deleting conversation:', error);
-      toast.error('Error eliminando conversación');
+      toast.error('Error eliminando conversaciÃ³n');
     }
   };
 
@@ -209,7 +232,7 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     return conversations.filter(conv => 
       conv.title.toLowerCase().includes(lowerQuery) ||
       conv.messages.some(msg => 
-        msg.message.toLowerCase().includes(lowerQuery) // ✅ CORREGIDO: usar TU 'message' no 'content'
+        msg.message.toLowerCase().includes(lowerQuery)
       )
     ).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   };
@@ -244,12 +267,10 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
       const text = await file.text();
       const importedConversations = JSON.parse(text) as Conversation[];
       
-      // Validar formato
       if (!Array.isArray(importedConversations)) {
-        throw new Error('Formato de archivo inválido');
+        throw new Error('Formato de archivo invÃ¡lido');
       }
       
-      // Filtrar conversaciones del usuario actual y convertir fechas
       const validConversations = importedConversations
         .filter(conv => conv.userId === user?.uid)
         .map(conv => ({
@@ -264,16 +285,14 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
         }));
       
       if (validConversations.length === 0) {
-        toast.error('No se encontraron conversaciones válidas para importar');
+        toast.error('No se encontraron conversaciones vÃ¡lidas para importar');
         return false;
       }
       
-      // Guardar cada conversación
       validConversations.forEach(conv => {
         LocalConversationStorage.saveConversation(conv);
       });
       
-      // Recargar conversaciones
       loadAllConversations();
       
       toast.success(`${validConversations.length} conversaciones importadas`);
@@ -289,19 +308,18 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     return LocalConversationStorage.getUsageStats();
   };
 
-  // Limpiar conversaciones antiguas (ejecutar ocasionalmente)
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       try {
-        const removed = LocalConversationStorage.cleanOldConversations(90); // 90 días
+        const removed = LocalConversationStorage.cleanOldConversations(90);
         if (removed > 0) {
           console.log(`Cleaned ${removed} old conversations`);
-          loadAllConversations(); // Recargar si se eliminaron conversaciones
+          loadAllConversations();
         }
       } catch (error) {
         console.error('Error during cleanup:', error);
       }
-    }, 24 * 60 * 60 * 1000); // Una vez al día
+    }, 24 * 60 * 60 * 1000);
 
     return () => clearInterval(cleanupInterval);
   }, []);

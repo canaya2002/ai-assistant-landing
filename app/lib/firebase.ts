@@ -1,4 +1,4 @@
-// app/lib/firebase.ts - AUTENTICACIÓN SEGURA MEJORADA
+// app/lib/firebase.ts - COMPLETO 100%
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
@@ -30,11 +30,13 @@ import type {
   SpecialistModeChatOutput,
   SearchWebInput,
   SearchWebOutput,
-  WebSearchStatusOutput
+  WebSearchStatusOutput,
+  AdvancedModeInput,
+  AdvancedModeOutput
 } from './types';
 
 // ========================================
-// 🔒 CONFIGURACIÓN SEGURA DE FIREBASE
+// ðŸ”’ CONFIGURACIÃ“N SEGURA DE FIREBASE
 // ========================================
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -46,7 +48,7 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// ✅ VALIDAR CONFIGURACIÓN ANTES DE INICIALIZAR
+// âœ… VALIDAR CONFIGURACIÃ“N ANTES DE INICIALIZAR
 function validateFirebaseConfig(): boolean {
   const requiredFields = [
     'NEXT_PUBLIC_FIREBASE_API_KEY',
@@ -57,11 +59,11 @@ function validateFirebaseConfig(): boolean {
   const missing = requiredFields.filter(field => !process.env[field]);
   
   if (missing.length > 0) {
-    console.error('❌ Configuración de Firebase incompleta. Faltan:', missing);
-    console.log('🔍 Variables de entorno actuales:', {
-      API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? '✅ Presente' : '❌ Faltante',
-      AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? '✅ Presente' : '❌ Faltante',
-      PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? '✅ Presente' : '❌ Faltante'
+    console.error('âŒ ConfiguraciÃ³n de Firebase incompleta. Faltan:', missing);
+    console.log('ðŸ” Variables de entorno actuales:', {
+      API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'âœ… Presente' : 'âŒ Faltante',
+      AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'âœ… Presente' : 'âŒ Faltante',
+      PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'âœ… Presente' : 'âŒ Faltante'
     });
     return false;
   }
@@ -69,8 +71,8 @@ function validateFirebaseConfig(): boolean {
   return true;
 }
 
-// Inicializar Firebase (con configuración válida garantizada)
-console.log('🔥 Inicializando Firebase con configuración:', {
+// Inicializar Firebase
+console.log('ðŸ”¥ Inicializando Firebase con configuraciÃ³n:', {
   projectId: firebaseConfig.projectId,
   authDomain: firebaseConfig.authDomain
 });
@@ -84,7 +86,7 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
 // ========================================
-// 🔒 SISTEMA DE VERIFICACIÓN DE TOKENS MEJORADO
+// ðŸ”’ SISTEMA DE VERIFICACIÃ“N DE TOKENS MEJORADO
 // ========================================
 class TokenManager {
   private static tokenCache = new Map<string, { token: string; expiry: number }>();
@@ -97,17 +99,17 @@ class TokenManager {
     const cached = this.tokenCache.get(uid);
     const now = Date.now();
 
-    // ✅ VERIFICAR CACHE VÁLIDO
+    // âœ… VERIFICAR CACHE VÃLIDO
     if (!forceRefresh && cached && cached.expiry > now + 300000) { // 5 min buffer
       return cached.token;
     }
 
-    // ✅ EVITAR MÚLTIPLES REFRESH SIMULTÁNEOS
+    // âœ… EVITAR MÃšLTIPLES REFRESH SIMULTÃNEOS
     if (this.refreshPromises.has(uid)) {
       return await this.refreshPromises.get(uid)!;
     }
 
-    // ✅ REFRESH TOKEN CON MANEJO DE ERRORES
+    // âœ… REFRESH TOKEN CON MANEJO DE ERRORES
     const refreshPromise = this.refreshToken(user);
     this.refreshPromises.set(uid, refreshPromise);
 
@@ -123,13 +125,13 @@ class TokenManager {
     try {
       const token = await user.getIdToken(true); // Force refresh
       
-      // ✅ VERIFICAR VALIDEZ DEL TOKEN
+      // âœ… VERIFICAR VALIDEZ DEL TOKEN
       const tokenPayload = this.parseJWT(token);
       if (!tokenPayload || tokenPayload.exp * 1000 <= Date.now()) {
-        throw new Error('Token inválido o expirado');
+        throw new Error('Token invÃ¡lido o expirado');
       }
 
-      // ✅ CACHEAR TOKEN CON EXPIRACIÓN
+      // âœ… CACHEAR TOKEN CON EXPIRACIÃ“N
       this.tokenCache.set(user.uid, {
         token,
         expiry: tokenPayload.exp * 1000
@@ -137,9 +139,9 @@ class TokenManager {
 
       return token;
     } catch (error) {
-      console.error('❌ Error refrescando token:', error);
+      console.error('âŒ Error refrescando token:', error);
       this.tokenCache.delete(user.uid);
-      throw new Error('No se pudo obtener token válido');
+      throw new Error('No se pudo obtener token vÃ¡lido');
     }
   }
 
@@ -171,39 +173,39 @@ class TokenManager {
 }
 
 // ========================================
-// 🔒 FUNCIONES DE AUTENTICACIÓN SEGURAS
+// ðŸ”’ FUNCIONES DE AUTENTICACIÃ“N SEGURAS
 // ========================================
 export const authFunctions = {
-  // ✅ REGISTRO CON VALIDACIONES MEJORADAS
+  // âœ… REGISTRO CON VALIDACIONES MEJORADAS
   async signUp(email: string, password: string, name: string) {
     const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
     
     try {
-      // ✅ VALIDACIONES PREVIAS
+      // âœ… VALIDACIONES PREVIAS
       if (!email || !password || !name) {
         throw new Error('Todos los campos son requeridos');
       }
 
       if (password.length < 8) {
-        throw new Error('La contraseña debe tener al menos 8 caracteres');
+        throw new Error('La contraseÃ±a debe tener al menos 8 caracteres');
       }
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        throw new Error('Email inválido');
+        throw new Error('Email invÃ¡lido');
       }
 
       if (name.trim().length < 2) {
         throw new Error('El nombre debe tener al menos 2 caracteres');
       }
 
-      // ✅ CREAR USUARIO
+      // âœ… CREAR USUARIO
       const userCredential = await createUserWithEmailAndPassword(auth, email.toLowerCase().trim(), password);
       const user = userCredential.user;
       
-      // ✅ ACTUALIZAR PERFIL
+      // âœ… ACTUALIZAR PERFIL
       await updateProfile(user, { displayName: name.trim() });
       
-      // ✅ CREAR DOCUMENTO SEGURO EN FIRESTORE
+      // âœ… CREAR DOCUMENTO SEGURO EN FIRESTORE
       const { doc, setDoc, Timestamp } = await import('firebase/firestore');
       const userData = {
         uid: user.uid,
@@ -212,7 +214,6 @@ export const authFunctions = {
         plan: 'free' as PlanType,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
-        // ✅ CAMPOS DE SEGURIDAD
         verified: false,
         lastLogin: Timestamp.now(),
         registrationIP: await this.getClientIP(),
@@ -225,7 +226,7 @@ export const authFunctions = {
 
       await setDoc(doc(db, 'users', user.uid), userData);
       
-      // ✅ ENVIAR VERIFICACIÓN DE EMAIL
+      // âœ… ENVIAR VERIFICACIÃ“N DE EMAIL
       if (!user.emailVerified) {
         const { sendEmailVerification } = await import('firebase/auth');
         await sendEmailVerification(user);
@@ -233,39 +234,36 @@ export const authFunctions = {
       
       return userCredential;
     } catch (error: any) {
-      console.error('❌ Error en signUp:', error);
+      console.error('âŒ Error en signUp:', error);
       throw this.enhanceError(error);
     }
   },
 
-  // ✅ INICIO DE SESIÓN CON VERIFICACIONES ADICIONALES
+  // âœ… INICIO DE SESIÃ“N CON VERIFICACIONES ADICIONALES
   async signIn(email: string, password: string) {
     const { signInWithEmailAndPassword } = await import('firebase/auth');
     
     try {
-      // ✅ VALIDACIONES PREVIAS
+      // âœ… VALIDACIONES PREVIAS
       if (!email || !password) {
-        throw new Error('Email y contraseña son requeridos');
+        throw new Error('Email y contraseÃ±a son requeridos');
       }
 
-      // ✅ INTENTAR INICIO DE SESIÓN
+      // âœ… INTENTAR INICIO DE SESIÃ“N
       const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase().trim(), password);
       const user = userCredential.user;
 
-      // ✅ VERIFICAR ESTADO DE LA CUENTA
-      // Nota: user.disabled no está disponible en el cliente, se verificará en el servidor
-
-      // ✅ ACTUALIZAR ÚLTIMO LOGIN
+      // âœ… ACTUALIZAR ÃšLTIMO LOGIN
       await this.updateLastLogin(user);
 
-      // ✅ VERIFICAR INTEGRIDAD DE LA CUENTA
+      // âœ… VERIFICAR INTEGRIDAD DE LA CUENTA
       await this.verifyAccountIntegrity(user);
 
       return userCredential;
     } catch (error: any) {
-      console.error('❌ Error en signIn:', error);
+      console.error('âŒ Error en signIn:', error);
       
-      // ✅ REGISTRAR INTENTO FALLIDO (OPCIONAL)
+      // âœ… REGISTRAR INTENTO FALLIDO
       if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
         await this.logFailedAttempt(email);
       }
@@ -274,7 +272,7 @@ export const authFunctions = {
     }
   },
 
-  // ✅ GOOGLE SIGN-IN CON VERIFICACIONES
+  // âœ… GOOGLE SIGN-IN CON VERIFICACIONES
   async signInWithGoogle() {
     const { signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
     
@@ -283,7 +281,6 @@ export const authFunctions = {
       provider.addScope('email');
       provider.addScope('profile');
       
-      // ✅ CONFIGURACIONES ADICIONALES DE SEGURIDAD
       provider.setCustomParameters({
         prompt: 'select_account'
       });
@@ -291,12 +288,12 @@ export const authFunctions = {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
-      // ✅ VERIFICAR EMAIL DE GOOGLE
+      // âœ… VERIFICAR EMAIL DE GOOGLE
       if (!user.email || !user.emailVerified) {
         throw new Error('Se requiere una cuenta de Google verificada');
       }
 
-      // ✅ CREAR O ACTUALIZAR DOCUMENTO DE USUARIO
+      // âœ… CREAR O ACTUALIZAR DOCUMENTO DE USUARIO
       const { doc, setDoc, getDoc, Timestamp } = await import('firebase/firestore');
       const userDoc = doc(db, 'users', user.uid);
       const userSnapshot = await getDoc(userDoc);
@@ -310,7 +307,6 @@ export const authFunctions = {
       };
 
       if (!userSnapshot.exists()) {
-        // ✅ NUEVO USUARIO - CREAR CON DATOS COMPLETOS
         await setDoc(userDoc, {
           ...baseUserData,
           plan: 'free' as PlanType,
@@ -324,7 +320,6 @@ export const authFunctions = {
           }
         });
       } else {
-        // ✅ USUARIO EXISTENTE - ACTUALIZAR SOLO CAMPOS SEGUROS
         const { updateDoc } = await import('firebase/firestore');
         await updateDoc(userDoc, {
           lastLogin: Timestamp.now(),
@@ -336,18 +331,18 @@ export const authFunctions = {
       
       return result;
     } catch (error: any) {
-      console.error('❌ Error en signInWithGoogle:', error);
+      console.error('âŒ Error en signInWithGoogle:', error);
       throw this.enhanceError(error);
     }
   },
 
-  // ✅ RESET PASSWORD CON VALIDACIONES
+  // âœ… RESET PASSWORD CON VALIDACIONES
   async resetPassword(email: string) {
     const { sendPasswordResetEmail } = await import('firebase/auth');
     
     try {
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        throw new Error('Email inválido');
+        throw new Error('Email invÃ¡lido');
       }
 
       await sendPasswordResetEmail(auth, email.toLowerCase().trim(), {
@@ -355,37 +350,33 @@ export const authFunctions = {
         handleCodeInApp: false
       });
     } catch (error: any) {
-      console.error('❌ Error en resetPassword:', error);
+      console.error('âŒ Error en resetPassword:', error);
       throw this.enhanceError(error);
     }
   },
 
-  // ✅ SIGN OUT SEGURO
+  // âœ… SIGN OUT SEGURO
   async signOut() {
     const { signOut } = await import('firebase/auth');
     
     try {
       const user = auth.currentUser;
       if (user) {
-        // ✅ LIMPIAR CACHE DE TOKENS
         TokenManager.clearCache(user.uid);
-        
-        // ✅ REGISTRAR LOGOUT (OPCIONAL)
         await this.logLogout(user);
       }
       
       await signOut(auth);
     } catch (error: any) {
-      console.error('❌ Error en signOut:', error);
+      console.error('âŒ Error en signOut:', error);
       throw this.enhanceError(error);
     }
   },
 
   // ========================================
-  // 🔧 FUNCIONES AUXILIARES SEGURAS
+  // ðŸ”§ FUNCIONES AUXILIARES SEGURAS
   // ========================================
 
-  // Obtener IP del cliente (para logging de seguridad)
   async getClientIP(): Promise<string> {
     try {
       const response = await fetch('https://api.ipify.org?format=json');
@@ -396,7 +387,6 @@ export const authFunctions = {
     }
   },
 
-  // Actualizar último login
   async updateLastLogin(user: User) {
     try {
       const { doc, updateDoc, Timestamp } = await import('firebase/firestore');
@@ -405,11 +395,10 @@ export const authFunctions = {
         'securityFlags.lastLoginIP': await this.getClientIP()
       });
     } catch (error) {
-      console.warn('⚠️ No se pudo actualizar último login:', error);
+      console.warn('âš ï¸ No se pudo actualizar Ãºltimo login:', error);
     }
   },
 
-  // Verificar integridad de la cuenta
   async verifyAccountIntegrity(user: User) {
     try {
       const { doc, getDoc } = await import('firebase/firestore');
@@ -421,21 +410,19 @@ export const authFunctions = {
 
       const userData = userDoc.data();
       
-      // ✅ VERIFICACIONES DE INTEGRIDAD
       if (userData.email !== user.email) {
-        console.warn('⚠️ Email discrepancy detected');
+        console.warn('âš ï¸ Email discrepancy detected');
       }
 
       if (userData.plan && !['free', 'pro', 'pro_max'].includes(userData.plan)) {
-        console.warn('⚠️ Invalid plan detected:', userData.plan);
+        console.warn('âš ï¸ Invalid plan detected:', userData.plan);
       }
 
     } catch (error) {
-      console.warn('⚠️ Error verificando integridad:', error);
+      console.warn('âš ï¸ Error verificando integridad:', error);
     }
   },
 
-  // Registrar intento fallido
   async logFailedAttempt(email: string) {
     try {
       const { collection, addDoc, Timestamp } = await import('firebase/firestore');
@@ -447,11 +434,10 @@ export const authFunctions = {
         userAgent: navigator.userAgent
       });
     } catch (error) {
-      console.warn('⚠️ No se pudo registrar intento fallido:', error);
+      console.warn('âš ï¸ No se pudo registrar intento fallido:', error);
     }
   },
 
-  // Registrar logout
   async logLogout(user: User) {
     try {
       const { collection, addDoc, Timestamp } = await import('firebase/firestore');
@@ -462,22 +448,21 @@ export const authFunctions = {
         ip: await this.getClientIP()
       });
     } catch (error) {
-      console.warn('⚠️ No se pudo registrar logout:', error);
+      console.warn('âš ï¸ No se pudo registrar logout:', error);
     }
   },
 
-  // Mejorar errores para el usuario
   enhanceError(error: any): Error {
     const errorMessages: { [key: string]: string } = {
       'auth/user-not-found': 'No existe una cuenta con este email',
-      'auth/wrong-password': 'Contraseña incorrecta',
+      'auth/wrong-password': 'ContraseÃ±a incorrecta',
       'auth/email-already-in-use': 'Ya existe una cuenta con este email',
-      'auth/weak-password': 'La contraseña debe tener al menos 8 caracteres',
-      'auth/invalid-email': 'Email inválido',
+      'auth/weak-password': 'La contraseÃ±a debe tener al menos 8 caracteres',
+      'auth/invalid-email': 'Email invÃ¡lido',
       'auth/too-many-requests': 'Demasiados intentos. Intenta en 15 minutos',
-      'auth/network-request-failed': 'Error de conexión. Verifica tu internet',
-      'auth/popup-closed-by-user': 'Inicio de sesión cancelado',
-      'auth/cancelled-popup-request': 'Operación cancelada'
+      'auth/network-request-failed': 'Error de conexiÃ³n. Verifica tu internet',
+      'auth/popup-closed-by-user': 'Inicio de sesiÃ³n cancelado',
+      'auth/cancelled-popup-request': 'OperaciÃ³n cancelada'
     };
 
     const message = errorMessages[error.code] || error.message || 'Error desconocido';
@@ -486,10 +471,10 @@ export const authFunctions = {
 };
 
 // ========================================
-// 🔒 CLOUD FUNCTIONS CON TOKEN SEGURO
+// ðŸ”’ CLOUD FUNCTIONS CON TOKEN SEGURO
 // ========================================
 export const cloudFunctions = {
-  // ✅ WRAPPER SEGURO PARA TODAS LAS FUNCIONES
+  // âœ… WRAPPER SEGURO PARA TODAS LAS FUNCIONES
   async callSecureFunction<T, R>(
     functionName: string, 
     data?: T, 
@@ -502,32 +487,26 @@ export const cloudFunctions = {
           throw new Error('Usuario no autenticado');
         }
 
-        // ✅ OBTENER TOKEN VÁLIDO
         await TokenManager.getValidToken(user);
       }
 
-      // ✅ LLAMAR FUNCIÓN CON MANEJO DE ERRORES
       const cloudFunction = httpsCallable(functions, functionName);
       const result = await cloudFunction(data);
       
-      // ✅ MANTENER COMPATIBILIDAD CON CÓDIGO EXISTENTE
       return { data: result.data as R };
     } catch (error: any) {
-      console.error(`❌ Error en ${functionName}:`, error);
+      console.error(`âŒ Error en ${functionName}:`, error);
       
-      // ✅ MANEJO ESPECÍFICO DE ERRORES DE AUTENTICACIÓN
       if (error.code === 'unauthenticated') {
         const user = auth.currentUser;
         if (user) {
-          // Forzar refresh del token
           try {
             await TokenManager.getValidToken(user, true);
-            // Reintentar una vez
             const cloudFunction = httpsCallable(functions, functionName);
             const result = await cloudFunction(data);
             return { data: result.data as R };
           } catch (retryError) {
-            console.error('❌ Error en reintento:', retryError);
+            console.error('âŒ Error en reintento:', retryError);
           }
         }
       }
@@ -537,7 +516,7 @@ export const cloudFunctions = {
   },
 
   // ========================================
-  // FUNCIONES BÁSICAS CON SEGURIDAD
+  // FUNCIONES BÃSICAS
   // ========================================
   async getUserProfile(): Promise<{ data: UserProfile }> {
     return this.callSecureFunction<{}, UserProfile>('getUserProfile');
@@ -556,7 +535,7 @@ export const cloudFunctions = {
   },
 
   // ========================================
-  // FUNCIONES DE IMÁGENES CON SEGURIDAD
+  // FUNCIONES DE IMÃGENES
   // ========================================
   async generateImage(data: GenerateImageInput): Promise<{ data: GenerateImageOutput }> {
     return this.callSecureFunction<GenerateImageInput, GenerateImageOutput>('generateImage', data);
@@ -567,7 +546,7 @@ export const cloudFunctions = {
   },
 
   // ========================================
-  // FUNCIONES DE VIDEO CON SEGURIDAD
+  // FUNCIONES DE VIDEO
   // ========================================
   async generateVideo(data: GenerateVideoInput): Promise<{ data: GenerateVideoOutput }> {
     return this.callSecureFunction<GenerateVideoInput, GenerateVideoOutput>('generateVideo', data);
@@ -586,7 +565,7 @@ export const cloudFunctions = {
   },
 
   // ========================================
-  // FUNCIONES ESPECIALIZADAS CON SEGURIDAD
+  // FUNCIONES ESPECIALIZADAS
   // ========================================
   async getSpecialistModeLimits(): Promise<{ data: SpecialistModeLimits }> {
     return this.callSecureFunction<{}, SpecialistModeLimits>('getSpecialistModeLimits');
@@ -601,7 +580,7 @@ export const cloudFunctions = {
   },
 
   // ========================================
-  // FUNCIONES DE BÚSQUEDA WEB CON SEGURIDAD
+  // FUNCIONES DE BÃšSQUEDA WEB
   // ========================================
   async searchWeb(data: SearchWebInput): Promise<{ data: SearchWebOutput }> {
     return this.callSecureFunction<SearchWebInput, SearchWebOutput>('searchWeb', data);
@@ -612,13 +591,39 @@ export const cloudFunctions = {
   },
 
   // ========================================
-  // FUNCIÓN PERSONALIZADA SEGURA PARA METADATOS
+  // FUNCIONES DE MODOS AVANZADOS
+  // ========================================
+  async travelPlanner(data: AdvancedModeInput): Promise<{ data: AdvancedModeOutput }> {
+    return this.callSecureFunction<AdvancedModeInput, AdvancedModeOutput>('travelPlanner', data);
+  },
+
+  async aiDetector(data: AdvancedModeInput): Promise<{ data: AdvancedModeOutput }> {
+    return this.callSecureFunction<AdvancedModeInput, AdvancedModeOutput>('aiDetector', data);
+  },
+
+  async textHumanizer(data: AdvancedModeInput): Promise<{ data: AdvancedModeOutput }> {
+    return this.callSecureFunction<AdvancedModeInput, AdvancedModeOutput>('textHumanizer', data);
+  },
+
+  async brandAnalyzer(data: AdvancedModeInput): Promise<{ data: AdvancedModeOutput }> {
+    return this.callSecureFunction<AdvancedModeInput, AdvancedModeOutput>('brandAnalyzer', data);
+  },
+
+  async documentDetective(data: AdvancedModeInput): Promise<{ data: AdvancedModeOutput }> {
+    return this.callSecureFunction<AdvancedModeInput, AdvancedModeOutput>('documentDetective', data);
+  },
+
+  async plantDoctor(data: AdvancedModeInput): Promise<{ data: AdvancedModeOutput }> {
+    return this.callSecureFunction<AdvancedModeInput, AdvancedModeOutput>('plantDoctor', data);
+  },
+
+  // ========================================
+  // FUNCIÃ“N PERSONALIZADA PARA METADATOS
   // ========================================
   async saveConversationMetadata(metadata: ConversationMetadataInput) {
     const user = auth.currentUser;
     if (!user) throw new Error('Usuario no autenticado');
 
-    // ✅ OBTENER TOKEN VÁLIDO
     const token = await TokenManager.getValidToken(user);
     
     const response = await fetch('/api/save-conversation-metadata', {
@@ -636,32 +641,28 @@ export const cloudFunctions = {
     }
 
     const result = await response.json();
-    return { data: result }; // ✅ MANTENER COMPATIBILIDAD
+    return { data: result };
   }
 };
 
 // ========================================
-// 🛠️ FUNCIONES DE UTILIDAD MEJORADAS
+// ðŸ› ï¸ FUNCIONES DE UTILIDAD
 // ========================================
 export const helpers = {
-  // ✅ FUNCIÓN MEJORADA DE ERRORES
   getErrorMessage(error: any): string {
     if (error && typeof error === 'object' && 'code' in error) {
       const errorMessages: { [key: string]: string } = {
-        // Errores de autenticación
-        'auth/user-not-found': 'No se encontró ningún usuario con este email',
-        'auth/wrong-password': 'Contraseña incorrecta',
-        'auth/email-already-in-use': 'Este email ya está registrado',
-        'auth/weak-password': 'La contraseña debe tener al menos 8 caracteres',
-        'auth/invalid-email': 'Email inválido',
-        'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
-        'auth/network-request-failed': 'Error de conexión',
-        
-        // Errores de funciones
-        'functions/permission-denied': 'Sin permisos para esta operación',
-        'functions/unauthenticated': 'Sesión expirada. Por favor, inicia sesión nuevamente',
-        'functions/resource-exhausted': 'Límite alcanzado. Actualiza tu plan para continuar',
-        'functions/deadline-exceeded': 'Operación tardó demasiado. Intenta nuevamente',
+        'auth/user-not-found': 'No se encontrÃ³ ningÃºn usuario con este email',
+        'auth/wrong-password': 'ContraseÃ±a incorrecta',
+        'auth/email-already-in-use': 'Este email ya estÃ¡ registrado',
+        'auth/weak-password': 'La contraseÃ±a debe tener al menos 8 caracteres',
+        'auth/invalid-email': 'Email invÃ¡lido',
+        'auth/too-many-requests': 'Demasiados intentos. Intenta mÃ¡s tarde',
+        'auth/network-request-failed': 'Error de conexiÃ³n',
+        'functions/permission-denied': 'Sin permisos para esta operaciÃ³n',
+        'functions/unauthenticated': 'SesiÃ³n expirada. Por favor, inicia sesiÃ³n nuevamente',
+        'functions/resource-exhausted': 'LÃ­mite alcanzado. Actualiza tu plan para continuar',
+        'functions/deadline-exceeded': 'OperaciÃ³n tardÃ³ demasiado. Intenta nuevamente',
         'functions/internal': 'Error interno del servidor',
         'functions/unavailable': 'Servicio temporalmente no disponible'
       };
@@ -676,7 +677,6 @@ export const helpers = {
     return 'Error desconocido';
   },
 
-  // ✅ VALIDACIONES DE PLAN MEJORADAS
   isValidPlan(plan: any): plan is PlanType {
     return plan === 'free' || plan === 'pro' || plan === 'pro_max';
   },
@@ -695,7 +695,6 @@ export const helpers = {
     return features[plan]?.includes(feature) || false;
   },
 
-  // ✅ VALIDACIONES DE SEGURIDAD
   isSecureEnvironment(): boolean {
     return window.location.protocol === 'https:' || window.location.hostname === 'localhost';
   },
@@ -713,15 +712,15 @@ export const helpers = {
     }
     
     if (!/[A-Z]/.test(password)) {
-      errors.push('Debe contener al menos una mayúscula');
+      errors.push('Debe contener al menos una mayÃºscula');
     }
     
     if (!/[a-z]/.test(password)) {
-      errors.push('Debe contener al menos una minúscula');
+      errors.push('Debe contener al menos una minÃºscula');
     }
     
     if (!/\d/.test(password)) {
-      errors.push('Debe contener al menos un número');
+      errors.push('Debe contener al menos un nÃºmero');
     }
     
     return {
@@ -730,9 +729,7 @@ export const helpers = {
     };
   },
 
-  // ✅ FUNCIONES DE FORMATO EXISTENTES (MANTENER)
   formatTokens(count: number | undefined | null): string {
-    // ✅ MANEJAR VALORES UNDEFINED/NULL
     if (count === undefined || count === null || isNaN(count)) {
       return '0';
     }
@@ -753,7 +750,6 @@ export const helpers = {
     return Math.min((used / limit) * 100, 100);
   },
 
-  // ✅ VALIDACIONES DE PROMPTS (COMPATIBLES CON CÓDIGO EXISTENTE)
   validateImagePrompt(prompt: string, maxLength: number): { valid: boolean; error?: string; errors: string[] } {
     const errors: string[] = [];
     
@@ -762,14 +758,13 @@ export const helpers = {
     }
     
     if (prompt.length > maxLength) {
-      errors.push(`El prompt no puede tener más de ${maxLength} caracteres`);
+      errors.push(`El prompt no puede tener mÃ¡s de ${maxLength} caracteres`);
     }
     
     if (prompt.length < 3) {
       errors.push('El prompt debe tener al menos 3 caracteres');
     }
     
-    // Verificar contenido inapropiado básico
     const inappropriateTerms = ['nsfw', 'nude', 'naked', 'sexual', 'porn'];
     const lowercasePrompt = prompt.toLowerCase();
     if (inappropriateTerms.some(term => lowercasePrompt.includes(term))) {
@@ -778,7 +773,7 @@ export const helpers = {
     
     return {
       valid: errors.length === 0,
-      error: errors.length > 0 ? errors[0] : undefined, // ✅ COMPATIBILIDAD
+      error: errors.length > 0 ? errors[0] : undefined,
       errors
     };
   },
@@ -791,14 +786,13 @@ export const helpers = {
     }
     
     if (prompt.length > maxLength) {
-      errors.push(`El prompt no puede tener más de ${maxLength} caracteres`);
+      errors.push(`El prompt no puede tener mÃ¡s de ${maxLength} caracteres`);
     }
     
     if (prompt.length < 5) {
       errors.push('El prompt debe tener al menos 5 caracteres');
     }
     
-    // Verificar contenido inapropiado básico
     const inappropriateTerms = ['nsfw', 'nude', 'naked', 'sexual', 'porn', 'violence', 'blood'];
     const lowercasePrompt = prompt.toLowerCase();
     if (inappropriateTerms.some(term => lowercasePrompt.includes(term))) {
@@ -807,12 +801,11 @@ export const helpers = {
     
     return {
       valid: errors.length === 0,
-      error: errors.length > 0 ? errors[0] : undefined, // ✅ COMPATIBILIDAD
+      error: errors.length > 0 ? errors[0] : undefined,
       errors
     };
   },
 
-  // ✅ FUNCIONES DE DESCARGA Y COMPARTIR
   async downloadImage(imageUrl: string, filename: string): Promise<void> {
     try {
       const response = await fetch(imageUrl);
@@ -835,14 +828,12 @@ export const helpers = {
   async shareImage(imageUrl: string, text: string): Promise<void> {
     try {
       if (navigator.share) {
-        // Usar Web Share API si está disponible
         await navigator.share({
           title: 'Imagen generada con NORA',
           text: text,
           url: imageUrl
         });
       } else {
-        // Fallback: copiar URL al portapapeles
         await navigator.clipboard.writeText(`${text}\n${imageUrl}`);
         console.log('URL copiada al portapapeles.');
       }
@@ -854,19 +845,18 @@ export const helpers = {
 };
 
 // ========================================
-// 🔄 INICIALIZACIÓN SEGURA
+// ðŸ”„ INICIALIZACIÃ“N SEGURA
 // ========================================
 
-// ✅ CONFIGURAR EMULADORES SOLO EN DESARROLLO
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
   const hostname = 'localhost';
   
-  console.log('🔧 Conectando a Firebase Emulators...');
+  console.log('ðŸ”§ Conectando a Firebase Emulators...');
   
   try {
     if (!(auth as any)._config?.emulator) {
       connectAuthEmulator(auth, `http://${hostname}:9099`);
-      console.log('✅ Auth Emulator connected');
+      console.log('âœ… Auth Emulator connected');
     }
   } catch (e) {
     console.warn('Auth Emulator connection failed:', e);
@@ -875,7 +865,7 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULAT
   try {
     if (!(db as any)._delegate?._databaseId?.projectId.includes('demo-')) {
       connectFirestoreEmulator(db, hostname, 8080);
-      console.log('✅ Firestore Emulator connected');
+      console.log('âœ… Firestore Emulator connected');
     }
   } catch (e) {
     console.warn('Firestore Emulator connection failed:', e);
@@ -884,7 +874,7 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULAT
   try {
     if (!storage.app.options.projectId?.includes('demo-')) {
       connectStorageEmulator(storage, hostname, 9199);
-      console.log('✅ Storage Emulator connected');
+      console.log('âœ… Storage Emulator connected');
     }
   } catch (e) {
     console.warn('Storage Emulator connection failed:', e);
@@ -893,32 +883,30 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULAT
   try {
     if (!(functions as any)._delegate?.region) {
       connectFunctionsEmulator(functions, hostname, 5001);
-      console.log('✅ Functions Emulator connected');
+      console.log('âœ… Functions Emulator connected');
     }
   } catch (e) {
     console.warn('Functions Emulator connection failed:', e);
   }
 } else {
-  console.log('🔥 Using Firebase Production Services');
+  console.log('ðŸ”¥ Using Firebase Production Services');
 }
 
-// ✅ MONITOREO DE ESTADO DE AUTENTICACIÓN
 if (typeof window !== 'undefined') {
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      console.log('✅ Usuario autenticado:', user.uid);
+      console.log('âœ… Usuario autenticado:', user.uid);
     } else {
-      console.log('👤 Usuario no autenticado');
+      console.log('ðŸ‘¤ Usuario no autenticado');
       TokenManager.clearCache();
     }
   });
 }
 
 // ========================================
-// 📊 EXPORTACIONES
+// ðŸ“Š EXPORTACIONES
 // ========================================
 
-// Constantes existentes (mantener)
 export const PLAN_LIMITS = {
   free: {
     tokensPerDay: 66666,
@@ -949,5 +937,4 @@ export const PLAN_LIMITS = {
   }
 };
 
-// Exportar app por defecto
 export default app;

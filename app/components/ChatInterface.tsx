@@ -1,3 +1,4 @@
+// app/components/ChatInterface.tsx - COMPLETO PARTE 1/2
 'use client';
 
 import { useState, useRef, useEffect, memo, useCallback } from 'react';
@@ -38,14 +39,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useConversations } from '../contexts/ConversationContext';
 import { useRouter } from 'next/navigation';
 import { cloudFunctions, helpers } from '../lib/firebase';
-import { ChatMessage, PlanType, isValidPlan, SpecialtyType } from '../lib/types';
+import { ChatMessage, PlanType, isValidPlan, SpecialtyType, AdvancedModeType } from '../lib/types';
 import toast from 'react-hot-toast';
 
-// ✅ IMPORTAR TUS COMPONENTES EXISTENTES
 import SpecialistModeSelector from './SpecialistModeSelector';
 import SpecialistChatInterface from './SpecialistChatInterface';
+import AdvancedModeSelector from './AdvancedModeSelector';
 
-// Declaraciones globales para Speech Recognition
 declare global {
   interface Window {
     webkitSpeechRecognition: any;
@@ -53,7 +53,6 @@ declare global {
   }
 }
 
-// Lazy loading para componentes pesados
 const ConversationList = dynamic(() => import('./ConversationList'), {
   loading: () => <div className="w-80 h-full bg-gray-900 animate-pulse" />,
   ssr: false
@@ -74,32 +73,20 @@ const VideoGenerator = dynamic(() => import('./VideoGenerator'), {
   ssr: false
 });
 
-// ✅ COMPONENTE MEJORADO PARA RENDERIZAR MARKDOWN - SIN ERRORES TYPESCRIPT
 const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { content: string }) {
   return (
     <div className="markdown-content">
       <ReactMarkdown
         components={{
-          // Párrafos
           p: (props) => <p className="mb-3 leading-relaxed text-gray-100" {...props} />,
-          
-          // Títulos
           h1: (props) => <h1 className="text-xl font-bold mb-4 text-white border-b border-gray-600 pb-2" {...props} />,
           h2: (props) => <h2 className="text-lg font-bold mb-3 text-white" {...props} />,
           h3: (props) => <h3 className="text-base font-bold mb-2 text-white" {...props} />,
-          
-          // Texto en negrita - ✅ CORRECCIÓN CRÍTICA
           strong: (props) => <strong className="font-bold text-white" {...props} />,
-          
-          // Texto en cursiva
           em: (props) => <em className="italic text-gray-200" {...props} />,
-          
-          // Listas
           ul: (props) => <ul className="list-disc list-inside mb-4 space-y-1 text-gray-100 ml-4" {...props} />,
           ol: (props) => <ol className="list-decimal list-inside mb-4 space-y-1 text-gray-100 ml-4" {...props} />,
           li: (props) => <li className="mb-1 text-gray-100" {...props} />,
-          
-          // Código
           code: (props) => {
             const { className, children, ...rest } = props;
             const isInline = !className;
@@ -111,18 +98,12 @@ const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { content: 
               </pre>
             );
           },
-          
-          // Citas
           blockquote: (props) => (
             <blockquote className="border-l-4 border-gray-600 pl-4 italic text-gray-300 mb-4 bg-gray-800/50 py-2 rounded-r-lg" {...props} />
           ),
-          
-          // Enlaces
           a: (props) => (
             <a className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" {...props} />
           ),
-
-          // Tablas
           table: (props) => (
             <div className="overflow-x-auto my-4">
               <table className="min-w-full border border-gray-600 rounded-lg" {...props} />
@@ -142,7 +123,6 @@ const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { content: 
   );
 });
 
-// ✅ Background Video con mayor visibilidad y efectos
 const VideoBackground = memo(function VideoBackground() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
@@ -159,25 +139,20 @@ const VideoBackground = memo(function VideoBackground() {
         <source src="/fondo.webm" type="video/webm" />
       </video>
       
-      {/* Overlay gradients más sutiles para mayor visibilidad del video */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 z-10" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-20" />
       
-      {/* Efectos adicionales de movimiento */}
       <div className="absolute inset-0 z-30">
-        {/* Partículas flotantes animadas */}
         <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-white/30 rounded-full animate-ping" style={{ animationDelay: '0s', animationDuration: '3s' }} />
         <div className="absolute top-1/3 right-1/3 w-0.5 h-0.5 bg-purple-400/40 rounded-full animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }} />
         <div className="absolute bottom-1/4 left-1/3 w-1.5 h-1.5 bg-blue-400/20 rounded-full animate-ping" style={{ animationDelay: '2s', animationDuration: '5s' }} />
         <div className="absolute top-1/2 right-1/4 w-0.5 h-0.5 bg-white/20 rounded-full animate-ping" style={{ animationDelay: '1.5s', animationDuration: '3.5s' }} />
         
-        {/* Líneas de movimiento sutil */}
         <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-20 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400/10 to-transparent animate-slide-x" />
           <div className="absolute bottom-32 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400/10 to-transparent animate-slide-x-reverse" style={{ animationDelay: '2s' }} />
         </div>
         
-        {/* Círculos de respiración */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-white/5 rounded-full animate-breath" />
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-purple-400/10 rounded-full animate-breath-delayed" />
       </div>
@@ -185,19 +160,10 @@ const VideoBackground = memo(function VideoBackground() {
   );
 });
 
-// ✅ COMPONENTE: Pantalla de bienvenida SIMPLE Y LIMPIA con efectos sutiles
 const WelcomeScreen = memo(function WelcomeScreen({ onStartChat }: { onStartChat: () => void }) {
   return (
     <div className="flex-1 flex items-center justify-center text-center px-4 relative">
-      {/* Efectos de luz sutiles con solo blanco/gris */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-white/3 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-gray-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
-
       <div className="max-w-2xl mx-auto relative z-10">
-        {/* Título principal con sombra sutil */}
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-wide animate-fade-up drop-shadow-2xl" 
             style={{ 
               fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif',
@@ -206,16 +172,14 @@ const WelcomeScreen = memo(function WelcomeScreen({ onStartChat }: { onStartChat
           Bienvenido a Nora
         </h1>
 
-        {/* Subtítulo con glow sutil */}
         <p className="text-xl md:text-2xl text-white/90 mb-12 animate-fade-up leading-relaxed font-light drop-shadow-lg" 
            style={{ 
              animationDelay: '0.5s',
              textShadow: '0 0 20px rgba(255, 255, 255, 0.08)'
            }}>
-          ¿En qué puedo ayudarte el día de hoy?
+          Â¿En quÃ© puedo ayudarte el dÃ­a de hoy?
         </p>
 
-        {/* Botón de empezar conversación con efectos de luz */}
         <div className="animate-fade-up" style={{ animationDelay: '1s' }}>
           <button
             onClick={onStartChat}
@@ -224,9 +188,8 @@ const WelcomeScreen = memo(function WelcomeScreen({ onStartChat }: { onStartChat
               boxShadow: '0 0 30px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
             }}
           >
-            {/* Glow interior sutil */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent to-white/5 pointer-events-none" />
-            <span className="relative z-10">Empezar conversación</span>
+            <span className="relative z-10">Empezar conversaciÃ³n</span>
           </button>
         </div>
       </div>
@@ -234,7 +197,6 @@ const WelcomeScreen = memo(function WelcomeScreen({ onStartChat }: { onStartChat
   );
 });
 
-// ✅ COMPONENTE: Indicador de búsqueda web
 const WebSearchIndicator = ({ message }: { message: ChatMessage }) => {
   if (!message.searchUsed && !message.limitReached) return null;
 
@@ -243,7 +205,7 @@ const WebSearchIndicator = ({ message }: { message: ChatMessage }) => {
       {message.searchUsed && !message.limitReached && (
         <div className="flex items-center gap-1 text-blue-400 bg-blue-400/10 px-2 py-1 rounded">
           <Search className="w-3 h-3" />
-          <span>Información actualizada de internet</span>
+          <span>InformaciÃ³n actualizada de internet</span>
           {message.searchResults && (
             <span className="text-gray-400">
               ({message.searchResults.results?.length || 0} fuentes)
@@ -255,14 +217,13 @@ const WebSearchIndicator = ({ message }: { message: ChatMessage }) => {
       {message.limitReached && (
         <div className="flex items-center gap-1 text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded">
           <AlertTriangle className="w-3 h-3" />
-          <span>Límite de búsquedas web alcanzado</span>
+          <span>LÃ­mite de bÃºsquedas web alcanzado</span>
         </div>
       )}
     </div>
   );
 };
 
-// ✅ COMPONENTE: Límites de búsqueda web
 const WebSearchLimits = ({ userProfile }: { userProfile: any }) => {
   const webSearchesUsed = userProfile?.usage?.monthly?.webSearchesUsed || 0;
   const webSearchesLimit = userProfile?.usage?.monthly?.webSearchesLimit || 0;
@@ -279,7 +240,7 @@ const WebSearchLimits = ({ userProfile }: { userProfile: any }) => {
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
           <Globe className="w-3 h-3 text-blue-400" />
-          <span className="text-gray-400">Búsquedas web</span>
+          <span className="text-gray-400">BÃºsquedas web</span>
         </div>
         <div className={`font-medium ${
           isAtLimit ? 'text-red-400' : isNearLimit ? 'text-yellow-400' : 'text-green-400'
@@ -288,7 +249,6 @@ const WebSearchLimits = ({ userProfile }: { userProfile: any }) => {
         </div>
       </div>
       
-      {/* Barra de progreso */}
       <div className="mt-1 w-full bg-gray-700 rounded-full h-1">
         <div 
           className={`h-1 rounded-full transition-all duration-300 ${
@@ -298,18 +258,20 @@ const WebSearchLimits = ({ userProfile }: { userProfile: any }) => {
         />
       </div>
       
-      {/* Mensaje de estado */}
       {(isNearLimit || isAtLimit) && (
         <div className={`mt-1 text-xs ${isAtLimit ? 'text-red-400' : 'text-yellow-400'}`}>
           {isAtLimit 
-            ? `Límite agotado - ${userProfile.planInfo?.displayName || 'Plan actual'}` 
-            : `${webSearchesRemaining} búsquedas restantes`
+            ? `LÃ­mite agotado - ${userProfile.planInfo?.displayName || 'Plan actual'}` 
+            : `${webSearchesRemaining} bÃºsquedas restantes`
           }
         </div>
       )}
     </div>
   );
 };
+
+// app/components/ChatInterface.tsx - COMPLETO PARTE 2/2
+// CONTINÃšA DESDE PARTE 1...
 
 const ChatInterface = memo(function ChatInterface() {
   const { userProfile, refreshProfile, plan, user } = useAuth();
@@ -322,7 +284,6 @@ const ChatInterface = memo(function ChatInterface() {
   } = useConversations();
   const router = useRouter();
   
-  // Estados existentes - TU FUNCIONALIDAD COMPLETA
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showVideoBackground, setShowVideoBackground] = useState(true);
@@ -336,36 +297,35 @@ const ChatInterface = memo(function ChatInterface() {
   const [showVideoGenerator, setShowVideoGenerator] = useState(false);
   const [pendingImageGeneration, setPendingImageGeneration] = useState(false);
 
-  // Estados para voz
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const [voiceText, setVoiceText] = useState('');
   const [showVoiceText, setShowVoiceText] = useState(false);
 
-  // Estados para pensamiento extendido - TUS FUNCIONES
   const [deepThinkingMode, setDeepThinkingMode] = useState(false);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [reportMode, setReportMode] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  // ✅ ESTADOS PARA TUS COMPONENTES ESPECIALISTAS EXISTENTES
   const [currentMode, setCurrentMode] = useState<'normal' | 'developer' | 'specialist'>('normal');
   const [currentSpecialty, setCurrentSpecialty] = useState<SpecialtyType | undefined>();
 
-  // ✅ ESTADO PARA BÚSQUEDA WEB MANUAL
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   
-  // Refs
+  // âœ… ESTADOS DE MODOS AVANZADOS
+  const [advancedMode, setAdvancedMode] = useState<AdvancedModeType | null>(null);
+  const [showAdvancedModes, setShowAdvancedModes] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ✅ CORRECCIÓN CRÍTICA: Asegurar que messages siempre sea un array
   const messages = currentConversation?.messages || [];
+  console.log('ðŸŽ¨ RENDERIZANDO - Total mensajes:', messages.length, messages.map(m => ({id: m.id, type: m.type})));
+
   const validPlan: PlanType = isValidPlan(plan) ? plan : 'free';
 
-  // ✅ FUNCIONES DE MICRÓFONO MEJORADAS - TUS FUNCIONES EXISTENTES
   const checkMicrophoneSupport = (): boolean => {
     return !!(
       typeof navigator !== 'undefined' &&
@@ -404,13 +364,13 @@ const ChatInterface = memo(function ChatInterface() {
       console.error('Error requesting microphone permission:', error);
       
       if (error.name === 'NotAllowedError') {
-        toast.error('Permisos del micrófono denegados. Por favor permite el acceso en la configuración del navegador.');
+        toast.error('Permisos del micrÃ³fono denegados.');
       } else if (error.name === 'NotFoundError') {
-        toast.error('No se encontró micrófono. Verifica que tengas un micrófono conectado.');
+        toast.error('No se encontrÃ³ micrÃ³fono.');
       } else if (error.name === 'NotSupportedError') {
-        toast.error('El micrófono no es compatible con este navegador.');
+        toast.error('El micrÃ³fono no es compatible con este navegador.');
       } else {
-        toast.error('Error accediendo al micrófono. Revisa la configuración de tu navegador.');
+        toast.error('Error accediendo al micrÃ³fono.');
       }
       
       return false;
@@ -448,7 +408,7 @@ const ChatInterface = memo(function ChatInterface() {
     }
 
     if (!recognition) {
-      toast.error('Reconocimiento de voz no disponible. Recarga la página.');
+      toast.error('Reconocimiento de voz no disponible.');
       return;
     }
 
@@ -473,17 +433,12 @@ const ChatInterface = memo(function ChatInterface() {
 
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length === 0) {
-        toast.error('No se pudo acceder al micrófono.');
+        toast.error('No se pudo acceder al micrÃ³fono.');
         return;
       }
 
       setIsRecording(true);
       recognition.start();
-      
-      toast.success('🎤 Grabando... Habla ahora', {
-        duration: 2000,
-        icon: '🎤'
-      });
 
       setTimeout(() => {
         stream.getTracks().forEach(track => track.stop());
@@ -492,20 +447,7 @@ const ChatInterface = memo(function ChatInterface() {
     } catch (error: any) {
       console.error('Error accessing microphone:', error);
       setIsRecording(false);
-      
-      if (error.name === 'NotAllowedError') {
-        toast.error('Permisos del micrófono denegados. Ve a la configuración del navegador y permite el acceso al micrófono para este sitio.');
-      } else if (error.name === 'NotFoundError') {
-        toast.error('No se encontró micrófono. Verifica que tengas un micrófono conectado y funcionando.');
-      } else if (error.name === 'NotReadableError') {
-        toast.error('El micrófono está siendo usado por otra aplicación. Cierra otras aplicaciones que puedan estar usando el micrófono.');
-      } else if (error.name === 'OverconstrainedError') {
-        toast.error('Configuración de micrófono no compatible. Intenta con otro micrófono.');
-      } else if (error.name === 'SecurityError') {
-        toast.error('Error de seguridad. Asegúrate de estar usando HTTPS.');
-      } else {
-        toast.error(`Error accediendo al micrófono: ${error.message || 'Error desconocido'}`);
-      }
+      toast.error('Error accediendo al micrÃ³fono.');
     }
   };
 
@@ -518,46 +460,37 @@ const ChatInterface = memo(function ChatInterface() {
       }
     }
     setIsRecording(false);
-    toast.success('🛑 Grabación detenida');
   };
 
-  // ✅ FUNCIÓN CORREGIDA - ENVIAR PDF COMPLETO AL BACKEND
   const processFileContent = async (file: File): Promise<string> => {
     console.log('Procesando archivo:', file.name, file.type, Math.round(file.size/1024) + 'KB');
     
     return new Promise(async (resolve) => {
       if (file.type === 'application/pdf') {
         try {
-          // Convertir PDF a base64 para enviar al backend
           const base64 = await new Promise<string>((resolve) => {
             const reader = new FileReader();
             reader.onload = () => {
               const result = reader.result as string;
-              resolve(result.split(',')[1]); // Quitar prefijo data:application/pdf;base64,
+              resolve(result.split(',')[1]);
             };
             reader.readAsDataURL(file);
           });
           
-          // ✅ CAMBIO CRÍTICO: ENVIAR EL BASE64 COMPLETO, NO SOLO 100 CARACTERES
           const pdfData = `[PDF PARA PROCESAR EN BACKEND]: ${file.name}
-Tamaño: ${Math.round(file.size / 1024)} KB
+TamaÃ±o: ${Math.round(file.size / 1024)} KB
 Base64: ${base64}
 
-INSTRUCCIÓN PARA EL BACKEND: Este es un PDF en base64. Extrae el texto completo y analízalo para responder la pregunta del usuario.`;
+INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto completo y analÃ­zalo para responder la pregunta del usuario.`;
           
           console.log('PDF convertido a base64 para backend - Longitud:', base64.length);
           resolve(pdfData);
           
         } catch (error) {
           console.error('Error procesando PDF:', error);
-          resolve(`[ARCHIVO PDF]: ${file.name}
-Tamaño: ${Math.round(file.size / 1024)} KB
-Estado: Error procesando archivo
-
-INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error procesándolo.`);
+          resolve(`[ARCHIVO PDF]: ${file.name} - Error procesando archivo`);
         }
       } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
-        // Archivos de texto
         const reader = new FileReader();
         reader.onload = (e) => {
           const result = e.target?.result;
@@ -568,13 +501,11 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
         reader.onerror = () => resolve(`[ARCHIVO]: ${file.name} - Error`);
         reader.readAsText(file);
       } else {
-        // Otros archivos
-        resolve(`[ARCHIVO]: ${file.name}\nTipo: ${file.type}\nTamaño: ${Math.round(file.size / 1024)} KB`);
+        resolve(`[ARCHIVO]: ${file.name}\nTipo: ${file.type}\nTamaÃ±o: ${Math.round(file.size / 1024)} KB`);
       }
     });
   };
 
-  // Todos los efectos existentes - MANTENER EXACTO
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
@@ -608,77 +539,70 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const maxHeight = isMobile ? 80 : 100; // Reducido para hacerlo más compacto
+      const maxHeight = isMobile ? 80 : 100;
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, maxHeight) + 'px';
     }
   }, [input, isMobile]);
 
-  // ✅ USEEFFECT MEJORADO PARA SPEECH RECOGNITION
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const recognitionInstance = initializeSpeechRecognition();
     
     if (recognitionInstance) {
-      recognitionInstance.onresult = (event: any) => {
+      recognitionInstance.onresult = async (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('TranscripciÃ³n:', transcript);
+        
         try {
-          const transcript = event.results[0][0].transcript;
-          const confidence = event.results[0][0].confidence;
+          toast.loading('Procesando audio...', { id: 'voice-processing' });
           
-          console.log(`Speech recognition result: "${transcript}" (confidence: ${confidence})`);
+          const response = await fetch('/api/process-voice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: transcript })
+          });
+
+          const data = await response.json();
           
-          if (transcript && transcript.trim().length > 0) {
-            setVoiceText(transcript);
-            setShowVoiceText(true);
-            toast.success(`✅ Texto reconocido: "${transcript.substring(0, 30)}${transcript.length > 30 ? '...' : ''}"`);
+          if (data.processedText) {
+            setInput(data.processedText);
+            toast.success('Audio procesado', { id: 'voice-processing' });
           } else {
-            toast.error('❌ No se detectó texto. Intenta hablar más claro.');
+            setInput(transcript);
+            toast.dismiss('voice-processing');
           }
         } catch (error) {
-          console.error('Error processing speech result:', error);
-          toast.error('❌ Error procesando el resultado de voz.');
+          console.error('Error procesando audio:', error);
+          setInput(transcript);
+          toast.dismiss('voice-processing');
         }
-        setIsRecording(false);
       };
 
       recognitionInstance.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error, event);
+        console.error('Speech recognition error:', event.error);
         setIsRecording(false);
         
         switch (event.error) {
           case 'no-speech':
-            toast.error('❌ No se detectó voz. Intenta hablar más fuerte.');
+            toast.error('No se detectÃ³ voz.');
             break;
           case 'audio-capture':
-            toast.error('❌ Error capturando audio. Verifica tu micrófono.');
+            toast.error('Error capturando audio.');
             break;
           case 'not-allowed':
-            toast.error('❌ Permisos denegados. Permite el acceso al micrófono.');
-            break;
-          case 'network':
-            toast.error('❌ Error de red. Verifica tu conexión a internet.');
-            break;
-          case 'service-not-allowed':
-            toast.error('❌ Servicio de reconocimiento no permitido en este sitio.');
-            break;
-          case 'bad-grammar':
-            toast.error('❌ Error en la gramática del reconocimiento.');
-            break;
-          case 'language-not-supported':
-            toast.error('❌ Idioma no soportado.');
+            toast.error('Permisos denegados.');
             break;
           default:
-            toast.error(`❌ Error de reconocimiento: ${event.error}`);
+            toast.error(`Error: ${event.error}`);
         }
       };
 
       recognitionInstance.onstart = () => {
-        console.log('Speech recognition started');
         setIsRecording(true);
       };
 
       recognitionInstance.onend = () => {
-        console.log('Speech recognition ended');
         setIsRecording(false);
       };
 
@@ -690,7 +614,7 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
         try {
           recognitionInstance.abort();
         } catch (error) {
-          console.log('Error during recognition cleanup:', error);
+          console.log('Error during cleanup:', error);
         }
       }
     };
@@ -703,12 +627,9 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
       return () => document.removeEventListener('click', handleClickOutside);
     }
     
-    return () => {
-      // Cleanup si es necesario
-    };
+    return () => {};
   }, [showToolsMenu]);
 
-  // TUS FUNCIONES ORIGINALES - COMPLETAS
   const shouldShowUpgradeWarning = () => {
     if (!userProfile || validPlan !== 'free') return false;
     const tokensUsed = userProfile.usage?.daily?.tokensUsed || 0;
@@ -718,11 +639,9 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     return percentage >= 90;
   };
 
-  // ✅ FUNCIÓN: Manejar inicio de chat con animación
   const handleStartChat = useCallback(() => {
     setIsTransitioning(true);
     
-    // Animación de desplazamiento tipo cortina
     setTimeout(() => {
       setChatStarted(true);
       setShowVideoBackground(false);
@@ -733,7 +652,6 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     }, 800);
   }, [currentConversation, startNewConversation]);
 
-  // ✅ FUNCIÓN PARA MANEJAR NUEVOS MENSAJES DE ESPECIALISTAS
   const handleNewMessage = (message: ChatMessage) => {
     addMessage(message);
     if (!currentConversation) {
@@ -741,43 +659,43 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     }
   };
 
-  // ✅ FUNCIÓN PARA MANEJAR CAMBIOS DE MODO
   const handleModeChange = (mode: 'normal' | 'developer' | 'specialist', specialty?: SpecialtyType) => {
     setCurrentMode(mode);
     setCurrentSpecialty(specialty);
   };
 
-  // ✅ NUEVA FUNCIÓN PARA TOGGLE DE BÚSQUEDA WEB
   const toggleWebSearch = () => {
     setWebSearchEnabled(!webSearchEnabled);
     toast.success(
       !webSearchEnabled 
-        ? '🔍 Búsqueda web activada - Las consultas buscarán información actualizada' 
-        : '🚫 Búsqueda web desactivada - Respuestas basadas en conocimiento interno'
+        ? 'BÃºsqueda web activada' 
+        : 'BÃºsqueda web desactivada'
     );
   };
 
-  // ✅ FUNCIÓN SENDMESSAGE COMPLETAMENTE CORREGIDA
+  // âœ…âœ…âœ… SENDMESSAGE COMPLETO CON MODOS AVANZADOS INTEGRADOS
   const sendMessage = async () => {
-    // Permitir envío si hay archivos aunque no haya texto
     const hasContent = input.trim() || uploadedFiles.length > 0;
     
     if (!hasContent || isLoading || shouldShowUpgradeWarning()) return;
 
     const messageText = input.trim() || "Analiza los archivos adjuntos";
     
-    // ✅ CORRECCIÓN CRÍTICA: NO limpiar input hasta después de crear el mensaje
     const originalInput = input;
     const originalFiles = [...uploadedFiles];
 
+    setInput('');
+    setUploadedFiles([]);
+
     if (!currentConversation) {
       await startNewConversation();
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     const workingConversation = currentConversation || {
       id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       userId: user?.uid || '',
-      title: 'Nueva conversación',
+      title: 'Nueva conversaciÃ³n',
       messages: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -787,28 +705,29 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
       tags: []
     };
 
-    // ✅ CREAR MENSAJE DEL USUARIO Y AGREGARLO INMEDIATAMENTE
     const userMessage: ChatMessage = {
-      id: `msg_${Date.now()}_user`,
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_user`,
       type: 'user',
       message: messageText,
       timestamp: new Date(),
       tokensUsed: 0,
-      conversationId: workingConversation.id
+      conversationId: workingConversation.id,
+      ...(originalFiles.length > 0 && { files: originalFiles.map(f => f.name) })
     };
 
-    // ✅ AGREGAR MENSAJE INMEDIATAMENTE PARA QUE NO DESAPAREZCA
+    console.log('ðŸ”¥ ANTES DE ADDMESSAGE - workingConversation messages:', workingConversation.messages.length);
+    
     addMessage(userMessage);
-
-    // ✅ AHORA SÍ LIMPIAR DESPUÉS DE AGREGAR EL MENSAJE
-    setInput('');
-    setUploadedFiles([]);
+    
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     const updatedConversation = {
       ...workingConversation,
       messages: [...workingConversation.messages, userMessage],
       updatedAt: new Date()
     };
+
+    console.log('ðŸ”¥ DESPUÃ‰S DE AGREGAR USER - updatedConversation messages:', updatedConversation.messages.length);
 
     if (workingConversation.messages.length === 0) {
       const generateTitle = (message: string): string => {
@@ -822,127 +741,133 @@ INSTRUCCIÓN: Informa al usuario que se detectó el PDF pero hubo un error proce
     }
 
     setIsLoading(true);
+    setChatStarted(true);
 
     try {
       const recentMessages = updatedConversation.messages.slice(-6);
       
-      // ✅ PROMPT MEJORADO PARA RESPUESTAS MÁS HUMANAS Y LARGAS
       let processedMessage = messageText;
       if (reportMode) {
-        processedMessage = `Como NORA, tu asistente personal experta, necesito crear un reporte completo y exhaustivo sobre: "${messageText}". 
-
-Este reporte debe ser detallado y profesional, incluyendo:
-- Análisis profundo del tema con múltiples perspectivas
-- Información actualizada y datos relevantes
-- Ejemplos concretos y casos de estudio
-- Estadísticas importantes cuando sean aplicables
-- Conclusiones prácticas y recomendaciones útiles
-- Estructura clara con secciones bien organizadas
-
-Por favor, genera un reporte de al menos 800 palabras que sea informativo y valioso para el usuario.`;
+        processedMessage = `Como NORA, tu asistente personal experta, necesito crear un reporte completo sobre: "${messageText}".`;
       } else if (deepThinkingMode) {
-        processedMessage = `Como NORA, necesito hacer un análisis profundo y exhaustivo sobre: "${messageText}". 
-
-Mi análisis debe incluir:
-- Múltiples perspectivas y enfoques del tema
-- Implicaciones prácticas y teóricas
-- Conexiones con conceptos relacionados
-- Ejemplos concretos y aplicaciones
-- Consideraciones importantes y matices
-- Posibles soluciones o alternativas
-
-Proporciona un análisis detallado de al menos 500 palabras que explore el tema en profundidad.`;
+        processedMessage = `Como NORA, necesito hacer un anÃ¡lisis profundo sobre: "${messageText}".`;
       }
       
-      // Procesar archivos subidos con debugging mejorado
       let fileContext = '';
       if (originalFiles.length > 0) {
-        console.log('📁 Iniciando procesamiento de', originalFiles.length, 'archivo(s)');
         toast.loading(`Procesando ${originalFiles.length} archivo(s)...`, { id: 'processing-files' });
         
         try {
           const fileContents = await Promise.all(
             originalFiles.map(async (file, index) => {
-              console.log(`📄 Procesando archivo ${index + 1}/${originalFiles.length}:`, file.name);
               const content = await processFileContent(file);
               return `\n\n--- ARCHIVO ${index + 1}: ${file.name} ---\n${content}\n--- FIN ARCHIVO ${index + 1} ---\n`;
             })
           );
           
           fileContext = fileContents.join('\n');
-          console.log('✅ Todos los archivos procesados. Contexto total length:', fileContext.length);
           toast.dismiss('processing-files');
-          toast.success(`${originalFiles.length} archivo(s) procesados correctamente`);
+          toast.success(`${originalFiles.length} archivo(s) procesados`);
         } catch (fileError) {
-          console.error('❌ Error procesando archivos:', fileError);
+          console.error('Error procesando archivos:', fileError);
           toast.dismiss('processing-files');
-          toast.error('Error procesando algunos archivos, pero se intentará enviar');
+          toast.error('Error procesando archivos');
           fileContext = `Error procesando archivos: ${originalFiles.map(f => f.name).join(', ')}`;
         }
       }
-      
-      // ✅ CONFIGURACIÓN MEJORADA PARA RESPUESTAS MÁS LARGAS
+
+      // âœ…âœ…âœ… SI HAY MODO AVANZADO ACTIVO
+      if (advancedMode) {
+        console.log('ðŸš€ MODO AVANZADO ACTIVO:', advancedMode);
+        
+        let result;
+        
+        const advancedInput = {
+          message: processedMessage,
+          chatHistory: recentMessages.slice(0, -1).map(msg => ({
+            role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+            content: msg.message
+          })),
+          fileContext: fileContext || undefined,
+          style: 'professional' as const
+        };
+        
+        try {
+          switch (advancedMode) {
+            case 'travel_planner':
+              result = await cloudFunctions.travelPlanner(advancedInput);
+              break;
+            
+            case 'ai_detector':
+              result = await cloudFunctions.aiDetector(advancedInput);
+              break;
+            
+            case 'text_humanizer':
+              result = await cloudFunctions.textHumanizer(advancedInput);
+              break;
+            
+            case 'brand_analyzer':
+              result = await cloudFunctions.brandAnalyzer(advancedInput);
+              break;
+            
+            case 'document_detective':
+              result = await cloudFunctions.documentDetective(advancedInput);
+              break;
+            
+            case 'plant_doctor':
+              result = await cloudFunctions.plantDoctor(advancedInput);
+              break;
+          }
+          
+          if (result?.data?.response) {
+            const aiMessage: ChatMessage = {
+              id: `msg_${Date.now()}_ai`,
+              type: 'ai',
+              message: result.data.response,
+              timestamp: new Date(),
+              tokensUsed: result.data.tokensUsed,
+              conversationId: updatedConversation.id,
+              mode: 'advanced',
+              advancedMode: advancedMode
+            };
+            
+            console.log('ðŸ”¥ AGREGANDO MENSAJE AI AVANZADO');
+            addMessage(aiMessage);
+            await refreshProfile();
+            toast.success(`Respuesta de ${advancedMode.replace('_', ' ')}`);
+            setIsLoading(false);
+            setReportMode(false);
+            setDeepThinkingMode(false);
+            return; // âœ… NO CONTINUAR CON FLUJO NORMAL
+          }
+        } catch (advError) {
+          console.error('Error en modo avanzado:', advError);
+          toast.error('Error en modo avanzado, usando modo normal');
+          // Continuar con flujo normal si falla
+        }
+      }
+
+      // âœ… FLUJO NORMAL (si no hay modo avanzado o si fallÃ³)
+      const systemPrompt = deepThinkingMode 
+        ? `Eres NORA, una asistente de IA avanzada en modo Deep Search. Proporciona respuestas EXTREMADAMENTE detalladas y profundas.`
+        : `Eres NORA, una asistente de IA empÃ¡tica y conversacional. Responde de forma DIRECTA, CLARA y CONCISA. Para preguntas simples, da SOLO la respuesta sin explicaciones adicionales. SÃ© humana pero eficiente.`;
+
       const inputData = {
         message: processedMessage,
         fileContext,
         chatHistory: recentMessages.slice(0, -1),
-        maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000, // ✅ LÍMITES AUMENTADOS SIGNIFICATIVAMENTE
+        maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000,
         enableWebSearch: webSearchEnabled,
-        // ✅ CONTEXTO PARA PERSONALIDAD MÁS HUMANA
-        personalityContext: `Eres NORA, una asistente de IA excepcional con una personalidad cálida y humana. 
-        Características de tu personalidad:
-        - Empática y comprensiva, te interesas genuinamente por ayudar
-        - Conversacional y natural, como una amiga muy inteligente  
-        - Detallada cuando es necesario, concisa cuando es apropiado
-        - Usas un lenguaje natural y fluido, no robótico
-        - Eres entusiasta y muestras interés por los temas
-        - Proporcionas respuestas completas y útiles
-        - Tu objetivo es ser de gran ayuda al usuario
-        
-        IMPORTANTE: Para reportes y análisis, sé muy detallada (mínimo 500-800 palabras). Para preguntas generales, responde de forma completa pero natural (200-400 palabras).`
+        systemPrompt,
+        deepThinking: deepThinkingMode
       };
 
-      console.log('🚀 Enviando datos al backend:', {
-        messageLength: processedMessage.length,
-        fileContextLength: fileContext.length,
-        hasFiles: originalFiles.length > 0,
-        fileNames: originalFiles.map(f => f.name),
-        webSearchEnabled: webSearchEnabled,
-        maxTokens: inputData.maxTokens
-      });
-
-      console.log('📡 Llamando a cloudFunctions.chatWithAI...');
+      console.log('Enviando datos al backend...');
       const result = await cloudFunctions.chatWithAI(inputData);
-      console.log('📡 Respuesta del backend:', result);
+      console.log('Respuesta del backend:', result);
       
       if (result?.data?.response) {
-        console.log('✅ Respuesta válida recibida, longitud:', result.data.response.length);
-        
-        // ✅ VALIDAR LONGITUD DE RESPUESTA Y REGENERAR SI ES NECESARIO
-        if (result.data.response.length < 200 && (reportMode || deepThinkingMode)) {
-          console.log('⚠️ Respuesta muy corta para modo detallado, regenerando...');
-          
-          const extendedInputData = {
-            ...inputData,
-            message: `${processedMessage}\n\nIMPORTANTE: La respuesta anterior fue muy corta. Necesito una respuesta mucho más detallada y completa de al menos 800 palabras. Por favor, proporciona un análisis exhaustivo con ejemplos, detalles específicos y información útil.`
-          };
-          
-          const extendedResult = await cloudFunctions.chatWithAI(extendedInputData);
-          if (extendedResult?.data?.response && extendedResult.data.response.length > result.data.response.length) {
-            result.data.response = extendedResult.data.response;
-            result.data.tokensUsed = extendedResult.data.tokensUsed;
-          }
-        }
-        
-        // ✅ NUEVO: Mostrar indicadores específicos de búsqueda web
-        if (result.data.searchUsed) {
-          console.log('🔍 La respuesta incluyó búsqueda en internet');
-          if (result.data.limitReached) {
-            toast.error('⚠️ Límite de búsquedas web alcanzado - respuesta basada en conocimiento general');
-          } else {
-            toast.success('🔍 Respuesta con información actualizada de internet');
-          }
-        }
+        console.log('Respuesta vÃ¡lida recibida, longitud:', result.data.response.length);
         
         const aiMessage: ChatMessage = {
           id: `msg_${Date.now()}_ai`,
@@ -951,33 +876,22 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
           timestamp: new Date(),
           tokensUsed: result.data.tokensUsed,
           conversationId: updatedConversation.id,
-          // ✅ AGREGAR METADATA DE BÚSQUEDA
           searchUsed: result.data.searchUsed || false,
           searchResults: result.data.searchResults,
           limitReached: result.data.limitReached || false
         };
 
+        console.log('ðŸ”¥ AGREGANDO MENSAJE AI NORMAL');
         addMessage(aiMessage);
         await refreshProfile();
-        
-        console.log('✅ Mensaje enviado exitosamente');
-        
-        const toastMessage = result.data.searchUsed 
-          ? (result.data.limitReached ? 'Respuesta generada (límite de búsquedas alcanzado)' : 'Respuesta con información actualizada')
-          : originalFiles.length > 0 
-            ? 'Respuesta recibida - Archivo analizado'
-            : 'Respuesta recibida';
-            
-        toast.success(toastMessage);
+        toast.success('Respuesta recibida');
       } else {
-        console.error('❌ Respuesta inválida del backend:', result);
-        throw new Error(`Sin respuesta válida del servidor. Recibido: ${JSON.stringify(result)}`);
+        console.error('Respuesta invÃ¡lida del backend:', result);
+        throw new Error('Sin respuesta vÃ¡lida del servidor');
       }
     } catch (error: any) {
-      console.error('❌ Error enviando mensaje:', error);
+      console.error('Error enviando mensaje:', error);
       toast.error('Error al enviar mensaje');
-      
-      // ✅ RESTAURAR ARCHIVOS EN CASO DE ERROR
       setUploadedFiles(originalFiles);
     } finally {
       setIsLoading(false);
@@ -1016,14 +930,18 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
     try {
       const recentMessages = messages.slice(0, index - 1);
       
-      // ✅ MODIFICADO: Incluir enableWebSearch en regeneración
+      const systemPrompt = deepThinkingMode 
+        ? `Eres NORA, una asistente de IA avanzada. Proporciona respuestas detalladas.`
+        : `Eres NORA. Responde de forma DIRECTA y CONCISA.`;
+
       const inputData = {
         message: userMessage.message,
         fileContext: '',
         chatHistory: recentMessages,
-        maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000, // ✅ LÍMITES AUMENTADOS
+        maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000,
         enableWebSearch: webSearchEnabled,
-        personalityContext: `Eres NORA, una asistente de IA empática y conversacional. Proporciona respuestas detalladas y útiles con un tono natural y humano.`
+        systemPrompt,
+        deepThinking: deepThinkingMode
       };
 
       const result = await cloudFunctions.chatWithAI(inputData);
@@ -1044,34 +962,17 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
         addMessage(aiMessage);
         await refreshProfile();
         toast.success('Mensaje regenerado');
-      } else {
-        throw new Error('Sin respuesta');
       }
-    } catch (error: any) {
-      console.error('Error regenerating message:', error);
-      toast.error('Error al regenerar mensaje');
+    } catch (error) {
+      console.error('Error regenerando:', error);
+      toast.error('Error al regenerar');
     } finally {
       setIsLoading(false);
     }
-    
-    return;
   };
 
-  const confirmVoiceText = () => {
-    setInput(voiceText);
-    setShowVoiceText(false);
-    setVoiceText('');
-  };
-
-  const cancelVoiceText = () => {
-    setShowVoiceText(false);
-    setVoiceText('');
-  };
-
-  // TUS FUNCIONES PRINCIPALES ORIGINALES
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    console.log('📁 Archivos subidos:', files.map(f => ({name: f.name, type: f.type, size: f.size})));
     setUploadedFiles(prev => [...prev, ...files]);
     toast.success(`${files.length} archivo(s) agregado(s)`);
     setShowToolsMenu(false);
@@ -1082,8 +983,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
   };
 
   const removeFile = (index: number) => {
-    const removedFile = uploadedFiles[index];
-    console.log('🗑️ Removiendo archivo:', removedFile?.name);
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -1117,24 +1016,22 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
     return null;
   }
 
+// app/components/ChatInterface.tsx - COMPLETO PARTE 3/3 (JSX)
+// CONTINÃšA DESDE PARTE 2...
+
   return (
     <div className="h-screen bg-black text-white overflow-hidden relative">
-      {/* TU VIDEO DE FONDO MEJORADO */}
       {showVideoBackground && <VideoBackground />}
       
-      {/* Overlay de transición */}
       {isTransitioning && (
         <div className="fixed inset-0 z-[100] bg-black animate-slide-right" />
       )}
       
-      {/* ✅ NAVEGACIÓN SUPERIOR REDISEÑADA - HEADER QUE SE DESPLAZA */}
       <div className={`fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-gray-800 transition-all duration-300 ${
         showConversationList && !isMobile ? 'ml-80' : ''
       }`}>
         <div className="flex items-center justify-between px-6 py-4">
-          {/* ✅ Logo separado con hamburguesa estilo gota de agua */}
           <div className="flex items-center space-x-8">
-            {/* ✅ Menú hamburguesa estilo gota de agua como iOS */}
             <button
               onClick={() => setShowConversationList(!showConversationList)}
               className="group transition-all duration-200 hover:scale-110 p-2 rounded-full hover:bg-white/10"
@@ -1146,7 +1043,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
               </div>
             </button>
             
-            {/* ✅ Logo de NORA más separado */}
             <div className="flex items-center">
               <Image 
                 src="/images/nora.png" 
@@ -1159,8 +1055,20 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
             </div>
           </div>
 
-          {/* ✅ Icono de perfil MÁS DELGADO con hover scale */}
-          <div className="flex items-center">
+          <div className="flex items-center space-x-4">
+            {/* âœ… BOTÃ“N DE MODOS AVANZADOS */}
+            <button
+              onClick={() => setShowAdvancedModes(!showAdvancedModes)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                advancedMode 
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden md:inline">Modos Avanzados</span>
+            </button>
+
             <button
               onClick={() => setShowSettingsMenu(!showSettingsMenu)}
               className="group transition-transform duration-200 hover:scale-110 p-2 rounded-full hover:bg-white/10"
@@ -1171,7 +1079,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
         </div>
       </div>
 
-      {/* ✅ SIDEBARS SIN NEBLINA - CHAT SIGUE VISIBLE */}
       {showConversationList && (
         <div className={`fixed inset-0 z-40 flex transition-all duration-300 ${isMobile ? '' : 'transform'}`}>
           <div className={`w-80 transition-transform duration-300 ${showConversationList ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -1184,7 +1091,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
               }}
             />
           </div>
-          {/* ✅ SIN NEBLINA EN DESKTOP - CHAT SIGUE VISIBLE */}
           {isMobile && (
             <div 
               className="flex-1 bg-black/50 backdrop-blur-sm" 
@@ -1200,7 +1106,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
             className="flex-1 bg-black/50 backdrop-blur-sm" 
             onClick={() => setShowSettingsMenu(false)}
           />
-          {/* ✅ SETTINGS MENU QUE SE DESPLAZA CON HEADER */}
           <div className={`w-96 transition-all duration-300 ${
             showConversationList && !isMobile ? 'mr-80' : ''
           }`}>
@@ -1213,7 +1118,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
         </div>
       )}
 
-      {/* TUS GENERADORES ORIGINALES */}
       {showImageGenerator && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto">
@@ -1242,17 +1146,23 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
         </div>
       )}
 
-      {/* Chat principal */}
       <div className={`h-full flex flex-col pt-20 relative z-10 transition-all duration-300 ${
         showConversationList && !isMobile ? 'ml-80' : ''
       }`}>
         {!chatStarted && !currentConversation?.messages.length ? (
-          // ✅ Pantalla de bienvenida rediseñada
           <WelcomeScreen onStartChat={handleStartChat} />
         ) : (
-          // Chat activo
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* TU SELECTOR DE MODO ESPECIALISTA EXISTENTE */}
+            {/* âœ… SELECTOR DE MODOS AVANZADOS */}
+            {showAdvancedModes && (
+              <div className="border-b border-gray-800">
+                <AdvancedModeSelector
+                  currentMode={advancedMode}
+                  onSelectMode={setAdvancedMode}
+                />
+              </div>
+            )}
+
             <div className="px-6 py-3 border-b border-gray-800">
               <SpecialistModeSelector
                 userProfile={userProfile!}
@@ -1262,19 +1172,14 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
               />
             </div>
 
-            {/* DECIDIR QUÉ INTERFAZ DE CHAT USAR */}
             {currentMode === 'normal' ? (
-              // TU CHAT NORMAL ORIGINAL CON BÚSQUEDA WEB
               <>
-                {/* ✅ ÁREA DE MENSAJES COMPLETAMENTE CORREGIDA */}
                 <div className="flex-1 overflow-y-auto px-4 py-4">
                   <div className="max-w-4xl mx-auto space-y-6">
                     {messages.map((message: ChatMessage, index: number) => (
                       <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} group`}>
-                        {/* ✅ CONTENEDOR DE MENSAJE CON ALINEACIÓN CORRECTA */}
                         <div className={`flex items-start space-x-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                           
-                          {/* ✅ AVATAR */}
                           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center border border-gray-600">
                             {message.type === 'user' ? (
                               <User className="w-4 h-4 text-blue-400" />
@@ -1283,22 +1188,36 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                             )}
                           </div>
 
-                          {/* ✅ CONTENIDO DEL MENSAJE */}
                           <div className={`flex-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
                             
-                            {/* ✅ INDICADOR DE BÚSQUEDA WEB SOLO PARA IA */}
                             {message.type === 'ai' && (
-                              <WebSearchIndicator message={message} />
+                              <>
+                                <WebSearchIndicator message={message} />
+                                {/* âœ… BADGE DE MODO AVANZADO */}
+                                {message.advancedMode && (
+                                  <div className="mb-2 flex items-center gap-2 text-xs text-purple-300 bg-purple-500/10 px-2 py-1 rounded inline-flex">
+                                    <Sparkles className="w-3 h-3" />
+                                    <span className="capitalize">
+                                      {message.advancedMode.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
                             )}
                             
-                            {/* ✅ BURBUJA DEL MENSAJE CON MARKDOWN CORRECTO */}
-                            <div className={`inline-block p-4 rounded-2xl shadow-lg ${
+                            <div className={`inline-block p-4 rounded-2xl shadow-xl backdrop-blur-xl ${
                               message.type === 'user'
-                                ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white max-w-md rounded-br-sm'
-                                : 'bg-gradient-to-br from-gray-800 to-gray-900 text-gray-100 border border-gray-700 max-w-3xl rounded-bl-sm'
-                            }`}>
+                                ? 'bg-white/10 text-white border border-white/20 max-w-md rounded-br-sm'
+                                : 'bg-black/40 text-gray-100 border border-white/10 max-w-3xl rounded-bl-sm'
+                            }`}
+                            style={{
+                              backdropFilter: 'blur(20px) saturate(180%)',
+                              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                              boxShadow: message.type === 'user' 
+                                ? '0 8px 32px 0 rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                                : '0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                            }}>
                               
-                              {/* ✅ RENDERIZADO DE CONTENIDO CON MARKDOWN PARA IA */}
                               {message.type === 'ai' ? (
                                 <MarkdownRenderer content={message.message} />
                               ) : (
@@ -1307,7 +1226,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                                 </p>
                               )}
                               
-                              {/* Metadatos del mensaje */}
                               <div className={`mt-3 pt-2 border-t ${message.type === 'user' ? 'border-blue-500/30' : 'border-gray-600'} text-xs ${message.type === 'user' ? 'text-blue-200' : 'text-gray-500'} flex items-center justify-between`}>
                                 <span>{message.timestamp.toLocaleTimeString()}</span>
                                 {message.tokensUsed && (
@@ -1316,7 +1234,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                               </div>
                             </div>
 
-                            {/* ✅ ACCIONES DEL MENSAJE PARA IA */}
                             {message.type === 'ai' && (
                               <div className="flex items-center space-x-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
@@ -1341,7 +1258,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                       </div>
                     ))}
 
-                    {/* ✅ INDICADOR DE CARGA MEJORADO */}
                     {isLoading && (
                       <div className="flex justify-start">
                         <div className="flex items-start space-x-3 max-w-[85%]">
@@ -1356,9 +1272,10 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                                 <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                               </div>
                               <span className="text-gray-300 text-sm">
-                                {reportMode ? 'Generando reporte detallado...' : 
-                                 deepThinkingMode ? 'Analizando profundamente...' : 
-                                 webSearchEnabled ? 'Buscando información actualizada...' : 'Escribiendo...'}
+                                {advancedMode ? `Procesando en modo ${advancedMode.replace('_', ' ')}...` :
+                                 reportMode ? 'Generando reporte...' : 
+                                 deepThinkingMode ? 'Analizando...' : 
+                                 webSearchEnabled ? 'Buscando...' : 'Escribiendo...'}
                               </span>
                             </div>
                           </div>
@@ -1370,41 +1287,7 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                   </div>
                 </div>
 
-                {/* TU TEXTO DE VOZ ORIGINAL */}
-                {showVoiceText && (
-                  <div className="px-6 py-4 border-t border-gray-800">
-                    <div className="bg-gray-800 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-400">Texto detectado:</span>
-                        <button
-                          onClick={cancelVoiceText}
-                          className="p-1 text-gray-400 hover:text-white"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <p className="text-white mb-3">{voiceText}</p>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={confirmVoiceText}
-                          className="px-3 py-1 bg-white text-black rounded-lg text-sm"
-                        >
-                          Usar texto
-                        </button>
-                        <button
-                          onClick={cancelVoiceText}
-                          className="px-3 py-1 bg-gray-700 text-white rounded-lg text-sm"
-                        >
-                          Descartar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ✅ ÁREA DE INPUT REDISEÑADA - MÁS DELGADA, CENTRADA Y OPTIMIZADA PARA MÓVIL */}
                 <div className="px-4 pb-4">
-                  {/* Archivos subidos */}
                   {uploadedFiles.length > 0 && (
                     <div className="mb-4 flex flex-wrap gap-2">
                       {uploadedFiles.map((file, index) => (
@@ -1422,12 +1305,10 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                     </div>
                   )}
 
-                  {/* Aviso de límite */}
                   {shouldShowUpgradeWarning() && (
                     <div className="mb-4 bg-yellow-900/50 border border-yellow-700 rounded-xl p-4">
                       <p className="text-yellow-300 text-sm mb-2">
-                        Has alcanzado el 90% de tu límite diario. 
-                        Mejora tu plan para continuar.
+                        Has alcanzado el 90% de tu lÃ­mite diario.
                       </p>
                       <button
                         onClick={() => router.push('/upgrade')}
@@ -1438,8 +1319,7 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                     </div>
                   )}
 
-                  {/* ✅ INDICADORES DE MODO ACTIVO CON BÚSQUEDA WEB */}
-                  {(reportMode || deepThinkingMode || webSearchEnabled) && (
+                  {(reportMode || deepThinkingMode || webSearchEnabled || advancedMode) && (
                     <div className="mb-4 flex space-x-2">
                       {reportMode && (
                         <div className="bg-blue-900/50 border border-blue-700 rounded-lg px-3 py-1 text-blue-300 text-sm">
@@ -1453,13 +1333,18 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                       )}
                       {webSearchEnabled && (
                         <div className="bg-green-900/50 border border-green-700 rounded-lg px-3 py-1 text-green-300 text-sm">
-                          🔍 Búsqueda Web Activada
+                          BÃºsqueda Web
+                        </div>
+                      )}
+                      {advancedMode && (
+                        <div className="bg-gradient-to-r from-purple-900/50 to-pink-900/50 border border-purple-700 rounded-lg px-3 py-1 text-purple-300 text-sm flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          {advancedMode.replace('_', ' ')}
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* ✅ ÁREA DE INPUT MÁS COMPACTA Y CENTRADA */}
                   <div className="bg-gray-800/30 backdrop-blur-xl rounded-full p-2 border border-gray-700/30 max-w-3xl mx-auto flex items-center">
                     <div className="relative">
                       <button
@@ -1468,12 +1353,10 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                           setShowToolsMenu(!showToolsMenu);
                         }}
                         className="hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105"
-                        title="Herramientas"
                       >
                         <Plus className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${showToolsMenu ? 'rotate-45' : ''}`} />
                       </button>
 
-                      {/* ✅ MENÚ DESPLEGABLE CON ESTILO iOS 26 Y ANIMACIÓN */}
                       {showToolsMenu && (
                         <div className="absolute bottom-full left-0 mb-2 bg-gray-800/80 backdrop-blur-md border border-gray-700/50 rounded-lg shadow-lg py-2 w-48 animate-slide-up">
                           <button
@@ -1488,9 +1371,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                             className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
                           >
                             <span className="text-sm">Generar video</span>
-                            {plan === 'free' && (
-                              <span className="text-xs bg-yellow-600 px-1 rounded">Pro</span>
-                            )}
                           </button>
                           
                           <button
@@ -1507,7 +1387,7 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                             }`}
                           >
                             <span className="text-sm">
-                              {webSearchEnabled ? 'Desactivar búsqueda' : 'Activar búsqueda web'}
+                              {webSearchEnabled ? 'Desactivar bÃºsqueda' : 'Activar bÃºsqueda'}
                             </span>
                           </button>
                           
@@ -1521,7 +1401,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                       )}
                     </div>
 
-                    {/* ✅ TEXTAREA MÁS COMPACTA Y CENTRADA VERTICALMENTE */}
                     <div className="flex-1 relative flex items-center">
                       <textarea
                         ref={textareaRef}
@@ -1530,38 +1409,31 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                         onKeyDown={handleKeyPress}
                         placeholder={
                           shouldShowUpgradeWarning() 
-                            ? "Mejora tu plan para continuar..." 
-                            : webSearchEnabled 
-                              ? "Escribe tu mensaje..." 
-                              : "Escribe tu mensaje..."
+                            ? "Mejora tu plan..." 
+                            : "Escribe tu mensaje..."
                         }
                         disabled={isLoading || shouldShowUpgradeWarning()}
                         className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none leading-tight min-h-[24px] max-h-16 py-1 text-sm text-center"
                       />
                     </div>
 
-                    {/* ✅ DEEP SEARCH CON ICONO DE ÁTOMO A LA IZQUIERDA DEL MICRÓFONO */}
                     <button
                       onClick={toggleDeepSearch}
                       className="hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105"
-                      title="Deep Search"
                     >
                       <Atom className={`w-5 h-5 ${deepThinkingMode ? 'text-purple-400' : 'text-gray-400'}`} />
                     </button>
 
-                    {/* ✅ MICRÓFONO SIN MARGEN NI FONDO */}
                     <button
                       onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
                       disabled={shouldShowUpgradeWarning()}
                       className={`hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105 ${
-                        isRecording ? 'text-red-400' : 'text-gray-400'
+                        isRecording ? 'text-red-400 animate-pulse' : 'text-gray-400'
                       }`}
-                      title={isRecording ? "Detener" : "Grabar"}
                     >
                       {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                     </button>
 
-                    {/* ✅ BOTÓN DE ENVÍO CON ESTILO */}
                     <button
                       onClick={sendMessage}
                       disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || shouldShowUpgradeWarning()}
@@ -1569,10 +1441,11 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                         (input.trim() || uploadedFiles.length > 0) && !isLoading && !shouldShowUpgradeWarning()
                           ? webSearchEnabled 
                             ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg' 
+                            : advancedMode
+                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg'
                             : 'bg-white text-black hover:bg-gray-200 shadow-lg'
                           : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                       }`}
-                      title={webSearchEnabled ? "Enviar con búsqueda web" : "Enviar"}
                     >
                       {isLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1584,7 +1457,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
                 </div>
               </>
             ) : (
-              // TUS COMPONENTES ESPECIALISTAS EXISTENTES
               <div className="flex-1 overflow-hidden">
                 <SpecialistChatInterface
                   userProfile={userProfile!}
@@ -1600,7 +1472,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
         )}
       </div>
 
-      {/* TU INPUT OCULTO PARA ARCHIVOS ORIGINAL */}
       <input
         ref={fileInputRef}
         type="file"
@@ -1610,49 +1481,19 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
         accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.csv,.xlsx"
       />
 
-      {/* ✅ ESTILOS CSS PARA ANIMACIONES */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
         
-        @keyframes fade-up-slow {
-          0% { opacity: 0; transform: translateY(40px); }
+        @keyframes slide-right {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(0); }
+        }
+        
+        @keyframes slide-up {
+          0% { opacity: 0; transform: translateY(10px); }
           100% { opacity: 1; transform: translateY(0); }
         }
-        
-        @keyframes fade-in {
-          0% { opacity: 0; }
-          100% { opacity: 1; }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          25% { transform: translateY(-10px) translateX(5px); }
-          50% { transform: translateY(0px) translateX(10px); }
-          75% { transform: translateY(10px) translateX(5px); }
-        }
-        
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          25% { transform: translateY(10px) translateX(-5px); }
-          50% { transform: translateY(0px) translateX(-10px); }
-          75% { transform: translateY(-10px) translateX(-5px); }
-        }
-        
-        @keyframes gradient-x {
-          0%, 100% { background-size: 200% 200%; background-position: left center; }
-          50% { background-size: 200% 200%; background-position: right center; }
-        }
-        
-        @keyframes width-expand {
-          0% { width: 0; }
-          100% { width: 8rem; }
-        }
-        
-        @keyframes typewriter {
-          0% { width: 0; }
-          100% { width: 100%; }
-        }
-        
+
         @keyframes slide-x {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
@@ -1673,54 +1514,12 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
           50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.2; }
         }
         
-        @keyframes slide-right {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(0); }
-        }
-        
-        @keyframes slide-up {
-          0% { opacity: 0; transform: translateY(10px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        
         .animate-slide-right {
           animation: slide-right 0.8s ease-in-out forwards;
         }
-        
-        .animate-fade-up-slow { 
-          animation: fade-up-slow 1.2s ease-out forwards; 
-          opacity: 0; 
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 1s ease-out forwards;
-          opacity: 0;
-        }
-        
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        
-        .animate-float-delayed {
-          animation: float-delayed 6s ease-in-out infinite;
-          animation-delay: 2s;
-        }
-        
-        .animate-gradient-x {
-          animation: gradient-x 3s ease infinite;
-        }
-        
-        .animate-width-expand {
-          animation: width-expand 1.5s ease-out forwards;
-        }
-        
-        .animate-typewriter {
-          overflow: hidden;
-          white-space: nowrap;
-          animation: typewriter 2s steps(40) forwards;
-          animation-delay: 0.5s;
-          width: 0;
-          display: inline-block;
+
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out forwards;
         }
         
         .animate-slide-x {
@@ -1740,16 +1539,10 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
           animation-delay: 1s;
         }
 
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out forwards;
-        }
-
-        /* Ensure smooth scrolling */
         html {
           scroll-behavior: smooth;
         }
 
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
           width: 8px;
         }
@@ -1764,7 +1557,6 @@ Proporciona un análisis detallado de al menos 500 palabras que explore el tema 
           background: #6b7280;
         }
 
-        /* Lastica font fallbacks */
         body {
           font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
