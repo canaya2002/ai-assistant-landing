@@ -1,4 +1,4 @@
-// app/components/ChatInterface.tsx - COMPLETO PARTE 1/2
+// app/components/ChatInterface.tsx - VERSIÓN CORREGIDA
 'use client';
 
 import { useState, useRef, useEffect, memo, useCallback } from 'react';
@@ -33,7 +33,8 @@ import {
   UserCircle,
   ArrowRight,
   Zap,
-  Atom
+  Atom,
+  PanelRightOpen
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConversations } from '../contexts/ConversationContext';
@@ -141,117 +142,64 @@ const VideoBackground = memo(function VideoBackground() {
       
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 z-10" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-20" />
-      
-      <div className="absolute inset-0 z-30">
-        <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-white/30 rounded-full animate-ping" style={{ animationDelay: '0s', animationDuration: '3s' }} />
-        <div className="absolute top-1/3 right-1/3 w-0.5 h-0.5 bg-purple-400/40 rounded-full animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }} />
-        <div className="absolute bottom-1/4 left-1/3 w-1.5 h-1.5 bg-blue-400/20 rounded-full animate-ping" style={{ animationDelay: '2s', animationDuration: '5s' }} />
-        <div className="absolute top-1/2 right-1/4 w-0.5 h-0.5 bg-white/20 rounded-full animate-ping" style={{ animationDelay: '1.5s', animationDuration: '3.5s' }} />
-        
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-20 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400/10 to-transparent animate-slide-x" />
-          <div className="absolute bottom-32 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400/10 to-transparent animate-slide-x-reverse" style={{ animationDelay: '2s' }} />
-        </div>
-        
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-white/5 rounded-full animate-breath" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-purple-400/10 rounded-full animate-breath-delayed" />
-      </div>
     </div>
   );
 });
 
 const WelcomeScreen = memo(function WelcomeScreen({ onStartChat }: { onStartChat: () => void }) {
   return (
-    <div className="flex-1 flex items-center justify-center text-center px-4 relative">
-      <div className="max-w-2xl mx-auto relative z-10">
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-wide animate-fade-up drop-shadow-2xl" 
-            style={{ 
-              fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif',
-              textShadow: '0 0 40px rgba(255, 255, 255, 0.1), 0 0 80px rgba(255, 255, 255, 0.05)'
-            }}>
-          Bienvenido a Nora
-        </h1>
-
-        <p className="text-xl md:text-2xl text-white/90 mb-12 animate-fade-up leading-relaxed font-light drop-shadow-lg" 
-           style={{ 
-             animationDelay: '0.5s',
-             textShadow: '0 0 20px rgba(255, 255, 255, 0.08)'
-           }}>
-          Â¿En quÃ© puedo ayudarte el dÃ­a de hoy?
+    <div className="h-full flex items-center justify-center px-4">
+      <div className="text-center max-w-2xl mx-auto space-y-8 animate-fade-in">
+        <div className="relative inline-block">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 blur-3xl animate-pulse" />
+          <h1 className="relative text-6xl md:text-7xl font-bold bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent drop-shadow-2xl">
+            Bienvenido a NORA
+          </h1>
+        </div>
+        
+        <p className="text-xl md:text-2xl text-gray-300 leading-relaxed">
+          ¿En qué puedo ayudarte el día de hoy?
         </p>
 
-        <div className="animate-fade-up" style={{ animationDelay: '1s' }}>
-          <button
-            onClick={onStartChat}
-            className="relative px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white font-light hover:bg-white/15 hover:border-white/30 transition-all duration-300 text-lg shadow-2xl hover:shadow-white/20"
-            style={{
-              boxShadow: '0 0 30px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-            }}
-          >
-            <div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent to-white/5 pointer-events-none" />
-            <span className="relative z-10">Empezar conversaciÃ³n</span>
-          </button>
-        </div>
+        <button
+          onClick={onStartChat}
+          className="group relative inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-purple-500/50"
+        >
+          <span>Empezar conversación</span>
+          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        </button>
       </div>
     </div>
   );
 });
 
-const WebSearchIndicator = ({ message }: { message: ChatMessage }) => {
-  if (!message.searchUsed && !message.limitReached) return null;
+interface WebSearchIndicatorProps {
+  userProfile: any;
+}
 
-  return (
-    <div className="flex items-center gap-2 mb-2 text-xs">
-      {message.searchUsed && !message.limitReached && (
-        <div className="flex items-center gap-1 text-blue-400 bg-blue-400/10 px-2 py-1 rounded">
-          <Search className="w-3 h-3" />
-          <span>InformaciÃ³n actualizada de internet</span>
-          {message.searchResults && (
-            <span className="text-gray-400">
-              ({message.searchResults.results?.length || 0} fuentes)
-            </span>
-          )}
-        </div>
-      )}
-      
-      {message.limitReached && (
-        <div className="flex items-center gap-1 text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded">
-          <AlertTriangle className="w-3 h-3" />
-          <span>LÃ­mite de bÃºsquedas web alcanzado</span>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const WebSearchLimits = ({ userProfile }: { userProfile: any }) => {
+const WebSearchIndicator: React.FC<WebSearchIndicatorProps> = ({ userProfile }) => {
   const webSearchesUsed = userProfile?.usage?.monthly?.webSearchesUsed || 0;
   const webSearchesLimit = userProfile?.usage?.monthly?.webSearchesLimit || 0;
-  const webSearchesRemaining = userProfile?.usage?.monthly?.webSearchesRemaining || 0;
   
-  if (!userProfile?.limits?.webSearchEnabled) return null;
-
-  const percentage = webSearchesLimit > 0 ? (webSearchesUsed / webSearchesLimit) * 100 : 0;
+  if (webSearchesLimit === -1) return null;
+  
+  const webSearchesRemaining = Math.max(0, webSearchesLimit - webSearchesUsed);
+  const percentage = (webSearchesUsed / webSearchesLimit) * 100;
   const isNearLimit = percentage >= 80;
   const isAtLimit = webSearchesRemaining === 0;
 
   return (
-    <div className="px-4 py-2 border-t border-gray-700">
+    <div className="mt-2 space-y-1">
       <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          <Globe className="w-3 h-3 text-blue-400" />
-          <span className="text-gray-400">BÃºsquedas web</span>
-        </div>
-        <div className={`font-medium ${
-          isAtLimit ? 'text-red-400' : isNearLimit ? 'text-yellow-400' : 'text-green-400'
-        }`}>
-          {webSearchesUsed.toLocaleString()}/{webSearchesLimit.toLocaleString()}
-        </div>
+        <span className="text-gray-400">Búsquedas web</span>
+        <span className={`font-medium ${isAtLimit ? 'text-red-400' : isNearLimit ? 'text-yellow-400' : 'text-gray-300'}`}>
+          {webSearchesUsed} / {webSearchesLimit}
+        </span>
       </div>
       
-      <div className="mt-1 w-full bg-gray-700 rounded-full h-1">
+      <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
         <div 
-          className={`h-1 rounded-full transition-all duration-300 ${
+          className={`h-full transition-all duration-300 ${
             isAtLimit ? 'bg-red-400' : isNearLimit ? 'bg-yellow-400' : 'bg-green-400'
           }`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -261,17 +209,14 @@ const WebSearchLimits = ({ userProfile }: { userProfile: any }) => {
       {(isNearLimit || isAtLimit) && (
         <div className={`mt-1 text-xs ${isAtLimit ? 'text-red-400' : 'text-yellow-400'}`}>
           {isAtLimit 
-            ? `LÃ­mite agotado - ${userProfile.planInfo?.displayName || 'Plan actual'}` 
-            : `${webSearchesRemaining} bÃºsquedas restantes`
+            ? `Límite agotado - ${userProfile.planInfo?.displayName || 'Plan actual'}` 
+            : `${webSearchesRemaining} búsquedas restantes`
           }
         </div>
       )}
     </div>
   );
 };
-
-// app/components/ChatInterface.tsx - COMPLETO PARTE 2/2
-// CONTINÃšA DESDE PARTE 1...
 
 const ChatInterface = memo(function ChatInterface() {
   const { userProfile, refreshProfile, plan, user } = useAuth();
@@ -312,9 +257,11 @@ const ChatInterface = memo(function ChatInterface() {
 
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   
-  // âœ… ESTADOS DE MODOS AVANZADOS
   const [advancedMode, setAdvancedMode] = useState<AdvancedModeType | null>(null);
   const [showAdvancedModes, setShowAdvancedModes] = useState(false);
+
+  const [showSideMenu, setShowSideMenu] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -322,284 +269,68 @@ const ChatInterface = memo(function ChatInterface() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const messages = currentConversation?.messages || [];
-  console.log('ðŸŽ¨ RENDERIZANDO - Total mensajes:', messages.length, messages.map(m => ({id: m.id, type: m.type})));
-
   const validPlan: PlanType = isValidPlan(plan) ? plan : 'free';
 
-  const checkMicrophoneSupport = (): boolean => {
-    return !!(
-      typeof navigator !== 'undefined' &&
-      navigator.mediaDevices &&
-      typeof navigator.mediaDevices.getUserMedia === 'function' &&
-      (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition))
-    );
-  };
-
-  const checkMicrophonePermissions = async (): Promise<boolean> => {
-    try {
-      if ('permissions' in navigator && navigator.permissions) {
-        const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        return permissionStatus.state === 'granted';
-      }
-      return true;
-    } catch (error) {
-      console.log('Cannot check microphone permissions:', error);
-      return true;
-    }
-  };
-
-  const requestMicrophonePermission = async (): Promise<boolean> => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        } 
-      });
-      
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch (error: any) {
-      console.error('Error requesting microphone permission:', error);
-      
-      if (error.name === 'NotAllowedError') {
-        toast.error('Permisos del micrÃ³fono denegados.');
-      } else if (error.name === 'NotFoundError') {
-        toast.error('No se encontrÃ³ micrÃ³fono.');
-      } else if (error.name === 'NotSupportedError') {
-        toast.error('El micrÃ³fono no es compatible con este navegador.');
-      } else {
-        toast.error('Error accediendo al micrÃ³fono.');
-      }
-      
-      return false;
-    }
-  };
-
-  const initializeSpeechRecognition = (): any => {
-    if (typeof window === 'undefined') return null;
-    
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      toast.error('Reconocimiento de voz no disponible en este navegador.');
-      return null;
-    }
-
-    const recognitionInstance = new SpeechRecognition();
-    
-    recognitionInstance.continuous = false;
-    recognitionInstance.interimResults = false;
-    recognitionInstance.lang = 'es-ES';
-    recognitionInstance.maxAlternatives = 1;
-    
-    if ('webkitSpeechRecognition' in window) {
-      recognitionInstance.webkitServicePath = '/speech-api/v1/recognize';
-    }
-
-    return recognitionInstance;
-  };
-
-  const startVoiceRecording = async () => {
-    if (!checkMicrophoneSupport()) {
-      toast.error('Tu navegador no soporta reconocimiento de voz.');
-      return;
-    }
-
-    if (!recognition) {
-      toast.error('Reconocimiento de voz no disponible.');
-      return;
-    }
-
-    try {
-      const hasPermission = await checkMicrophonePermissions();
-      
-      if (!hasPermission) {
-        const permissionGranted = await requestMicrophonePermission();
-        if (!permissionGranted) {
-          return;
-        }
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 16000
-        } 
-      });
-
-      const audioTracks = stream.getAudioTracks();
-      if (audioTracks.length === 0) {
-        toast.error('No se pudo acceder al micrÃ³fono.');
-        return;
-      }
-
-      setIsRecording(true);
-      recognition.start();
-
-      setTimeout(() => {
-        stream.getTracks().forEach(track => track.stop());
-      }, 100);
-
-    } catch (error: any) {
-      console.error('Error accessing microphone:', error);
-      setIsRecording(false);
-      toast.error('Error accediendo al micrÃ³fono.');
-    }
-  };
-
-  const stopVoiceRecording = () => {
-    if (recognition) {
-      try {
-        recognition.stop();
-      } catch (error) {
-        console.error('Error stopping recognition:', error);
-      }
-    }
-    setIsRecording(false);
-  };
-
-  const processFileContent = async (file: File): Promise<string> => {
-    console.log('Procesando archivo:', file.name, file.type, Math.round(file.size/1024) + 'KB');
-    
-    return new Promise(async (resolve) => {
-      if (file.type === 'application/pdf') {
-        try {
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = reader.result as string;
-              resolve(result.split(',')[1]);
-            };
-            reader.readAsDataURL(file);
-          });
-          
-          const pdfData = `[PDF PARA PROCESAR EN BACKEND]: ${file.name}
-TamaÃ±o: ${Math.round(file.size / 1024)} KB
-Base64: ${base64}
-
-INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto completo y analÃ­zalo para responder la pregunta del usuario.`;
-          
-          console.log('PDF convertido a base64 para backend - Longitud:', base64.length);
-          resolve(pdfData);
-          
-        } catch (error) {
-          console.error('Error procesando PDF:', error);
-          resolve(`[ARCHIVO PDF]: ${file.name} - Error procesando archivo`);
-        }
-      } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result;
-          resolve(typeof result === 'string' ? 
-            `[ARCHIVO DE TEXTO]: ${file.name}\n\nContenido:\n${result}` : 
-            `[ARCHIVO]: ${file.name} - Error leyendo`);
-        };
-        reader.onerror = () => resolve(`[ARCHIVO]: ${file.name} - Error`);
-        reader.readAsText(file);
-      } else {
-        resolve(`[ARCHIVO]: ${file.name}\nTipo: ${file.type}\nTamaÃ±o: ${Math.round(file.size / 1024)} KB`);
-      }
-    });
+  // Función para cerrar todos los menús
+  const closeAllMenus = () => {
+    setShowToolsMenu(false);
+    setShowSideMenu(false);
+    setShowConversationList(false);
+    setShowSettingsMenu(false);
   };
 
   useEffect(() => {
     const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod'];
-      return mobileKeywords.some(keyword => userAgent.includes(keyword)) || 
-             window.innerWidth <= 768;
+      setIsMobile(window.innerWidth < 768);
+      setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth < 1024);
     };
 
-    const checkOrientation = () => {
-      setIsLandscape(window.innerHeight < window.innerWidth && window.innerHeight < 600);
-    };
-
-    setIsMobile(checkMobile());
-    checkOrientation();
-
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-
-    return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
-    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
-    if (messagesEndRef.current && messages.length > 0) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (currentConversation && currentConversation.messages.length > 0) {
+      setChatStarted(true);
+      setShowVideoBackground(false);
     }
+  }, [currentConversation]);
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const maxHeight = isMobile ? 80 : 100;
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, maxHeight) + 'px';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 96) + 'px';
     }
-  }, [input, isMobile]);
+  }, [input]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognitionInstance = new SpeechRecognition();
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = false;
+      recognitionInstance.lang = 'es-ES';
 
-    const recognitionInstance = initializeSpeechRecognition();
-    
-    if (recognitionInstance) {
-      recognitionInstance.onresult = async (event: any) => {
+      recognitionInstance.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        console.log('TranscripciÃ³n:', transcript);
+        setVoiceText(transcript);
+        setInput(transcript);
+        setShowVoiceText(true);
         
-        try {
-          toast.loading('Procesando audio...', { id: 'voice-processing' });
-          
-          const response = await fetch('/api/process-voice', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: transcript })
-          });
-
-          const data = await response.json();
-          
-          if (data.processedText) {
-            setInput(data.processedText);
-            toast.success('Audio procesado', { id: 'voice-processing' });
-          } else {
-            setInput(transcript);
-            toast.dismiss('voice-processing');
-          }
-        } catch (error) {
-          console.error('Error procesando audio:', error);
-          setInput(transcript);
-          toast.dismiss('voice-processing');
-        }
+        setTimeout(() => {
+          setShowVoiceText(false);
+        }, 3000);
       };
 
       recognitionInstance.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
-        
-        switch (event.error) {
-          case 'no-speech':
-            toast.error('No se detectÃ³ voz.');
-            break;
-          case 'audio-capture':
-            toast.error('Error capturando audio.');
-            break;
-          case 'not-allowed':
-            toast.error('Permisos denegados.');
-            break;
-          default:
-            toast.error(`Error: ${event.error}`);
-        }
-      };
-
-      recognitionInstance.onstart = () => {
-        setIsRecording(true);
+        toast.error('Error en reconocimiento de voz');
       };
 
       recognitionInstance.onend = () => {
@@ -608,297 +339,79 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
 
       setRecognition(recognitionInstance);
     }
-
-    return () => {
-      if (recognitionInstance) {
-        try {
-          recognitionInstance.abort();
-        } catch (error) {
-          console.log('Error during cleanup:', error);
-        }
-      }
-    };
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = () => setShowToolsMenu(false);
-    if (showToolsMenu) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-    
-    return () => {};
-  }, [showToolsMenu]);
-
-  const shouldShowUpgradeWarning = () => {
-    if (!userProfile || validPlan !== 'free') return false;
-    const tokensUsed = userProfile.usage?.daily?.tokensUsed || 0;
-    const tokensLimit = userProfile.usage?.daily?.tokensLimit || 0;
-    if (tokensLimit === 0) return false;
-    const percentage = helpers.getUsagePercentage(tokensUsed, tokensLimit);
-    return percentage >= 90;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleStartChat = useCallback(() => {
+  const processFileContent = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        
+        if (file.type === 'application/json') {
+          try {
+            const json = JSON.parse(content);
+            resolve(`Contenido JSON:\n${JSON.stringify(json, null, 2)}`);
+          } catch {
+            resolve(content);
+          }
+        } else {
+          resolve(content);
+        }
+      };
+      
+      reader.onerror = () => reject(new Error(`Error leyendo ${file.name}`));
+      
+      if (file.type.startsWith('image/')) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsText(file);
+      }
+    });
+  };
+
+  const startVoiceRecording = () => {
+    if (!recognition) {
+      toast.error('Reconocimiento de voz no disponible');
+      return;
+    }
+
+    try {
+      recognition.start();
+      setIsRecording(true);
+      toast.success('Escuchando...');
+    } catch (error) {
+      console.error('Error starting recognition:', error);
+      toast.error('Error iniciando reconocimiento');
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (recognition && isRecording) {
+      recognition.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleStartChat = async () => {
     setIsTransitioning(true);
-    
     setTimeout(() => {
-      setChatStarted(true);
       setShowVideoBackground(false);
+      setChatStarted(true);
       setIsTransitioning(false);
+      
       if (!currentConversation) {
         startNewConversation();
       }
+      
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
     }, 800);
-  }, [currentConversation, startNewConversation]);
-
-  const handleNewMessage = (message: ChatMessage) => {
-    addMessage(message);
-    if (!currentConversation) {
-      startNewConversation();
-    }
-  };
-
-  const handleModeChange = (mode: 'normal' | 'developer' | 'specialist', specialty?: SpecialtyType) => {
-    setCurrentMode(mode);
-    setCurrentSpecialty(specialty);
-  };
-
-  const toggleWebSearch = () => {
-    setWebSearchEnabled(!webSearchEnabled);
-    toast.success(
-      !webSearchEnabled 
-        ? 'BÃºsqueda web activada' 
-        : 'BÃºsqueda web desactivada'
-    );
-  };
-
-  // âœ…âœ…âœ… SENDMESSAGE COMPLETO CON MODOS AVANZADOS INTEGRADOS
-  const sendMessage = async () => {
-    const hasContent = input.trim() || uploadedFiles.length > 0;
-    
-    if (!hasContent || isLoading || shouldShowUpgradeWarning()) return;
-
-    const messageText = input.trim() || "Analiza los archivos adjuntos";
-    
-    const originalInput = input;
-    const originalFiles = [...uploadedFiles];
-
-    setInput('');
-    setUploadedFiles([]);
-
-    if (!currentConversation) {
-      await startNewConversation();
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-
-    const workingConversation = currentConversation || {
-      id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId: user?.uid || '',
-      title: 'Nueva conversaciÃ³n',
-      messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastActivity: new Date(),
-      messageCount: 0,
-      isArchived: false,
-      tags: []
-    };
-
-    const userMessage: ChatMessage = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_user`,
-      type: 'user',
-      message: messageText,
-      timestamp: new Date(),
-      tokensUsed: 0,
-      conversationId: workingConversation.id,
-      ...(originalFiles.length > 0 && { files: originalFiles.map(f => f.name) })
-    };
-
-    console.log('ðŸ”¥ ANTES DE ADDMESSAGE - workingConversation messages:', workingConversation.messages.length);
-    
-    addMessage(userMessage);
-    
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    const updatedConversation = {
-      ...workingConversation,
-      messages: [...workingConversation.messages, userMessage],
-      updatedAt: new Date()
-    };
-
-    console.log('ðŸ”¥ DESPUÃ‰S DE AGREGAR USER - updatedConversation messages:', updatedConversation.messages.length);
-
-    if (workingConversation.messages.length === 0) {
-      const generateTitle = (message: string): string => {
-        const cleanMessage = message.trim();
-        if (cleanMessage.length <= 20) return cleanMessage;
-        const cutPoint = cleanMessage.lastIndexOf(' ', 19);
-        return cleanMessage.substring(0, cutPoint > 10 ? cutPoint : 20);
-      };
-      const newTitle = generateTitle(messageText);
-      updateConversationTitle(updatedConversation.id, newTitle);
-    }
-
-    setIsLoading(true);
-    setChatStarted(true);
-
-    try {
-      const recentMessages = updatedConversation.messages.slice(-6);
-      
-      let processedMessage = messageText;
-      if (reportMode) {
-        processedMessage = `Como NORA, tu asistente personal experta, necesito crear un reporte completo sobre: "${messageText}".`;
-      } else if (deepThinkingMode) {
-        processedMessage = `Como NORA, necesito hacer un anÃ¡lisis profundo sobre: "${messageText}".`;
-      }
-      
-      let fileContext = '';
-      if (originalFiles.length > 0) {
-        toast.loading(`Procesando ${originalFiles.length} archivo(s)...`, { id: 'processing-files' });
-        
-        try {
-          const fileContents = await Promise.all(
-            originalFiles.map(async (file, index) => {
-              const content = await processFileContent(file);
-              return `\n\n--- ARCHIVO ${index + 1}: ${file.name} ---\n${content}\n--- FIN ARCHIVO ${index + 1} ---\n`;
-            })
-          );
-          
-          fileContext = fileContents.join('\n');
-          toast.dismiss('processing-files');
-          toast.success(`${originalFiles.length} archivo(s) procesados`);
-        } catch (fileError) {
-          console.error('Error procesando archivos:', fileError);
-          toast.dismiss('processing-files');
-          toast.error('Error procesando archivos');
-          fileContext = `Error procesando archivos: ${originalFiles.map(f => f.name).join(', ')}`;
-        }
-      }
-
-      // âœ…âœ…âœ… SI HAY MODO AVANZADO ACTIVO
-      if (advancedMode) {
-        console.log('ðŸš€ MODO AVANZADO ACTIVO:', advancedMode);
-        
-        let result;
-        
-        const advancedInput = {
-          message: processedMessage,
-          chatHistory: recentMessages.slice(0, -1).map(msg => ({
-            role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
-            content: msg.message
-          })),
-          fileContext: fileContext || undefined,
-          style: 'professional' as const
-        };
-        
-        try {
-          switch (advancedMode) {
-            case 'travel_planner':
-              result = await cloudFunctions.travelPlanner(advancedInput);
-              break;
-            
-            case 'ai_detector':
-              result = await cloudFunctions.aiDetector(advancedInput);
-              break;
-            
-            case 'text_humanizer':
-              result = await cloudFunctions.textHumanizer(advancedInput);
-              break;
-            
-            case 'brand_analyzer':
-              result = await cloudFunctions.brandAnalyzer(advancedInput);
-              break;
-            
-            case 'document_detective':
-              result = await cloudFunctions.documentDetective(advancedInput);
-              break;
-            
-            case 'plant_doctor':
-              result = await cloudFunctions.plantDoctor(advancedInput);
-              break;
-          }
-          
-          if (result?.data?.response) {
-            const aiMessage: ChatMessage = {
-              id: `msg_${Date.now()}_ai`,
-              type: 'ai',
-              message: result.data.response,
-              timestamp: new Date(),
-              tokensUsed: result.data.tokensUsed,
-              conversationId: updatedConversation.id,
-              mode: 'advanced',
-              advancedMode: advancedMode
-            };
-            
-            console.log('ðŸ”¥ AGREGANDO MENSAJE AI AVANZADO');
-            addMessage(aiMessage);
-            await refreshProfile();
-            toast.success(`Respuesta de ${advancedMode.replace('_', ' ')}`);
-            setIsLoading(false);
-            setReportMode(false);
-            setDeepThinkingMode(false);
-            return; // âœ… NO CONTINUAR CON FLUJO NORMAL
-          }
-        } catch (advError) {
-          console.error('Error en modo avanzado:', advError);
-          toast.error('Error en modo avanzado, usando modo normal');
-          // Continuar con flujo normal si falla
-        }
-      }
-
-      // âœ… FLUJO NORMAL (si no hay modo avanzado o si fallÃ³)
-      const systemPrompt = deepThinkingMode 
-        ? `Eres NORA, una asistente de IA avanzada en modo Deep Search. Proporciona respuestas EXTREMADAMENTE detalladas y profundas.`
-        : `Eres NORA, una asistente de IA empÃ¡tica y conversacional. Responde de forma DIRECTA, CLARA y CONCISA. Para preguntas simples, da SOLO la respuesta sin explicaciones adicionales. SÃ© humana pero eficiente.`;
-
-      const inputData = {
-        message: processedMessage,
-        fileContext,
-        chatHistory: recentMessages.slice(0, -1),
-        maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000,
-        enableWebSearch: webSearchEnabled,
-        systemPrompt,
-        deepThinking: deepThinkingMode
-      };
-
-      console.log('Enviando datos al backend...');
-      const result = await cloudFunctions.chatWithAI(inputData);
-      console.log('Respuesta del backend:', result);
-      
-      if (result?.data?.response) {
-        console.log('Respuesta vÃ¡lida recibida, longitud:', result.data.response.length);
-        
-        const aiMessage: ChatMessage = {
-          id: `msg_${Date.now()}_ai`,
-          type: 'ai',
-          message: result.data.response,
-          timestamp: new Date(),
-          tokensUsed: result.data.tokensUsed,
-          conversationId: updatedConversation.id,
-          searchUsed: result.data.searchUsed || false,
-          searchResults: result.data.searchResults,
-          limitReached: result.data.limitReached || false
-        };
-
-        console.log('ðŸ”¥ AGREGANDO MENSAJE AI NORMAL');
-        addMessage(aiMessage);
-        await refreshProfile();
-        toast.success('Respuesta recibida');
-      } else {
-        console.error('Respuesta invÃ¡lida del backend:', result);
-        throw new Error('Sin respuesta vÃ¡lida del servidor');
-      }
-    } catch (error: any) {
-      console.error('Error enviando mensaje:', error);
-      toast.error('Error al enviar mensaje');
-      setUploadedFiles(originalFiles);
-    } finally {
-      setIsLoading(false);
-      setReportMode(false);
-      setDeepThinkingMode(false);
-      toast.dismiss('processing-files');
-    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -908,29 +421,37 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
     }
   };
 
-  const handleCopy = async (text: string) => {
+  const shouldShowUpgradeWarning = () => {
+    if (!userProfile) return false;
+    
+    const dailyTokensRemaining = userProfile.usage.daily.tokensRemaining || 0;
+    const monthlyTokensRemaining = userProfile.usage.monthly.tokensRemaining || 0;
+    
+    return dailyTokensRemaining <= 0 || monthlyTokensRemaining <= 0;
+  };
+
+  const copyMessage = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success('Copiado');
+      toast.success('Mensaje copiado');
     } catch (error) {
       toast.error('Error al copiar');
     }
   };
 
-  const handleRegenerate = async (index: number): Promise<void> => {
-    if (isLoading || index < 0) return;
-    
-    const messageToRegenerate = messages[index];
-    if (messageToRegenerate.type !== 'ai') return;
-    
-    const userMessage = messages[index - 1];
-    if (!userMessage) return;
+  const regenerateResponse = async (messageId: string) => {
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1 || messageIndex === 0) return;
+
+    const userMessage = messages[messageIndex - 1];
+    if (userMessage.type !== 'user') return;
     
     setIsLoading(true);
+
     try {
-      const recentMessages = messages.slice(0, index - 1);
-      
-      const systemPrompt = deepThinkingMode 
+      const recentMessages = messages.slice(0, messageIndex - 1).slice(-5);
+
+      const systemPrompt = validPlan === 'pro' || validPlan === 'pro_max'
         ? `Eres NORA, una asistente de IA avanzada. Proporciona respuestas detalladas.`
         : `Eres NORA. Responde de forma DIRECTA y CONCISA.`;
 
@@ -975,7 +496,7 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
     const files = Array.from(e.target.files || []);
     setUploadedFiles(prev => [...prev, ...files]);
     toast.success(`${files.length} archivo(s) agregado(s)`);
-    setShowToolsMenu(false);
+    closeAllMenus();
     
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -988,7 +509,7 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
 
   const toggleReportMode = () => {
     setReportMode(!reportMode);
-    setShowToolsMenu(false);
+    closeAllMenus();
     if (!reportMode) {
       toast.success('Modo reporte activado');
     }
@@ -1004,20 +525,234 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
 
   const toggleImageGenerator = () => {
     setShowImageGenerator(!showImageGenerator);
-    setShowToolsMenu(false);
+    closeAllMenus();
   };
 
   const toggleVideoGenerator = () => {
     setShowVideoGenerator(!showVideoGenerator);
-    setShowToolsMenu(false);
+    closeAllMenus();
+  };
+
+  const handleModeChange = (mode: 'normal' | 'developer' | 'specialist', specialty?: SpecialtyType) => {
+    setCurrentMode(mode);
+    setCurrentSpecialty(specialty);
+  };
+
+  const toggleWebSearch = () => {
+    setWebSearchEnabled(!webSearchEnabled);
+    toast.success(
+      !webSearchEnabled 
+        ? 'Búsqueda web activada' 
+        : 'Búsqueda web desactivada'
+    );
+  };
+
+  const callAdvancedModeFunction = async (mode: AdvancedModeType, input: any) => {
+    switch (mode) {
+      case 'travel_planner':
+        return await cloudFunctions.travelPlanner(input);
+      case 'ai_detector':
+        return await cloudFunctions.aiDetector(input);
+      case 'text_humanizer':
+        return await cloudFunctions.textHumanizer(input);
+      case 'brand_analyzer':
+        return await cloudFunctions.brandAnalyzer(input);
+      case 'document_detective':
+        return await cloudFunctions.documentDetective(input);
+      case 'plant_doctor':
+        return await cloudFunctions.plantDoctor(input);
+      default:
+        throw new Error(`Modo avanzado no reconocido: ${mode}`);
+    }
+  };
+
+  const sendMessage = async () => {
+    const hasContent = input.trim() || uploadedFiles.length > 0;
+    
+    if (!hasContent || isLoading) return;
+
+    const messageText = input.trim() || "Analiza los archivos adjuntos";
+    
+    const originalInput = input;
+    const originalFiles = [...uploadedFiles];
+
+    setInput('');
+    setUploadedFiles([]);
+
+    if (!currentConversation) {
+      await startNewConversation();
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    const workingConversation = currentConversation || {
+      id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: user?.uid || '',
+      title: 'Nueva conversación',
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastActivity: new Date(),
+      messageCount: 0,
+      isArchived: false,
+      tags: []
+    };
+
+    const userMessage: ChatMessage = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_user`,
+      type: 'user',
+      message: messageText,
+      timestamp: new Date(),
+      tokensUsed: 0,
+      conversationId: workingConversation.id,
+      ...(originalFiles.length > 0 && { files: originalFiles.map(f => f.name) })
+    };
+    
+    addMessage(userMessage);
+    
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    const updatedConversation = {
+      ...workingConversation,
+      messages: [...workingConversation.messages, userMessage],
+      updatedAt: new Date()
+    };
+
+    if (workingConversation.messages.length === 0) {
+      const generateTitle = (message: string): string => {
+        const cleanMessage = message.trim();
+        if (cleanMessage.length <= 20) return cleanMessage;
+        const cutPoint = cleanMessage.lastIndexOf(' ', 19);
+        return cleanMessage.substring(0, cutPoint > 10 ? cutPoint : 20);
+      };
+      const newTitle = generateTitle(messageText);
+      updateConversationTitle(updatedConversation.id, newTitle);
+    }
+
+    setIsLoading(true);
+    setChatStarted(true);
+
+    try {
+      const recentMessages = updatedConversation.messages.slice(-6);
+      
+      let processedMessage = messageText;
+      if (reportMode) {
+        processedMessage = `Como NORA, tu asistente personal experta, necesito crear un reporte completo sobre: "${messageText}".`;
+      } else if (deepThinkingMode) {
+        processedMessage = `Como NORA, necesito hacer un análisis profundo sobre: "${messageText}".`;
+      }
+      
+      let fileContext = '';
+      if (originalFiles.length > 0) {
+        toast.loading(`Procesando ${originalFiles.length} archivo(s)...`, { id: 'processing-files' });
+        
+        try {
+          const fileContents = await Promise.all(
+            originalFiles.map(async (file, index) => {
+              const content = await processFileContent(file);
+              return `\n\n--- ARCHIVO ${index + 1}: ${file.name} ---\n${content}\n--- FIN ARCHIVO ${index + 1} ---\n`;
+            })
+          );
+          
+          fileContext = fileContents.join('\n');
+          toast.dismiss('processing-files');
+          toast.success(`${originalFiles.length} archivo(s) procesados`);
+        } catch (fileError) {
+          console.error('Error procesando archivos:', fileError);
+          toast.dismiss('processing-files');
+          toast.error('Error procesando archivos');
+          fileContext = `Error procesando archivos: ${originalFiles.map(f => f.name).join(', ')}`;
+        }
+      }
+
+      if (advancedMode) {
+        const advancedInput = {
+          message: processedMessage,
+          chatHistory: recentMessages.slice(0, -1).map(msg => ({
+            role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+            content: msg.message
+          })),
+          ...(fileContext && { fileContext })
+        };
+
+        const result = await callAdvancedModeFunction(advancedMode, advancedInput);
+
+        if (result.data?.response) {
+          const aiMessage: ChatMessage = {
+            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_ai`,
+            type: 'ai',
+            message: result.data.response,
+            timestamp: new Date(),
+            tokensUsed: result.data.tokensUsed || 0,
+            conversationId: updatedConversation.id,
+            mode: 'advanced',
+            advancedMode: advancedMode
+          };
+
+          addMessage(aiMessage);
+          await refreshProfile();
+          setAdvancedMode(null);
+        }
+      } else {
+        const systemPrompt = validPlan === 'pro' || validPlan === 'pro_max'
+          ? `Eres NORA, una asistente de IA avanzada. Proporciona respuestas detalladas.`
+          : `Eres NORA. Responde de forma DIRECTA y CONCISA.`;
+
+        const inputData = {
+          message: processedMessage,
+          fileContext,
+          chatHistory: recentMessages.slice(0, -1),
+          maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000,
+          enableWebSearch: webSearchEnabled,
+          systemPrompt,
+          deepThinking: deepThinkingMode
+        };
+
+        const result = await cloudFunctions.chatWithAI(inputData);
+
+        if (result.data?.response) {
+          const aiMessage: ChatMessage = {
+            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_ai`,
+            type: 'ai',
+            message: result.data.response,
+            timestamp: new Date(),
+            tokensUsed: result.data.tokensUsed,
+            conversationId: updatedConversation.id,
+            searchUsed: result.data.searchUsed || false,
+            searchResults: result.data.searchResults,
+            limitReached: result.data.limitReached || false
+          };
+
+          addMessage(aiMessage);
+          await refreshProfile();
+          
+          if (result.data.limitReached) {
+            toast.error('Has alcanzado el límite de tu plan');
+          }
+        }
+      }
+
+      if (reportMode) setReportMode(false);
+      if (deepThinkingMode) setDeepThinkingMode(false);
+
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      
+      let errorMessage = 'Error al enviar mensaje';
+      if (error.message?.includes('limit')) {
+        errorMessage = 'Límite alcanzado';
+      }
+      
+      toast.error(errorMessage);
+      setInput(originalInput);
+      setUploadedFiles(originalFiles);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!user || !userProfile) {
     return null;
   }
-
-// app/components/ChatInterface.tsx - COMPLETO PARTE 3/3 (JSX)
-// CONTINÃšA DESDE PARTE 2...
 
   return (
     <div className="h-screen bg-black text-white overflow-hidden relative">
@@ -1027,151 +762,86 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
         <div className="fixed inset-0 z-[100] bg-black animate-slide-right" />
       )}
       
-      <div className={`fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-gray-800 transition-all duration-300 ${
+      <div className={`fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm transition-all duration-300 ${
         showConversationList && !isMobile ? 'ml-80' : ''
       }`}>
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center space-x-8">
+        <div className="h-16 px-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2 md:space-x-3">
             <button
-              onClick={() => setShowConversationList(!showConversationList)}
-              className="group transition-all duration-200 hover:scale-110 p-2 rounded-full hover:bg-white/10"
+              onClick={() => {
+                if (showConversationList) {
+                  setShowConversationList(false);
+                } else {
+                  closeAllMenus();
+                  setShowConversationList(true);
+                }
+              }}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
             >
-              <div className="flex flex-col space-y-1">
-                <div className={`h-0.5 bg-gray-400 rounded-full transition-all duration-300 ${showConversationList ? 'w-4 rotate-45 translate-y-1.5' : 'w-6'}`} />
-                <div className={`h-0.5 bg-gray-400 rounded-full transition-all duration-300 ${showConversationList ? 'w-0' : 'w-4'}`} />
-                <div className={`h-0.5 bg-gray-400 rounded-full transition-all duration-300 ${showConversationList ? 'w-4 -rotate-45 -translate-y-1.5' : 'w-6'}`} />
-              </div>
+              <Menu className="w-5 h-5" />
             </button>
             
-            <div className="flex items-center">
-              <Image 
-                src="/images/nora.png" 
-                alt="NORA Logo" 
-                width={50}
-                height={50}
-                className="hover:scale-105 transition-transform duration-300"
-                priority
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center"
+            >
+              <Image
+                src="/images/nora.png"
+                alt="NORA"
+                width={80}
+                height={80}
+                className="rounded-full w-14 h-14 md:w-20 md:h-20"
               />
-            </div>
+            </button>
           </div>
 
-          <div className="flex items-center space-x-4">
-            {/* âœ… BOTÃ“N DE MODOS AVANZADOS */}
+          <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowAdvancedModes(!showAdvancedModes)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                advancedMode 
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
-                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
-              }`}
+              onClick={() => {
+                if (showSettingsMenu) {
+                  setShowSettingsMenu(false);
+                } else {
+                  closeAllMenus();
+                  setShowSettingsMenu(true);
+                }
+              }}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
             >
-              <Sparkles className="w-4 h-4" />
-              <span className="hidden md:inline">Modos Avanzados</span>
-            </button>
-
-            <button
-              onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-              className="group transition-transform duration-200 hover:scale-110 p-2 rounded-full hover:bg-white/10"
-            >
-              <UserCircle className="w-6 h-6 text-gray-400 stroke-1" />
+              <Settings className="w-5 h-5" />
             </button>
           </div>
         </div>
       </div>
 
       {showConversationList && (
-        <div className={`fixed inset-0 z-40 flex transition-all duration-300 ${isMobile ? '' : 'transform'}`}>
-          <div className={`w-80 transition-transform duration-300 ${showConversationList ? 'translate-x-0' : '-translate-x-full'}`}>
-            <ConversationList 
-              isOpen={showConversationList}
-              onClose={() => setShowConversationList(false)}
-              onNewConversation={() => {
-                startNewConversation();
-                setShowConversationList(false);
-              }}
-            />
-          </div>
-          {isMobile && (
-            <div 
-              className="flex-1 bg-black/50 backdrop-blur-sm" 
-              onClick={() => setShowConversationList(false)}
-            />
-          )}
+        <div className={`fixed top-16 left-0 bottom-0 z-40 ${isMobile ? 'right-0' : 'w-80'} bg-gray-900 border-r border-gray-800 overflow-hidden`}>
+          <ConversationList 
+            isOpen={showConversationList}
+            onClose={() => setShowConversationList(false)}
+            onNewConversation={() => {
+              startNewConversation();
+              setShowConversationList(false);
+            }}
+          />
         </div>
       )}
 
       {showSettingsMenu && (
-        <div className="fixed inset-0 z-40 flex justify-end">
-          <div 
-            className="flex-1 bg-black/50 backdrop-blur-sm" 
-            onClick={() => setShowSettingsMenu(false)}
+        <div className="fixed top-16 right-0 bottom-0 z-40 w-96 bg-gray-900 border-l border-gray-800">
+          <SettingsMenu 
+            isOpen={showSettingsMenu}
+            onClose={() => setShowSettingsMenu(false)} 
           />
-          <div className={`w-96 transition-all duration-300 ${
-            showConversationList && !isMobile ? 'mr-80' : ''
-          }`}>
-            <SettingsMenu 
-              isOpen={showSettingsMenu}
-              onClose={() => setShowSettingsMenu(false)} 
-            />
-            {userProfile && <WebSearchLimits userProfile={userProfile} />}
-          </div>
         </div>
       )}
 
-      {showImageGenerator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto">
-            <button
-              onClick={() => setShowImageGenerator(false)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <ImageGenerator />
-          </div>
-        </div>
-      )}
-
-      {showVideoGenerator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-6xl max-h-[90vh] overflow-auto">
-            <button
-              onClick={() => setShowVideoGenerator(false)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <VideoGenerator />
-          </div>
-        </div>
-      )}
-
-      <div className={`h-full flex flex-col pt-20 relative z-10 transition-all duration-300 ${
+      <div className={`fixed top-16 left-0 right-0 bottom-0 transition-all duration-300 ${
         showConversationList && !isMobile ? 'ml-80' : ''
       }`}>
         {!chatStarted && !currentConversation?.messages.length ? (
           <WelcomeScreen onStartChat={handleStartChat} />
         ) : (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* âœ… SELECTOR DE MODOS AVANZADOS */}
-            {showAdvancedModes && (
-              <div className="border-b border-gray-800">
-                <AdvancedModeSelector
-                  currentMode={advancedMode}
-                  onSelectMode={setAdvancedMode}
-                />
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-b border-gray-800">
-              <SpecialistModeSelector
-                userProfile={userProfile!}
-                currentMode={currentMode}
-                currentSpecialty={currentSpecialty}
-                onModeChange={handleModeChange}
-              />
-            </div>
-
+          <div className="flex-1 flex flex-col overflow-hidden h-full">
             {currentMode === 'normal' ? (
               <>
                 <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -1180,76 +850,71 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
                       <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} group`}>
                         <div className={`flex items-start space-x-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                           
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center border border-gray-600">
-                            {message.type === 'user' ? (
-                              <User className="w-4 h-4 text-blue-400" />
-                            ) : (
-                              <Bot className="w-4 h-4 text-purple-400" />
-                            )}
-                          </div>
-
-                          <div className={`flex-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
-                            
-                            {message.type === 'ai' && (
-                              <>
-                                <WebSearchIndicator message={message} />
-                                {/* âœ… BADGE DE MODO AVANZADO */}
-                                {message.advancedMode && (
-                                  <div className="mb-2 flex items-center gap-2 text-xs text-purple-300 bg-purple-500/10 px-2 py-1 rounded inline-flex">
-                                    <Sparkles className="w-3 h-3" />
-                                    <span className="capitalize">
-                                      {message.advancedMode.replace('_', ' ')}
-                                    </span>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                            
-                            <div className={`inline-block p-4 rounded-2xl shadow-xl backdrop-blur-xl ${
-                              message.type === 'user'
-                                ? 'bg-white/10 text-white border border-white/20 max-w-md rounded-br-sm'
-                                : 'bg-black/40 text-gray-100 border border-white/10 max-w-3xl rounded-bl-sm'
-                            }`}
-                            style={{
-                              backdropFilter: 'blur(20px) saturate(180%)',
-                              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                              boxShadow: message.type === 'user' 
-                                ? '0 8px 32px 0 rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                                : '0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-                            }}>
-                              
-                              {message.type === 'ai' ? (
-                                <MarkdownRenderer content={message.message} />
-                              ) : (
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                                  {message.message}
-                                </p>
-                              )}
-                              
-                              <div className={`mt-3 pt-2 border-t ${message.type === 'user' ? 'border-blue-500/30' : 'border-gray-600'} text-xs ${message.type === 'user' ? 'text-blue-200' : 'text-gray-500'} flex items-center justify-between`}>
-                                <span>{message.timestamp.toLocaleTimeString()}</span>
-                                {message.tokensUsed && (
-                                  <span className="opacity-70">{message.tokensUsed} tokens</span>
-                                )}
-                              </div>
+                          {message.type === 'ai' && (
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden">
+                              <Image
+                                src="/images/noralogoicon.png"
+                                alt="NORA"
+                                width={40}
+                                height={40}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
+                          )}
+
+                          <div className={`flex-1 rounded-2xl ${
+                            message.type === 'user' 
+                              ? 'bg-gray-700/80 border-2 border-gray-600/50 rounded-br-sm' 
+                              : 'floating-card border-2 border-white/15 rounded-bl-sm'
+                          } p-4 shadow-lg animate-card-in`} style={{ fontFamily: 'Lastica, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+                            
+                            {message.files && message.files.length > 0 && (
+                              <div className="mb-3 flex flex-wrap gap-2">
+                                {message.files.map((fileName, idx) => (
+                                  <div key={idx} className="flex items-center space-x-2 bg-gray-700/50 px-3 py-1 rounded-lg text-xs">
+                                    <FileText className="w-3 h-3" />
+                                    <span>{fileName}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {message.searchUsed && message.searchResults && (
+                              <div className="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                                <div className="flex items-center space-x-2 text-green-400 text-sm mb-2">
+                                  <Globe className="w-4 h-4" />
+                                  <span className="font-medium">Búsqueda Web Realizada</span>
+                                </div>
+                                <p className="text-xs text-gray-300">{message.searchResults.query}</p>
+                              </div>
+                            )}
+
+                            {message.advancedMode && (
+                              <div className="mb-2 inline-flex items-center space-x-1 bg-purple-500/20 px-2 py-1 rounded text-xs text-purple-300">
+                                <Sparkles className="w-3 h-3" />
+                                <span>Modo: {message.advancedMode.replace('_', ' ')}</span>
+                              </div>
+                            )}
+
+                            <MarkdownRenderer content={message.message} />
 
                             {message.type === 'ai' && (
-                              <div className="flex items-center space-x-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center space-x-2 mt-2">
                                 <button
-                                  onClick={() => handleCopy(message.message)}
-                                  className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600 transition-colors text-gray-400 hover:text-white"
-                                  title="Copiar"
+                                  onClick={() => copyMessage(message.message)}
+                                  className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+                                  title="Copiar mensaje"
                                 >
-                                  <Copy className="w-4 h-4" />
+                                  <Copy className="w-3.5 h-3.5 text-gray-400" />
                                 </button>
+                                
                                 <button
-                                  onClick={() => handleRegenerate(index)}
-                                  className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600 transition-colors text-gray-400 hover:text-white"
-                                  title="Regenerar"
+                                  onClick={() => regenerateResponse(message.id)}
                                   disabled={isLoading}
+                                  className="p-1.5 hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+                                  title="Regenerar respuesta"
                                 >
-                                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                                  <RefreshCw className={`w-3.5 h-3.5 text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
                                 </button>
                               </div>
                             )}
@@ -1261,8 +926,14 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
                     {isLoading && (
                       <div className="flex justify-start">
                         <div className="flex items-start space-x-3 max-w-[85%]">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center border border-gray-600">
-                            <Bot className="w-4 h-4 text-purple-400" />
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden">
+                            <Image
+                              src="/images/noralogoicon.png"
+                              alt="NORA"
+                              width={40}
+                              height={40}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl rounded-bl-sm p-4 border border-gray-700">
                             <div className="flex items-center space-x-3">
@@ -1275,7 +946,7 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
                                 {advancedMode ? `Procesando en modo ${advancedMode.replace('_', ' ')}...` :
                                  reportMode ? 'Generando reporte...' : 
                                  deepThinkingMode ? 'Analizando...' : 
-                                 webSearchEnabled ? 'Buscando...' : 'Escribiendo...'}
+                                 webSearchEnabled ? 'Buscando en la web...' : 'Pensando...'}
                               </span>
                             </div>
                           </div>
@@ -1287,172 +958,421 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
                   </div>
                 </div>
 
-                <div className="px-4 pb-4">
-                  {uploadedFiles.length > 0 && (
-                    <div className="mb-4 flex flex-wrap gap-2">
-                      {uploadedFiles.map((file, index) => (
-                        <div key={index} className="bg-gray-800 rounded-lg px-3 py-1 flex items-center space-x-2">
-                          <FileText className="w-4 h-4" />
-                          <span className="text-sm">{file.name}</span>
-                          <button
-                            onClick={() => removeFile(index)}
-                            className="p-1 hover:bg-gray-700 rounded"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {shouldShowUpgradeWarning() && (
-                    <div className="mb-4 bg-yellow-900/50 border border-yellow-700 rounded-xl p-4">
-                      <p className="text-yellow-300 text-sm mb-2">
-                        Has alcanzado el 90% de tu lÃ­mite diario.
-                      </p>
-                      <button
-                        onClick={() => router.push('/upgrade')}
-                        className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        Mejorar plan
-                      </button>
-                    </div>
-                  )}
-
-                  {(reportMode || deepThinkingMode || webSearchEnabled || advancedMode) && (
-                    <div className="mb-4 flex space-x-2">
-                      {reportMode && (
-                        <div className="bg-blue-900/50 border border-blue-700 rounded-lg px-3 py-1 text-blue-300 text-sm">
-                          Modo Reporte
-                        </div>
-                      )}
-                      {deepThinkingMode && (
-                        <div className="bg-purple-900/50 border border-purple-700 rounded-lg px-3 py-1 text-purple-300 text-sm">
-                          Deep Search
-                        </div>
-                      )}
-                      {webSearchEnabled && (
-                        <div className="bg-green-900/50 border border-green-700 rounded-lg px-3 py-1 text-green-300 text-sm">
-                          BÃºsqueda Web
-                        </div>
-                      )}
-                      {advancedMode && (
-                        <div className="bg-gradient-to-r from-purple-900/50 to-pink-900/50 border border-purple-700 rounded-lg px-3 py-1 text-purple-300 text-sm flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          {advancedMode.replace('_', ' ')}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="bg-gray-800/30 backdrop-blur-xl rounded-full p-2 border border-gray-700/30 max-w-3xl mx-auto flex items-center">
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowToolsMenu(!showToolsMenu);
+                {showImageGenerator && (
+                  <div className="border-t border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+                    <div className="max-w-4xl mx-auto p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold flex items-center space-x-2">
+                          <ImageIcon className="w-5 h-5 text-purple-400" />
+                          <span>Generador de Imágenes</span>
+                        </h3>
+                        <button
+                          onClick={() => setShowImageGenerator(false)}
+                          className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <ImageGenerator 
+                        isEmbedded={true}
+                        onImageGenerated={(image) => {
+                          const imageMessage: ChatMessage = {
+                            id: `msg_${Date.now()}_image`,
+                            type: 'ai',
+                            message: `Imagen generada: ${image.prompt}`,
+                            timestamp: new Date(),
+                            conversationId: currentConversation?.id || '',
+                            imageUrl: image.imageUrl
+                          };
+                          addMessage(imageMessage);
+                          setShowImageGenerator(false);
                         }}
-                        className="hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105"
-                      >
-                        <Plus className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${showToolsMenu ? 'rotate-45' : ''}`} />
-                      </button>
-
-                      {showToolsMenu && (
-                        <div className="absolute bottom-full left-0 mb-2 bg-gray-800/80 backdrop-blur-md border border-gray-700/50 rounded-lg shadow-lg py-2 w-48 animate-slide-up">
-                          <button
-                            onClick={toggleImageGenerator}
-                            className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
-                          >
-                            <span className="text-sm">Generar imagen</span>
-                          </button>
-                          
-                          <button
-                            onClick={toggleVideoGenerator}
-                            className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
-                          >
-                            <span className="text-sm">Generar video</span>
-                          </button>
-                          
-                          <button
-                            onClick={toggleReportMode}
-                            className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
-                          >
-                            <span className="text-sm">Generar reporte</span>
-                          </button>
-
-                          <button
-                            onClick={toggleWebSearch}
-                            className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors ${
-                              webSearchEnabled ? 'text-green-400' : 'text-gray-300'
-                            }`}
-                          >
-                            <span className="text-sm">
-                              {webSearchEnabled ? 'Desactivar bÃºsqueda' : 'Activar bÃºsqueda'}
-                            </span>
-                          </button>
-                          
-                          <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-700/50 text-left transition-colors"
-                          >
-                            <span className="text-sm">Subir archivos</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 relative flex items-center">
-                      <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder={
-                          shouldShowUpgradeWarning() 
-                            ? "Mejora tu plan..." 
-                            : "Escribe tu mensaje..."
-                        }
-                        disabled={isLoading || shouldShowUpgradeWarning()}
-                        className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none leading-tight min-h-[24px] max-h-16 py-1 text-sm text-center"
                       />
                     </div>
+                  </div>
+                )}
 
-                    <button
-                      onClick={toggleDeepSearch}
-                      className="hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105"
-                    >
-                      <Atom className={`w-5 h-5 ${deepThinkingMode ? 'text-purple-400' : 'text-gray-400'}`} />
-                    </button>
+                {showVideoGenerator && (
+                  <div className="border-t border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+                    <div className="max-w-4xl mx-auto p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold flex items-center space-x-2">
+                          <Video className="w-5 h-5 text-pink-400" />
+                          <span>Generador de Videos</span>
+                        </h3>
+                        <button
+                          onClick={() => setShowVideoGenerator(false)}
+                          className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <VideoGenerator onClose={() => setShowVideoGenerator(false)} />
+                    </div>
+                  </div>
+                )}
 
-                    <button
-                      onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-                      disabled={shouldShowUpgradeWarning()}
-                      className={`hover:bg-gray-700/30 rounded-full p-1 transition-colors transform hover:scale-105 ${
-                        isRecording ? 'text-red-400 animate-pulse' : 'text-gray-400'
-                      }`}
-                    >
-                      {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                    </button>
+                <div className="bg-black/80 backdrop-blur-sm">
+                  <div className="max-w-4xl mx-auto p-4">
+                    {uploadedFiles.length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {uploadedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg text-sm">
+                            <FileText className="w-4 h-4 text-blue-400" />
+                            <span className="text-gray-300">{file.name}</span>
+                            <button
+                              onClick={() => removeFile(index)}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                    <button
-                      onClick={sendMessage}
-                      disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || shouldShowUpgradeWarning()}
-                      className={`p-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
-                        (input.trim() || uploadedFiles.length > 0) && !isLoading && !shouldShowUpgradeWarning()
-                          ? webSearchEnabled 
-                            ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg' 
-                            : advancedMode
-                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg'
-                            : 'bg-white text-black hover:bg-gray-200 shadow-lg'
-                          : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </button>
+                    {reportMode && (
+                      <div className="mb-3 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center space-x-2 text-purple-400">
+                          <FileText className="w-4 h-4" />
+                          <span className="text-sm font-medium">Modo Reporte Activado</span>
+                        </div>
+                        <button
+                          onClick={() => setReportMode(false)}
+                          className="text-purple-400 hover:text-purple-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {webSearchEnabled && (
+                      <div className="mb-3">
+                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2 text-green-400">
+                              <Globe className="w-4 h-4" />
+                              <span className="text-sm font-medium">Búsqueda Web Activada</span>
+                            </div>
+                            <button
+                              onClick={() => setWebSearchEnabled(false)}
+                              className="text-green-400 hover:text-green-300"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <WebSearchIndicator userProfile={userProfile} />
+                        </div>
+                      </div>
+                    )}
+
+                    {showVoiceText && voiceText && (
+                      <div className="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                        <div className="flex items-center space-x-2 text-blue-400 mb-1">
+                          <Mic className="w-4 h-4" />
+                          <span className="text-xs font-medium">Texto reconocido:</span>
+                        </div>
+                        <p className="text-sm text-gray-300">{voiceText}</p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center space-x-1 md:space-x-2 floating-input-container px-2 md:px-4 py-3">
+                      
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        multiple
+                        accept=".txt,.pdf,.doc,.docx,.json,.csv,.xlsx,.xls"
+                        className="hidden"
+                      />
+
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            if (showToolsMenu) {
+                              setShowToolsMenu(false);
+                            } else {
+                              closeAllMenus();
+                              setShowToolsMenu(true);
+                            }
+                          }}
+                          className="floating-icon-button p-1.5 md:p-2"
+                        >
+                          <Plus className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 transition-transform duration-300 ${showToolsMenu ? 'rotate-45' : ''}`} />
+                        </button>
+
+                        {showToolsMenu && (
+                          <div className="absolute bottom-full left-0 mb-2 floating-menu w-48 z-50">
+                            <button
+                              onClick={toggleImageGenerator}
+                              className="floating-menu-item"
+                            >
+                              <span className="text-sm font-light">Generar imagen</span>
+                            </button>
+                            
+                            <button
+                              onClick={toggleVideoGenerator}
+                              className="floating-menu-item"
+                            >
+                              <span className="text-sm font-light">Generar video</span>
+                            </button>
+
+                            <button
+                              onClick={toggleWebSearch}
+                              className={`floating-menu-item ${webSearchEnabled ? 'text-white' : 'text-gray-400'}`}
+                            >
+                              <span className="text-sm font-light">
+                                {webSearchEnabled ? 'Desactivar búsqueda' : 'Activar búsqueda'}
+                              </span>
+                            </button>
+                            
+                            <button
+                              onClick={() => fileInputRef.current?.click()}
+                              className="floating-menu-item"
+                            >
+                              <span className="text-sm font-light">Subir archivos</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            if (showSideMenu) {
+                              setShowSideMenu(false);
+                            } else {
+                              closeAllMenus();
+                              setShowSideMenu(true);
+                            }
+                          }}
+                          className="floating-icon-button p-1.5 md:p-2"
+                        >
+                          <svg 
+                            className={`w-4 h-4 md:w-5 md:h-5 transition-colors duration-300 ${showSideMenu ? 'text-white' : 'text-gray-400'}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                          </svg>
+                        </button>
+
+                        {showSideMenu && (
+                          <div className="absolute bottom-full left-0 mb-2 w-64 floating-menu overflow-visible z-50">
+                            
+                            <button
+                              onClick={() => {
+                                setCurrentMode('normal');
+                                setCurrentSpecialty(undefined);
+                                setShowSideMenu(false);
+                                toast.success('Chat Normal activado');
+                              }}
+                              className="floating-menu-item border-b border-white/10"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <MessageCircle className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm font-light text-white">Chat Normal</span>
+                              </div>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setCurrentMode('developer');
+                                setShowSideMenu(false);
+                                toast.success('Modo Desarrollador activado');
+                              }}
+                              className="floating-menu-item border-b border-white/10"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <Brain className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm font-light text-white">Modo Desarrollador</span>
+                              </div>
+                            </button>
+
+                            <div className="border-b border-white/10 relative group">
+                              <div className="w-full px-4 py-3 hover:bg-white/5 cursor-pointer transition-all duration-300">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <Brain className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm font-light text-white">Especialistas</span>
+                                  </div>
+                                  <ArrowRight className="w-4 h-4 text-gray-400 transition-transform duration-300 group-hover:translate-x-1" />
+                                </div>
+                              </div>
+                              <div className="absolute left-full bottom-0 ml-1 w-56 floating-submenu opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 max-h-96 overflow-y-auto custom-scroll">
+                                {['Negocios', 'Ciencias', 'Educación', 'Salud', 'Marketing', 'Finanzas', 'Legal', 'Psicología', 'Ingeniería', 'Recursos Humanos', 'Ventas', 'Datos', 'Creatividad', 'Cardiología', 'Dermatología', 'Nutrición', 'Pediatría'].map((spec) => (
+                                  <button
+                                    key={spec}
+                                    onClick={() => {
+                                      setCurrentMode('specialist');
+                                      setCurrentSpecialty(spec.toLowerCase().replace(/\s+/g, '_') as SpecialtyType);
+                                      setShowSideMenu(false);
+                                      toast.success(`Modo ${spec} activado`);
+                                    }}
+                                    className="w-full text-left px-4 py-2 hover:bg-white/5 transition-all duration-300 text-sm text-gray-300 font-light"
+                                  >
+                                    {spec}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="border-b border-white/10 relative group">
+                              <div className="w-full px-4 py-3 hover:bg-white/5 cursor-pointer transition-all duration-300">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <Zap className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm font-light text-white">Modos Avanzados</span>
+                                  </div>
+                                  <ArrowRight className="w-4 h-4 text-gray-400 transition-transform duration-300 group-hover:translate-x-1" />
+                                </div>
+                              </div>
+                              <div className="absolute left-full bottom-0 ml-1 w-56 floating-submenu opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                                <button
+                                  onClick={() => {
+                                    setAdvancedMode('travel_planner');
+                                    setShowSideMenu(false);
+                                    toast.success('Travel Planner activado');
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-white/5 transition-all duration-300 text-sm text-gray-300 font-light"
+                                >
+                                  Travel Planner
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setAdvancedMode('brand_analyzer');
+                                    setShowSideMenu(false);
+                                    toast.success('Brand Analyzer activado');
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-white/5 transition-all duration-300 text-sm text-gray-300 font-light"
+                                >
+                                  Brand Analyzer
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setAdvancedMode('plant_doctor');
+                                    setShowSideMenu(false);
+                                    toast.success('Plant Doctor activado');
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-white/5 transition-all duration-300 text-sm text-gray-300 font-light"
+                                >
+                                  Plant Doctor
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="relative group">
+                              <div className="w-full px-4 py-3 hover:bg-white/5 cursor-pointer transition-all duration-300">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <FileText className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm font-light text-white">Documentos</span>
+                                  </div>
+                                  <ArrowRight className="w-4 h-4 text-gray-400 transition-transform duration-300 group-hover:translate-x-1" />
+                                </div>
+                              </div>
+                              <div className="absolute left-full bottom-0 ml-1 w-56 floating-submenu opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                                <button
+                                  onClick={() => {
+                                    setAdvancedMode('document_detective');
+                                    setShowSideMenu(false);
+                                    toast.success('Document Detective activado');
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-white/5 transition-all duration-300 text-sm text-gray-300 font-light"
+                                >
+                                  Document Detective
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setAdvancedMode('ai_detector');
+                                    setShowSideMenu(false);
+                                    toast.success('AI Detector activado');
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-white/5 transition-all duration-300 text-sm text-gray-300 font-light"
+                                >
+                                  AI Detector
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setAdvancedMode('text_humanizer');
+                                    setShowSideMenu(false);
+                                    toast.success('Text Humanizer activado');
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-white/5 transition-all duration-300 text-sm text-gray-300 font-light"
+                                >
+                                  Text Humanizer
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    toggleReportMode();
+                                    setShowSideMenu(false);
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-white/5 transition-all duration-300 text-sm text-gray-300 font-light"
+                                >
+                                  Generar Reporte
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 relative flex items-center">
+                        <textarea
+                          ref={textareaRef}
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onKeyDown={handleKeyPress}
+                          placeholder="Escribe tu mensaje..."
+                          disabled={isLoading}
+                          rows={1}
+                          className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none text-sm flex items-center"
+                          style={{
+                            maxHeight: '96px',
+                            minHeight: '24px',
+                            lineHeight: '24px',
+                            paddingTop: '0px',
+                            paddingBottom: '0px'
+                          }}
+                        />
+                      </div>
+
+                      <button
+                        onClick={toggleDeepSearch}
+                        className="floating-icon-button p-1.5 md:p-2"
+                      >
+                        <Atom className={`w-4 h-4 md:w-5 md:h-5 transition-colors duration-300 ${deepThinkingMode ? 'text-white' : 'text-gray-400'}`} />
+                      </button>
+
+                      <button
+                        onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                        className="floating-icon-button p-1.5 md:p-2"
+                      >
+                        {isRecording ? (
+                          <MicOff className="w-4 h-4 md:w-5 md:h-5 text-red-400 animate-pulse" />
+                        ) : (
+                          <Mic className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={sendMessage}
+                        disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+                        className={`floating-send-button p-1.5 md:p-2 ${
+                          (input.trim() || uploadedFiles.length > 0) && !isLoading
+                            ? 'active'
+                            : 'disabled'
+                        }`}
+                      >
+                        {isLoading ? (
+                          <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4 md:w-5 md:h-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </>
@@ -1463,7 +1383,7 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
                   currentMode={currentMode}
                   currentSpecialty={currentSpecialty}
                   chatHistory={messages}
-                  onNewMessage={handleNewMessage}
+                  onNewMessage={addMessage}
                   onError={(error) => toast.error(error)}
                 />
               </div>
@@ -1472,93 +1392,199 @@ INSTRUCCIÃ“N PARA EL BACKEND: Este es un PDF en base64. Extrae el texto compl
         )}
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        onChange={handleFileUpload}
-        className="hidden"
-        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.csv,.xlsx"
-      />
-
-      <style jsx global>{`
+      <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Lastica:wght@300;400;500;600;700&display=swap');
         
+        @keyframes card-in {
+          0% {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-card-in { 
+          animation: card-in 0.8s ease-out forwards; 
+        }
+
+        .floating-card {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+          backdrop-filter: blur(25px);
+          -webkit-backdrop-filter: blur(25px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.15),
+            0 4px 16px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          transition: all 0.3s ease;
+        }
+        
+        .floating-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.2),
+            0 6px 20px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        .floating-input-container {
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+          backdrop-filter: blur(40px);
+          -webkit-backdrop-filter: blur(40px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 9999px;
+          box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.3),
+            0 8px 32px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .floating-icon-button {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 9999px;
+          transition: all 0.3s ease;
+        }
+        
+        .floating-icon-button:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+          border-color: rgba(255, 255, 255, 0.15);
+          transform: scale(1.05);
+        }
+
+        .floating-send-button {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 9999px;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .floating-send-button.active {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          box-shadow: 
+            0 8px 32px rgba(255, 255, 255, 0.1),
+            0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .floating-send-button.active:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.12));
+          transform: scale(1.05);
+          box-shadow: 
+            0 12px 40px rgba(255, 255, 255, 0.15),
+            0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .floating-send-button.disabled {
+          background: linear-gradient(145deg, rgba(107, 114, 128, 0.15), rgba(107, 114, 128, 0.08));
+          color: #9ca3af;
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
+
+        .floating-menu {
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.8));
+          backdrop-filter: blur(40px);
+          -webkit-backdrop-filter: blur(40px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+          box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.4),
+            0 8px 32px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          overflow: hidden;
+        }
+
+        .floating-menu-item {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          text-align: left;
+          transition: all 0.3s ease;
+          background: transparent;
+          border: none;
+          color: white;
+        }
+        
+        .floating-menu-item:hover {
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+        }
+
+        .floating-submenu {
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.8));
+          backdrop-filter: blur(40px);
+          -webkit-backdrop-filter: blur(40px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+          box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.4),
+            0 8px 32px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }
+        
+        .custom-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .custom-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 3px;
+        }
+        
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.25);
+        }
+
+        * {
+          font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
         @keyframes slide-right {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(0); }
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
         }
         
         @keyframes slide-up {
-          0% { opacity: 0; transform: translateY(10px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes slide-x {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        
-        @keyframes slide-x-reverse {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
+          from { 
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
         
-        @keyframes breath {
-          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.1; }
-          50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.3; }
-        }
-        
-        @keyframes breath-delayed {
-          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.05; }
-          50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.2; }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         
         .animate-slide-right {
-          animation: slide-right 0.8s ease-in-out forwards;
+          animation: slide-right 0.8s ease-out;
         }
-
+        
         .animate-slide-up {
-          animation: slide-up 0.3s ease-out forwards;
+          animation: slide-up 0.2s ease-out;
         }
         
-        .animate-slide-x {
-          animation: slide-x 8s linear infinite;
-        }
-        
-        .animate-slide-x-reverse {
-          animation: slide-x-reverse 10s linear infinite;
-        }
-        
-        .animate-breath {
-          animation: breath 4s ease-in-out infinite;
-        }
-        
-        .animate-breath-delayed {
-          animation: breath-delayed 6s ease-in-out infinite;
-          animation-delay: 1s;
-        }
-
-        html {
-          scroll-behavior: smooth;
-        }
-
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-          background: #1f2937;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: #4b5563;
-          border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: #6b7280;
-        }
-
-        body {
-          font-family: 'Lastica', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        .animate-fade-in {
+          animation: fade-in 1s ease-out;
         }
       `}</style>
     </div>
