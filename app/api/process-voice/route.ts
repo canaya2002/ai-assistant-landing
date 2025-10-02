@@ -1,37 +1,71 @@
-// app/api/process-voice/route.ts - PROCESAMIENTO DE VOZ MEJORADO
+// app/api/process-voice/route.ts - PROCESAMIENTO DE VOZ CON GEMINI
 import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-export async function POST(request: NextRequest) {
+// 🔒 No se inicializa globalmente. La clave se lee y se usa dentro de POST/processWithGemini.
+
+// ✅ PROCESAMIENTO CON GEMINI
+async function processWithGemini(text: string): Promise<string> {
+  // CRITICAL FIX: The model name 'gemini-1.5-flash' is often deprecated or incorrectly routed. 
+  // We use the most modern and accessible name: 'gemini-2.5-flash'.
+  const MODEL_NAME = 'gemini-2.5-flash';
+  
+  // La clave de API se inyecta directamente desde el proceso.env,
+  // la cual debería estar disponible en esta API Route.
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+  if (!GEMINI_API_KEY) {
+    console.error("⚠️ Falling back to basic correction because API Key is missing in environment.");
+    return basicTextCorrection(text);
+  }
+
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
   try {
-    const { text } = await request.json();
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-    if (!text || typeof text !== 'string') {
-      return NextResponse.json(
-        { error: 'Texto no proporcionado' },
-        { status: 400 }
-      );
+    const prompt = `Eres un corrector de texto especializado en procesar transcripciones de voz a texto.
+
+Tu tarea es corregir y mejorar el siguiente texto transcrito, aplicando estas reglas:
+
+1. **Ortografía y gramática**: Corrige errores ortográficos y gramaticales
+2. **Puntuación**: Añade puntos, comas y signos de puntuación apropiados
+3. **Capitalización**: Capitaliza correctamente nombres propios y el inicio de oraciones
+4. **Estructura**: Mejora la estructura de las oraciones manteniendo el significado original
+5. **Naturalidad**: El texto debe sonar natural y fluido
+6. **Coherencia**: Asegura que el texto sea coherente y tenga sentido
+
+IMPORTANTE:
+- NO cambies el significado del texto original
+- NO añadas información que no esté en el texto original
+- NO uses formato markdown, solo texto plano
+- Mantén el tono y estilo del hablante
+- Si hay errores comunes de dictado (ej: "haber" en lugar de "a ver"), corrígelos según el contexto
+
+Texto a corregir:
+"${text}"
+
+Responde ÚNICAMENTE con el texto corregido, sin explicaciones adicionales.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const correctedText = response.text().trim();
+
+    if (!correctedText || correctedText.length === 0) {
+      throw new Error('Respuesta vacía de Gemini');
     }
 
-    // ✅ CORRECCIÓN MEJORADA CON MÁS REGLAS
-    const processedText = advancedTextCorrection(text);
+    return correctedText;
 
-    return NextResponse.json({
-      success: true,
-      originalText: text,
-      processedText
-    });
-
-  } catch (error) {
-    console.error('Error processing voice:', error);
-    return NextResponse.json(
-      { error: 'Error procesando audio' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    // Loguear el error para debug, pero usar fallback
+    console.error('Error con Gemini:', error.message);
+    return basicTextCorrection(text);
   }
 }
 
-// ✅ FUNCIÓN DE CORRECCIÓN AVANZADA
-function advancedTextCorrection(text: string): string {
+// ... existing basicTextCorrection function ...
+function basicTextCorrection(text: string): string {
   let corrected = text.trim();
   
   // Capitalizar primera letra
@@ -39,9 +73,8 @@ function advancedTextCorrection(text: string): string {
     corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
   }
   
-  // ✅ CORRECCIONES ORTOGRÁFICAS COMUNES EN ESPAÑOL
+  // Correcciones ortográficas comunes
   const corrections: { [key: string]: string } = {
-    // Abreviaturas y modismos
     ' q ': ' que ',
     ' x ': ' por ',
     ' xq ': ' porque ',
@@ -53,20 +86,9 @@ function advancedTextCorrection(text: string): string {
     ' xfa ': ' por favor ',
     ' pf ': ' por favor ',
     ' dnd ': ' dónde ',
-    ' salu2 ': ' saludos ',
-    ' mxo ': ' mucho ',
-    ' muxo ': ' mucho ',
-    ' msj ': ' mensaje ',
-    ' msg ': ' mensaje ',
-    ' tqm ': ' te quiero mucho ',
-    ' tkm ': ' te quiero mucho ',
-    ' xd ': ' jaja ',
     ' k ': ' que ',
-    
-    // Errores comunes de dictado
     'haber si': 'a ver si',
     'a sido': 'ha sido',
-    'a ver': 'haber', // contexto dependiente, pero común
     'aver': 'a ver',
     'ay que': 'hay que',
     'halla': 'haya',
@@ -74,98 +96,78 @@ function advancedTextCorrection(text: string): string {
     'tubo': 'tuvo',
     'asta': 'hasta',
     'asia': 'hacia',
-    'echo': 'hecho',
-    'hecho de menos': 'echo de menos',
-    
-    // Números y fechas
-    ' 1ro ': ' primero ',
-    ' 2do ': ' segundo ',
-    ' 3ro ': ' tercero ',
-    
-    // Mejoras de puntuación en preguntas
-    'que es ': '¿qué es ',
-    'como estas': '¿cómo estás',
-    'como esta': '¿cómo está',
-    'donde esta': '¿dónde está',
-    'donde estas': '¿dónde estás',
-    'cuanto es': '¿cuánto es',
-    'cuanto cuesta': '¿cuánto cuesta',
-    'cuando es': '¿cuándo es',
-    'por que ': '¿por qué ',
-    'quien es': '¿quién es',
-    'cual es': '¿cuál es',
-    
-    // Acentos comunes que faltan en dictado
-    'si dices': 'sí dices',
-    'tu sabes': 'tú sabes',
-    'el esta': 'él está',
-    'mi dijo': 'me dijo',
-    
-    // Conectores y artículos
-    ' d ': ' de ',
-    ' pa ': ' para ',
-    ' ke ': ' que ',
-    ' sta ': ' está ',
-    ' ta ': ' está ',
   };
-  
-  // Aplicar correcciones
-  for (const [wrong, correct] of Object.entries(corrections)) {
+
+  for (const [wrong, right] of Object.entries(corrections)) {
     const regex = new RegExp(wrong, 'gi');
-    corrected = corrected.replace(regex, correct);
+    corrected = corrected.replace(regex, right);
   }
-  
-  // ✅ AÑADIR SIGNOS DE INTERROGACIÓN COMPLETOS
-  corrected = addQuestionMarks(corrected);
-  
-  // ✅ AÑADIR PUNTO FINAL SI NO TIENE PUNTUACIÓN
-  if (!/[.!?¿¡]$/.test(corrected)) {
-    // Si parece pregunta, añadir ?
-    if (/^(qué|cómo|cuándo|dónde|quién|cuál|por qué|para qué)/i.test(corrected)) {
-      corrected += '?';
-    } else {
-      corrected += '.';
-    }
+
+  // Añadir punto final si no existe
+  if (!/[.!?]$/.test(corrected)) {
+    corrected += '.';
   }
-  
-  // ✅ CAPITALIZAR DESPUÉS DE PUNTO
-  corrected = corrected.replace(/\.\s+([a-z])/g, (match, letter) => {
-    return '. ' + letter.toUpperCase();
+
+  // Capitalizar después de puntos
+  corrected = corrected.replace(/([.!?]\s+)([a-z])/g, (match, p1, p2) => {
+    return p1 + p2.toUpperCase();
   });
-  
-  // ✅ ESPACIOS MÚLTIPLES A UNO SOLO
+
+  // Limpiar espacios múltiples
   corrected = corrected.replace(/\s+/g, ' ');
-  
-  return corrected.trim();
+
+  // Limpiar espacios antes de puntuación
+  corrected = corrected.replace(/\s+([.,;:!?])/g, '$1');
+
+  return corrected;
 }
 
-// ✅ FUNCIÓN PARA AÑADIR SIGNOS DE INTERROGACIÓN
-function addQuestionMarks(text: string): string {
-  // Lista de palabras interrogativas en español
-  const questionWords = [
-    'qué', 'cómo', 'cuándo', 'dónde', 'quién', 'cuál', 'cuáles',
-    'cuánto', 'cuántos', 'cuánta', 'cuántas', 'por qué', 'para qué'
-  ];
-  
-  let result = text;
-  
-  // Detectar frases interrogativas y añadir signos
-  for (const word of questionWords) {
-    const regex = new RegExp(`\\b(${word})\\b([^.!?¿¡]*?)([.!]|$)`, 'gi');
-    result = result.replace(regex, (match, qWord, content, ending) => {
-      // Si ya tiene signos de interrogación, no hacer nada
-      if (match.includes('¿') || match.includes('?')) {
-        return match;
-      }
-      // Añadir signos de interrogación
-      return `¿${qWord}${content}?`;
+// ... existing POST, GET, PUT, DELETE exports ...
+export async function POST(request: NextRequest) {
+  try {
+    const { text } = await request.json();
+
+    if (!text || typeof text !== 'string') {
+      return NextResponse.json(
+        { error: 'Texto no proporcionado' },
+        { status: 400 }
+      );
+    }
+
+    // ✅ PROCESAR CON GEMINI
+    const processedText = await processWithGemini(text);
+
+    return NextResponse.json({
+      success: true,
+      originalText: text,
+      processedText
     });
+
+  } catch (error) {
+    console.error('Error processing voice:', error);
+    
+    // ✅ FALLBACK: Usar texto vacío si hay error en parsing
+    return NextResponse.json({
+      success: false,
+      error: 'Error procesando audio'
+    }, { status: 500 });
   }
-  
-  return result;
 }
 
-// ✅ MÉTODO GET NO PERMITIDO
 export async function GET() {
-  return NextResponse.json({ error: 'Método no permitido' }, { status: 405 });
+  return NextResponse.json({ 
+    error: 'Method not allowed' 
+  }, { status: 405 });
+}
+
+export async function PUT() {
+  return NextResponse.json({ 
+    error: 'Method not allowed' 
+  }, { status: 405 });
+}
+
+export async function DELETE() {
+  return NextResponse.json({ 
+    error: 'Method not allowed' 
+  }, { status: 405 });
 }
