@@ -112,15 +112,22 @@ export function useConversations() {
   // ✅ CARGAR UNA CONVERSACIÓN ESPECÍFICA
   const loadConversation = useCallback(async (conversationId: string): Promise<void> => {
     try {
+      console.log('🔍 Intentando cargar conversación:', conversationId);
       setLoading(true);
+      
       const conversation = await FirestoreConversationStorage.getConversation(conversationId);
       
       if (conversation) {
+        console.log('✅ Conversación cargada exitosamente:', conversation.title);
         setCurrentConversation(conversation);
+        setError(null);
       } else {
+        console.error('❌ Conversación no encontrada');
         toast.error('Conversación no encontrada');
+        setError('Conversación no encontrada');
       }
     } catch (err: any) {
+      console.error('❌ Error en loadConversation:', err);
       const errorMessage = err.message || 'Error cargando conversación';
       setError(errorMessage);
       toast.error(errorMessage);

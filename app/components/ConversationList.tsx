@@ -1,10 +1,10 @@
-// app/components/ConversationList.tsx - ACTUALIZADO PARA FIRESTORE
+// app/components/ConversationList.tsx - VERSIÓN CORREGIDA COMPLETA
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useConversations } from '../hooks/useConversations'; // ✅ NUEVO HOOK
+import { useConversations } from '../hooks/useConversations';
 import { useAuth } from '../contexts/AuthContext';
-import { ChatMessage } from '../lib/types'; // ✅ IMPORT AGREGADO
+import { ChatMessage } from '../lib/types';
 import { MessageSquare, Trash2, X, Search, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -12,19 +12,25 @@ interface ConversationListProps {
   isOpen: boolean;
   onClose: () => void;
   onNewConversation: () => void;
+  onLoadConversation: (conversationId: string) => void; // ✅ NUEVA PROP
+  currentConversationId?: string; // ✅ NUEVA PROP
 }
 
-export default function ConversationList({ isOpen, onClose, onNewConversation }: ConversationListProps) {
+export default function ConversationList({ 
+  isOpen, 
+  onClose, 
+  onNewConversation,
+  onLoadConversation,
+  currentConversationId
+}: ConversationListProps) {
   const { user } = useAuth();
   const {
     conversations,
-    currentConversation,
     loading,
-    loadConversation,
     deleteConversation,
     exportConversations,
     getStats,
-    setCurrentConversation // ✅ AGREGAR ESTO
+    setCurrentConversation
   } = useConversations();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +40,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
     avgMessagesPerConversation: 0
   });
 
-  // ✅ Cargar estadísticas
   useEffect(() => {
     const loadStats = async () => {
       const statsData = await getStats();
@@ -48,7 +53,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
     }
   }, [user, conversations.length, getStats]);
 
-  // ✅ Filtrar conversaciones por búsqueda
   const filteredConversations = searchQuery.trim()
     ? conversations.filter(conv =>
         conv.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -56,7 +60,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
       )
     : conversations;
 
-  // ✅ Manejar eliminación
   const handleDelete = async (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -67,7 +70,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
     await deleteConversation(conversationId);
   };
 
-  // ✅ Manejar exportación
   const handleExport = async () => {
     await exportConversations();
   };
@@ -76,7 +78,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
 
   return (
     <div className="h-full flex flex-col bg-gray-900">
-      {/* Header */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Conversaciones</h2>
@@ -88,7 +89,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
           </button>
         </div>
 
-        {/* Barra de búsqueda */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -100,10 +100,9 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
           />
         </div>
 
-        {/* Botón nueva conversación */}
         <button
           onClick={() => {
-            setCurrentConversation(null); // ✅ Solo limpia, no crea
+            setCurrentConversation(null);
             onNewConversation();
           }}
           className="w-full mt-3 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all"
@@ -112,7 +111,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
         </button>
       </div>
 
-      {/* Estadísticas */}
       <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-800">
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
           <div>
@@ -130,7 +128,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
         </div>
       </div>
 
-      {/* Lista de conversaciones */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center h-32">
@@ -149,14 +146,15 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
               <div
                 key={conv.id}
                 onClick={() => {
-                  loadConversation(conv.id);
+                  console.log('👆 Click en conversación:', conv.id);
+                  onLoadConversation(conv.id);
                   onClose();
                 }}
                 className={`p-3 rounded-lg cursor-pointer transition-all ${
-                  currentConversation?.id === conv.id
+                  currentConversationId === conv.id
                     ? 'bg-purple-600/20 border-2 border-purple-500'
                     : 'bg-gray-800 hover:bg-gray-700 border-2 border-transparent'
-                }`}
+                } ${loading ? 'opacity-50 cursor-wait' : ''}`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
@@ -188,7 +186,6 @@ export default function ConversationList({ isOpen, onClose, onNewConversation }:
         )}
       </div>
 
-      {/* Footer con exportar */}
       <div className="p-4 border-t border-gray-800">
         <button
           onClick={handleExport}

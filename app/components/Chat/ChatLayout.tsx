@@ -555,19 +555,66 @@ export default function ChatLayout() {
     }
   }, []);
 
-  // Procesar transcripción final
-  useEffect(() => {
-    if (finalTranscript) {
-      setFinalTranscript('');
+  // ========================================
+  // 🎤 PROCESAMIENTO DE VOZ CON CORRECCIÓN
+  // ========================================
+  const processVoiceTranscript = async (transcript: string) => {
+    if (!transcript.trim()) {
+      toast.error('No se detectó voz o el texto es muy corto.');
+      setVoiceText('');
+      setShowVoiceText(false);
+      return;
+    }
+
+    try {
+      toast.loading('🧠 Corrigiendo ortografía...', { id: 'voice-proc' });
       
-      // Usar directamente la transcripción
-      setInput(finalTranscript);
-      sendCoreMessage(finalTranscript);
+      // 1. Enviar a /api/process-voice para corrección con Gemini
+      const response = await fetch('/api/process-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: transcript.trim() }),
+      });
       
+      if (!response.ok) {
+        throw new Error('Error al corregir texto');
+      }
+
+      const data = await response.json();
+      const correctedText = data.processedText || transcript;
+      
+      console.log('📝 Transcripción original:', transcript);
+      console.log('✅ Texto corregido:', correctedText);
+      
+      // 2. Establecer texto corregido y enviar
+      setInput(correctedText);
+      toast.dismiss('voice-proc');
+      toast.success('Texto corregido');
+      
+      // 3. Enviar mensaje con el texto corregido
+      await sendCoreMessage(correctedText);
+
+    } catch (error) {
+      console.error('Voice processing failed:', error);
+      toast.dismiss('voice-proc');
+      toast.error('❌ Error al corregir. Usando transcripción original.');
+      
+      // Fallback: usar transcripción original
+      await sendCoreMessage(transcript);
+      
+    } finally {
       setTimeout(() => {
         setVoiceText('');
         setShowVoiceText(false);
       }, 3000);
+    }
+  };
+
+  // Procesar transcripción final
+  useEffect(() => {
+    if (finalTranscript) {
+      setFinalTranscript('');
+      processVoiceTranscript(finalTranscript); // ✅ Ahora sí corrige
     }
   }, [finalTranscript]);
 
@@ -589,7 +636,11 @@ export default function ChatLayout() {
   const stopVoiceRecording = useCallback(() => {
     if (recognition) {
       recognition.stop();
-      toast.success('🛑 Grabación detenida');
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
+      toast.dismiss('voice-rec'); // Dismiss toast de grabación
+      // Este toast se mostrará hasta que processVoiceTranscript lo quite
+      toast.loading('🧠 Corrigiendo ortografía...', { id: 'voice-proc' });
     }
   }, [recognition]);
 
@@ -660,8 +711,22 @@ export default function ChatLayout() {
 
   useEffect(() => {
     if (currentConversation && currentConversation.messages.length > 0) {
+      console.log('✅ Conversación cargada en ChatLayout:', currentConversation.id);
+      console.log('📊 Mensajes en conversación:', currentConversation.messages.length);
+      console.log('🔍 CurrentConversation completo:', currentConversation);
+      console.log('💬 Mensajes array:', currentConversation.messages);
+      
       setChatStarted(true);
       setShowVideoBackground(false);
+      
+      // Scroll al final cuando se carga una conversación
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else if (currentConversation) {
+      console.log('⚠️ Conversación existe pero sin mensajes:', currentConversation);
+    } else {
+      console.log('❌ No hay conversación actual');
     }
   }, [currentConversation]);
 
@@ -727,9 +792,11 @@ export default function ChatLayout() {
             isOpen={showConversationList} 
             onClose={() => setShowConversationList(false)} 
             onNewConversation={() => { 
-              startNewConversation(); 
+              setCurrentConversation(null); // Solo limpia, no crea
               setShowConversationList(false); 
-            }} 
+            }}
+            onLoadConversation={loadConversation} // ✅ PASAR LA FUNCIÓN DE ESTE COMPONENTE
+            currentConversationId={currentConversation?.id} // ✅ PASAR EL ID ACTUAL
           />
         </div>
       )}

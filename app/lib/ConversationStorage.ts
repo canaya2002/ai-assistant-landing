@@ -119,15 +119,20 @@ export class FirestoreConversationStorage {
   // ✅ OBTENER UNA CONVERSACIÓN
   static async getConversation(conversationId: string): Promise<Conversation | null> {
     try {
+      console.log('📖 Cargando conversación:', conversationId);
       const conversationRef = doc(db, 'conversations', conversationId);
       const conversationSnap = await getDoc(conversationRef);
 
       if (!conversationSnap.exists()) {
+        console.error('❌ Conversación no existe en Firestore');
         return null;
       }
 
       const data = conversationSnap.data();
-      return this.convertFirestoreToConversation(data);
+      console.log('✅ Conversación encontrada, convirtiendo datos...');
+      const conversation = this.convertFirestoreToConversation(data);
+      console.log('✅ Conversación convertida:', conversation.id, 'con', conversation.messages.length, 'mensajes');
+      return conversation;
     } catch (error) {
       console.error('❌ Error obteniendo conversación:', error);
       return null;
@@ -141,7 +146,6 @@ export class FirestoreConversationStorage {
       const q = query(
         conversationsRef,
         where('userId', '==', userId),
-        where('isArchived', '==', false),
         orderBy('updatedAt', 'desc')
       );
 
@@ -149,8 +153,12 @@ export class FirestoreConversationStorage {
       const conversations: Conversation[] = [];
 
       querySnapshot.forEach((doc) => {
-        const conversation = this.convertFirestoreToConversation(doc.data());
-        conversations.push(conversation);
+        const data = doc.data();
+        // Filtrar archivadas en el cliente
+        if (!data.isArchived) {
+          const conversation = this.convertFirestoreToConversation(data);
+          conversations.push(conversation);
+        }
       });
 
       console.log(`✅ ${conversations.length} conversaciones cargadas desde Firestore`);
@@ -171,7 +179,6 @@ export class FirestoreConversationStorage {
       const q = query(
         conversationsRef,
         where('userId', '==', userId),
-        where('isArchived', '==', false),
         orderBy('updatedAt', 'desc')
       );
 
@@ -180,8 +187,12 @@ export class FirestoreConversationStorage {
         const conversations: Conversation[] = [];
         
         snapshot.forEach((doc) => {
-          const conversation = this.convertFirestoreToConversation(doc.data());
-          conversations.push(conversation);
+          const data = doc.data();
+          // Filtrar archivadas en el cliente
+          if (!data.isArchived) {
+            const conversation = this.convertFirestoreToConversation(data);
+            conversations.push(conversation);
+          }
         });
 
         console.log('🔄 Conversaciones actualizadas en tiempo real:', conversations.length);
