@@ -1,10 +1,9 @@
-// app/layout.tsx - VERSIÓN FINAL CON CÓDIGO DE VERIFICACIÓN
+// app/layout.tsx - VERSIÓN ACTUALIZADA PARA FIRESTORE (SIN ConversationProvider)
 
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from './contexts/AuthContext';
-import { ConversationProvider } from './contexts/ConversationContext';
 import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -63,7 +62,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  // ¡AQUÍ ESTÁ TU CÓDIGO DE VERIFICACIÓN!
   verification: {
     google: 'v191lcwldWmKWPXYVRR8VOahLhkYP5LjXjMkjZ43HpM',
   },
@@ -125,9 +123,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <AuthProvider>
-          <ConversationProvider>
-            {children}
-          </ConversationProvider>
+          {children}
           <Toaster
             position="top-right"
             toastOptions={{

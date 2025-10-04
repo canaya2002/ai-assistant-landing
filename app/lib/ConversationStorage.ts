@@ -1,173 +1,281 @@
-// lib/ConversationStorage.ts - ARREGLADO CON TUS TIPOS ORIGINALES
-import { Conversation, ChatMessage, ConversationMetadataInput } from './types';
-import { cloudFunctions } from './firebase';
+// app/lib/ConversationStorage.ts - 100% FIRESTORE CON SINCRONIZACIÓN EN TIEMPO REAL
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
+  limit as firestoreLimit,
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+  writeBatch
+} from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { Conversation, ChatMessage } from './types';
 
-export interface ConversationMetadata {
-  userId: string;
-  conversationId: string;
-  title: string;
-  messageCount: number;
-  lastActivity: Date;
-  tags?: string[];
-}
+// ========================================
+// 🔥 LÍMITES POR PLAN
+// ========================================
+const MESSAGE_LIMITS = {
+  'free': 50,
+  'pro': 300,
+  'pro_max': 300
+};
 
-export class LocalConversationStorage {
-  private static readonly STORAGE_KEY = 'nora_conversations';
-  private static readonly MAX_LOCAL_CONVERSATIONS = 100;
-  private static readonly BACKUP_KEY = 'nora_backup_settings';
+const CONVERSATION_LIMITS = {
+  'free': 100,
+  'pro': 500,
+  'pro_max': 1000
+};
 
-  // Guardar conversación completa localmente
-  static saveConversation(conversation: Conversation): void {
+// ========================================
+// 📊 CLASE PRINCIPAL DE GESTIÓN
+// ========================================
+export class FirestoreConversationStorage {
+  private static unsubscribe: (() => void) | null = null;
+
+  // ✅ CREAR NUEVA CONVERSACIÓN
+  static async createConversation(userId: string, title: string, mode?: string): Promise<Conversation> {
     try {
-      const conversations = this.getConversations();
-      const existingIndex = conversations.findIndex(c => c.id === conversation.id);
+      const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       
-      if (existingIndex >= 0) {
-        // Actualizar conversación existente
-        conversations[existingIndex] = conversation;
-      } else {
-        // Nueva conversación
-        conversations.push(conversation);
-      }
+      const newConversation: Conversation = {
+        id: conversationId,
+        userId: userId,
+        title: title,
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastActivity: new Date(),
+        messageCount: 0,
+        isArchived: false,
+        tags: [],
+        mode: mode as any || 'normal'
+      };
+
+      const conversationRef = doc(db, 'conversations', conversationId);
       
-      // Mantener solo las más recientes
-      if (conversations.length > this.MAX_LOCAL_CONVERSATIONS) {
-        conversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-        conversations.splice(this.MAX_LOCAL_CONVERSATIONS);
-      }
-      
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(conversations));
-      
-      // Guardar metadatos en Firebase (async, no crítico)
-      this.saveMetadataToFirebase(conversation);
-      
+      // Convertir fechas a Timestamp para Firestore
+      await setDoc(conversationRef, {
+        ...newConversation,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastActivity: serverTimestamp()
+      });
+
+      console.log('✅ Conversación creada en Firestore:', conversationId);
+      return newConversation;
     } catch (error) {
-      console.error('Error saving conversation locally:', error);
+      console.error('❌ Error creando conversación:', error);
+      throw error;
     }
   }
 
-  // Obtener todas las conversaciones locales
-  static getConversations(): Conversation[] {
+  // ✅ AGREGAR MENSAJE A CONVERSACIÓN
+  static async addMessage(
+    conversationId: string, 
+    message: ChatMessage, 
+    userPlan: 'free' | 'pro' | 'pro_max' = 'free'
+  ): Promise<void> {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (!stored) return [];
-      
-      const conversations = JSON.parse(stored) as Conversation[];
-      // Convertir strings de fecha a objetos Date
-      return conversations.map(conv => ({
-        ...conv,
-        createdAt: new Date(conv.createdAt),
-        updatedAt: new Date(conv.updatedAt),
-        lastActivity: new Date(conv.lastActivity || conv.updatedAt),
-        messages: conv.messages.map(msg => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }))
-      }));
+      const conversationRef = doc(db, 'conversations', conversationId);
+      const conversationSnap = await getDoc(conversationRef);
+
+      if (!conversationSnap.exists()) {
+        throw new Error('Conversación no encontrada');
+      }
+
+      const conversation = conversationSnap.data() as Conversation;
+      const messageLimit = MESSAGE_LIMITS[userPlan];
+
+      // ✅ VALIDAR LÍMITE DE MENSAJES
+      if (conversation.messages.length >= messageLimit) {
+        throw new Error(`Límite de ${messageLimit} mensajes alcanzado. Inicia una nueva conversación.`);
+      }
+
+      // Agregar mensaje al array
+      const updatedMessages = [...conversation.messages, message];
+
+      await updateDoc(conversationRef, {
+        messages: updatedMessages,
+        messageCount: updatedMessages.length,
+        updatedAt: serverTimestamp(),
+        lastActivity: serverTimestamp()
+      });
+
+      console.log('✅ Mensaje agregado a Firestore');
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      console.error('❌ Error agregando mensaje:', error);
+      throw error;
+    }
+  }
+
+  // ✅ OBTENER UNA CONVERSACIÓN
+  static async getConversation(conversationId: string): Promise<Conversation | null> {
+    try {
+      const conversationRef = doc(db, 'conversations', conversationId);
+      const conversationSnap = await getDoc(conversationRef);
+
+      if (!conversationSnap.exists()) {
+        return null;
+      }
+
+      const data = conversationSnap.data();
+      return this.convertFirestoreToConversation(data);
+    } catch (error) {
+      console.error('❌ Error obteniendo conversación:', error);
+      return null;
+    }
+  }
+
+  // ✅ OBTENER TODAS LAS CONVERSACIONES DEL USUARIO
+  static async getUserConversations(userId: string): Promise<Conversation[]> {
+    try {
+      const conversationsRef = collection(db, 'conversations');
+      const q = query(
+        conversationsRef,
+        where('userId', '==', userId),
+        where('isArchived', '==', false),
+        orderBy('updatedAt', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const conversations: Conversation[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const conversation = this.convertFirestoreToConversation(doc.data());
+        conversations.push(conversation);
+      });
+
+      console.log(`✅ ${conversations.length} conversaciones cargadas desde Firestore`);
+      return conversations;
+    } catch (error) {
+      console.error('❌ Error obteniendo conversaciones:', error);
       return [];
     }
   }
 
-  // Obtener conversación específica
-  static getConversation(conversationId: string): Conversation | null {
-    const conversations = this.getConversations();
-    return conversations.find(conv => conv.id === conversationId) || null;
-  }
-
-  // Buscar en conversaciones
-  static searchConversations(query: string): Conversation[] {
-    const conversations = this.getConversations();
-    const lowerQuery = query.toLowerCase();
-    
-    return conversations.filter(conv => 
-      conv.title.toLowerCase().includes(lowerQuery) ||
-      conv.messages.some(msg => 
-        msg.message.toLowerCase().includes(lowerQuery) // ✅ CORREGIDO: usar TU 'message' no 'content'
-      )
-    ).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }
-
-  // Eliminar conversación
-  static deleteConversation(conversationId: string): void {
+  // ✅ SINCRONIZACIÓN EN TIEMPO REAL
+  static subscribeToUserConversations(
+    userId: string,
+    onUpdate: (conversations: Conversation[]) => void
+  ): () => void {
     try {
-      const conversations = this.getConversations().filter(conv => conv.id !== conversationId);
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(conversations));
-    } catch (error) {
-      console.error('Error deleting conversation:', error);
-    }
-  }
-
-  // Obtener conversaciones recientes
-  static getRecentConversations(limit: number = 10): Conversation[] {
-    const conversations = this.getConversations();
-    return conversations
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, limit);
-  }
-
-  // ✅ FUNCIÓN GENERATETITLE COMPLETAMENTE ARREGLADA
-  static generateTitle(firstMessage: string): string {
-    // ✅ VALIDACIÓN AGREGADA para evitar el error undefined
-    if (!firstMessage || typeof firstMessage !== 'string') {
-      return 'Nueva conversación';
-    }
-    
-    const title = firstMessage.trim();
-    if (!title) {
-      return 'Nueva conversación';
-    }
-    
-    if (title.length <= 50) return title;
-    
-    // Buscar punto de corte natural
-    const cutPoint = title.lastIndexOf(' ', 47);
-    return title.substring(0, cutPoint > 20 ? cutPoint : 47) + '...';
-  }
-
-  // Limpiar conversaciones antiguas
-  static cleanOldConversations(daysOld: number = 90): number {
-    try {
-      const conversations = this.getConversations();
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-      
-      const oldConversations = conversations.filter(conv => 
-        new Date(conv.updatedAt) < cutoffDate
+      const conversationsRef = collection(db, 'conversations');
+      const q = query(
+        conversationsRef,
+        where('userId', '==', userId),
+        where('isArchived', '==', false),
+        orderBy('updatedAt', 'desc')
       );
-      
-      if (oldConversations.length === 0) return 0;
-      
-      const remainingConversations = conversations.filter(conv => 
-        new Date(conv.updatedAt) >= cutoffDate
-      );
-      
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(remainingConversations));
-      return oldConversations.length;
+
+      // Listener en tiempo real
+      this.unsubscribe = onSnapshot(q, (snapshot) => {
+        const conversations: Conversation[] = [];
+        
+        snapshot.forEach((doc) => {
+          const conversation = this.convertFirestoreToConversation(doc.data());
+          conversations.push(conversation);
+        });
+
+        console.log('🔄 Conversaciones actualizadas en tiempo real:', conversations.length);
+        onUpdate(conversations);
+      }, (error) => {
+        console.error('❌ Error en sincronización tiempo real:', error);
+      });
+
+      return this.unsubscribe;
     } catch (error) {
-      console.error('Error cleaning old conversations:', error);
-      return 0;
+      console.error('❌ Error suscribiendo a conversaciones:', error);
+      return () => {};
     }
   }
 
-  // Obtener estadísticas de uso
-  static getUsageStats() {
+  // ✅ ACTUALIZAR TÍTULO DE CONVERSACIÓN
+  static async updateConversationTitle(conversationId: string, newTitle: string): Promise<void> {
     try {
-      const conversations = this.getConversations();
-      const totalMessages = conversations.reduce((total, conv) => total + conv.messages.length, 0);
+      const conversationRef = doc(db, 'conversations', conversationId);
+      await updateDoc(conversationRef, {
+        title: newTitle,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('✅ Título actualizado');
+    } catch (error) {
+      console.error('❌ Error actualizando título:', error);
+      throw error;
+    }
+  }
+
+  // ✅ ARCHIVAR CONVERSACIÓN
+  static async archiveConversation(conversationId: string): Promise<void> {
+    try {
+      const conversationRef = doc(db, 'conversations', conversationId);
+      await updateDoc(conversationRef, {
+        isArchived: true,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('✅ Conversación archivada');
+    } catch (error) {
+      console.error('❌ Error archivando conversación:', error);
+      throw error;
+    }
+  }
+
+  // ✅ ELIMINAR CONVERSACIÓN
+  static async deleteConversation(conversationId: string): Promise<void> {
+    try {
+      const conversationRef = doc(db, 'conversations', conversationId);
+      await deleteDoc(conversationRef);
+
+      console.log('✅ Conversación eliminada de Firestore');
+    } catch (error) {
+      console.error('❌ Error eliminando conversación:', error);
+      throw error;
+    }
+  }
+
+  // ✅ VALIDAR LÍMITE DE CONVERSACIONES
+  static async canCreateNewConversation(userId: string, userPlan: 'free' | 'pro' | 'pro_max'): Promise<boolean> {
+    try {
+      const conversations = await this.getUserConversations(userId);
+      const limit = CONVERSATION_LIMITS[userPlan];
       
+      return conversations.length < limit;
+    } catch (error) {
+      console.error('❌ Error validando límite:', error);
+      return false;
+    }
+  }
+
+  // ✅ OBTENER ESTADÍSTICAS
+  static async getUserStats(userId: string) {
+    try {
+      const conversations = await this.getUserConversations(userId);
+      const totalMessages = conversations.reduce((sum, conv) => sum + conv.messageCount, 0);
+
       return {
         totalConversations: conversations.length,
-        totalMessages,
-        avgMessagesPerConversation: conversations.length > 0 ? Math.round(totalMessages / conversations.length) : 0,
-        oldestConversation: conversations.length > 0 ? 
-          new Date(Math.min(...conversations.map(c => new Date(c.createdAt).getTime()))) : null,
-        newestConversation: conversations.length > 0 ? 
-          new Date(Math.max(...conversations.map(c => new Date(c.updatedAt).getTime()))) : null
+        totalMessages: totalMessages,
+        avgMessagesPerConversation: conversations.length > 0 
+          ? Math.round(totalMessages / conversations.length) 
+          : 0,
+        oldestConversation: conversations.length > 0
+          ? conversations[conversations.length - 1].createdAt
+          : null,
+        newestConversation: conversations.length > 0
+          ? conversations[0].createdAt
+          : null
       };
     } catch (error) {
-      console.error('Error getting usage stats:', error);
+      console.error('❌ Error obteniendo estadísticas:', error);
       return {
         totalConversations: 0,
         totalMessages: 0,
@@ -178,88 +286,77 @@ export class LocalConversationStorage {
     }
   }
 
-  // ✅ CORREGIDO: Guardar metadatos en Firebase (no crítico)
-  private static async saveMetadataToFirebase(conversation: Conversation): Promise<void> {
+  // ✅ LIMPIAR CONVERSACIONES ANTIGUAS (opcional)
+  static async cleanOldConversations(userId: string, daysOld: number = 90): Promise<number> {
     try {
-      const metadata: ConversationMetadataInput = { // ✅ Usar ConversationMetadataInput
-        userId: conversation.userId,
-        conversationId: conversation.id,
-        title: conversation.title,
-        messageCount: conversation.messages.length,
-        lastActivity: (conversation.lastActivity || conversation.updatedAt).toISOString(), // ✅ Convertir Date a string
-        tags: conversation.tags
-      };
+      const conversations = await this.getUserConversations(userId);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-      // Llamada async no crítica
-      if (cloudFunctions.saveConversationMetadata) {
-        await cloudFunctions.saveConversationMetadata(metadata).catch((error: any) => {
-          console.warn('Failed to save metadata to Firebase:', error);
-        });
+      const batch = writeBatch(db);
+      let deletedCount = 0;
+
+      for (const conv of conversations) {
+        if (new Date(conv.updatedAt) < cutoffDate) {
+          const conversationRef = doc(db, 'conversations', conv.id);
+          batch.delete(conversationRef);
+          deletedCount++;
+        }
       }
+
+      if (deletedCount > 0) {
+        await batch.commit();
+        console.log(`✅ ${deletedCount} conversaciones antiguas eliminadas`);
+      }
+
+      return deletedCount;
     } catch (error) {
-      console.warn('Error preparing metadata for Firebase:', error);
+      console.error('❌ Error limpiando conversaciones:', error);
+      return 0;
     }
   }
 
-  // Exportar conversaciones
-  static exportToJSON(): string {
-    const conversations = this.getConversations();
-    return JSON.stringify(conversations, null, 2);
-  }
-
-  // Importar conversaciones desde JSON
-  static importFromJSON(jsonData: string): boolean {
+  // ✅ EXPORTAR CONVERSACIONES
+  static async exportConversations(userId: string): Promise<string> {
     try {
-      const importedConversations = JSON.parse(jsonData) as Conversation[];
-      
-      if (!Array.isArray(importedConversations)) {
-        throw new Error('Invalid format');
-      }
-
-      // Validar estructura básica
-      const validConversations = importedConversations.filter(conv => 
-        conv.id && conv.userId && conv.messages && Array.isArray(conv.messages)
-      );
-
-      if (validConversations.length === 0) {
-        return false;
-      }
-
-      // Obtener conversaciones existentes
-      const existingConversations = this.getConversations();
-      const existingIds = new Set(existingConversations.map(c => c.id));
-
-      // Agregar solo las nuevas
-      const newConversations = validConversations.filter(conv => !existingIds.has(conv.id));
-      
-      if (newConversations.length > 0) {
-        const allConversations = [...existingConversations, ...newConversations];
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allConversations));
-      }
-
-      return true;
+      const conversations = await this.getUserConversations(userId);
+      return JSON.stringify(conversations, null, 2);
     } catch (error) {
-      console.error('Error importing conversations:', error);
-      return false;
+      console.error('❌ Error exportando conversaciones:', error);
+      return '[]';
     }
   }
 
-  // ✅ FUNCIÓN HELPER PARA VALIDAR MENSAJES USANDO TUS TIPOS
-  static validateMessage(message: any): message is ChatMessage {
-    return message && 
-           typeof message.id === 'string' &&
-           typeof message.message === 'string' && // ✅ TU PROPIEDAD 'message'
-           typeof message.type === 'string' &&
-           message.timestamp instanceof Date;
+  // ✅ DETENER SINCRONIZACIÓN
+  static unsubscribeFromConversations(): void {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+      console.log('✅ Sincronización detenida');
+    }
   }
 
-  // ✅ FUNCIÓN HELPER PARA VALIDAR CONVERSACIONES
-  static validateConversation(conversation: any): conversation is Conversation {
-    return conversation &&
-           typeof conversation.id === 'string' &&
-           typeof conversation.userId === 'string' &&
-           typeof conversation.title === 'string' &&
-           Array.isArray(conversation.messages) &&
-           conversation.messages.every((msg: any) => this.validateMessage(msg));
+  // 🔧 HELPER: Convertir datos de Firestore a Conversation
+  private static convertFirestoreToConversation(data: any): Conversation {
+    return {
+      id: data.id,
+      userId: data.userId,
+      title: data.title,
+      messages: data.messages || [],
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+      lastActivity: data.lastActivity?.toDate() || new Date(),
+      messageCount: data.messageCount || 0,
+      isArchived: data.isArchived || false,
+      tags: data.tags || [],
+      summary: data.summary,
+      mode: data.mode || 'normal',
+      specialty: data.specialty
+    };
   }
 }
+
+// ========================================
+// 📤 EXPORTAR TAMBIÉN COMO DEFAULT
+// ========================================
+export default FirestoreConversationStorage;
