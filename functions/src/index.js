@@ -1048,3 +1048,15 @@ exports.documentDetective = advancedModes.documentDetective;
 exports.plantDoctor = advancedModes.plantDoctor;
 
 exports.verifyUserSubscription = verifyUserSubscription;
+
+// ========================================
+// 👤 SISTEMA DE PREFERENCIAS Y MEMORIA DE USUARIO
+// ========================================
+const userPreferences = require('./userPreferences');
+exports.saveUserPreferences = userPreferences.saveUserPreferences;
+exports.getUserPreferences = userPreferences.getUserPreferences;
+exports.updateLastSession = userPreferences.updateLastSession;
+exports.saveActiveProject = userPreferences.saveActiveProject;
+exports.removeActiveProject = userPreferences.removeActiveProject;
+exports.recordFrequentCommand = userPreferences.recordFrequentCommand;
+exports.getFrequentCommands = userPreferences.getFrequentCommands;

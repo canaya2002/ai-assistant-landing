@@ -18,49 +18,13 @@ service cloud.firestore {
     }
 
     // ========================================
-    // 💬 CONVERSACIONES - NUEVA IMPLEMENTACIÓN
+    // 💬 CONVERSACIONES (SIMPLIFICADO)
     // ========================================
     match /conversations/{conversationId} {
-      
-      // ✅ LECTURA: Solo el propietario puede leer sus conversaciones
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
-      
-      // ✅ CREACIÓN: Usuario autenticado puede crear conversaciones
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.keys().hasAll([
-                         'id', 'userId', 'title', 'messages', 
-                         'messageCount', 'isArchived', 'tags'
-                       ]) &&
-                       // Validar límite de mensajes inicial
-                       request.resource.data.messages.size() == 0 &&
-                       request.resource.data.messageCount == 0;
-      
-      // ✅ ACTUALIZACIÓN: Solo el propietario puede actualizar
-      allow update: if isAuthenticated() && 
-                       resource.data.userId == request.auth.uid &&
-                       request.resource.data.userId == request.auth.uid &&
-                       // Validar límites de mensajes según plan
-                       (
-                         // Plan FREE: máximo 50 mensajes
-                         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'free' && 
-                          request.resource.data.messages.size() <= 50) ||
-                         // Plan PRO: máximo 300 mensajes
-                         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'pro' && 
-                          request.resource.data.messages.size() <= 300) ||
-                         // Plan PRO MAX: máximo 300 mensajes
-                         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'pro_max' && 
-                          request.resource.data.messages.size() <= 300)
-                       ) &&
-                       // No se puede cambiar el userId
-                       request.resource.data.userId == resource.data.userId &&
-                       // messageCount debe coincidir con el tamaño del array
-                       request.resource.data.messageCount == request.resource.data.messages.size();
-      
-      // ✅ ELIMINACIÓN: Solo el propietario puede eliminar
-      allow delete: if isAuthenticated() && 
-                       resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // ========================================
@@ -68,53 +32,45 @@ service cloud.firestore {
     // ========================================
     match /users/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
-      
-      allow create: if isAuthenticated() && 
-                       request.auth.uid == userId &&
-                       request.resource.data.keys().hasAll(['email', 'name', 'plan']);
-      
+      allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isAuthenticated() && request.auth.uid == userId;
-      
       allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
 
     // ========================================
-    // 📊 USAGE (Uso de recursos)
+    // 👤 PREFERENCIAS DE USUARIO
+    // ========================================
+    match /user_preferences/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ========================================
+    // 📊 USAGE
     // ========================================
     match /usage/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
-      allow write: if false; // Solo Cloud Functions
+      allow write: if false;
     }
 
     // ========================================
     // 🖼️ IMAGES
     // ========================================
     match /images/{imageId} {
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
-      
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userId == request.auth.uid;
-      
-      allow delete: if isAuthenticated() && 
-                       resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // ========================================
     // 🎥 VIDEOS
     // ========================================
     match /videos/{videoId} {
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
-      
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userId == request.auth.uid;
-      
-      allow update: if isAuthenticated() && 
-                       resource.data.userId == request.auth.uid;
-      
-      allow delete: if isAuthenticated() && 
-                       resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // ========================================
@@ -122,43 +78,35 @@ service cloud.firestore {
     // ========================================
     match /search_usage/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
-      allow write: if false; // Solo Cloud Functions
+      allow write: if false;
     }
 
     // ========================================
     // 💳 PAYMENTS
     // ========================================
     match /payments/{paymentId} {
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
-      allow write: if false; // Solo Cloud Functions y Stripe
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
     }
 
     // ========================================
     // 🔔 NOTIFICATIONS
     // ========================================
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
-      
-      allow update: if isAuthenticated() && 
-                       resource.data.userId == request.auth.uid &&
-                       // Solo se puede actualizar el campo 'read'
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
-      
-      allow delete: if isAuthenticated() && 
-                       resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // ========================================
     // 🚨 SECURITY LOGS
     // ========================================
     match /security_logs/{logId} {
-      allow read, write: if false; // Solo Cloud Functions
+      allow read, write: if false;
     }
 
     // ========================================
-    // 🚫 DENEGAR TODO LO DEMÁS POR DEFECTO
+    // 🚫 DENEGAR TODO LO DEMÁS
     // ========================================
     match /{document=**} {
       allow read, write: if false;

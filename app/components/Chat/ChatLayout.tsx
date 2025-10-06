@@ -1,31 +1,30 @@
-// app/components/Chat/ChatLayout.tsx - ACTUALIZADO PARA FIRESTORE
+// app/components/Chat/ChatLayout.tsx - CON SISTEMA DE PREFERENCIAS Y MEMORIA INTEGRADO
 'use client';
 
-import { useState, useRef, useEffect, memo, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-import Image from 'next/image';
-import { Menu, Settings, ArrowRight, Code, Zap, Brain } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useConversations } from '../../hooks/useConversations'; // ✅ NUEVO HOOK
+import { useConversations } from '../../hooks/useConversations';
 import { useRouter } from 'next/navigation';
-import { cloudFunctions, helpers } from '../../lib/firebase';
 import { 
-    ChatMessage, PlanType, isValidPlan, SpecialtyType, AdvancedModeType,
-    ChatWithAIInput, ChatWithAIOutput, DeveloperModeChatInput, DeveloperModeChatOutput, 
-    SpecialistModeChatInput, SpecialistModeChatOutput, AdvancedModeOutput
+  Settings, Menu, ArrowRight, Send, Loader2, X, Plus, MessageCircle, 
+  FileText, Globe, Mic, MicOff, Atom, Code, Zap, Sparkles, Check 
+} from 'lucide-react';
+import { 
+  ChatMessage, PlanType, isValidPlan, SpecialtyType, AdvancedModeType,
+  ChatWithAIInput, ChatWithAIOutput, DeveloperModeChatInput, DeveloperModeChatOutput,
+  SpecialistModeChatInput, SpecialistModeChatOutput, AdvancedModeInput
 } from '../../lib/types';
+import { cloudFunctions } from '../../lib/firebase';
+import { userPreferencesService } from '../../lib/userPreferencesService';
 import toast from 'react-hot-toast';
-
-// Importaciones dinámicas
-const ConversationList = dynamic(() => import('../ConversationList'), { ssr: false });
-const SettingsMenu = dynamic(() => import('../SettingsMenu'), { ssr: false });
-const ImageGenerator = dynamic(() => import('../ImageGenerator'), { ssr: false });
-const VideoGenerator = dynamic(() => import('../VideoGenerator'), { ssr: false });
-const SpecialistChatInterface = dynamic(() => import('../SpecialistChatInterface'), { ssr: false }); 
-
-// Subcomponentes (tus componentes existentes)
-import ChatInputBar from './ChatInputBar';
-import ChatMessages from './ChatMessages';
+import Image from 'next/image';
+import ConversationList from '../ConversationList';
+import SettingsMenu from '../SettingsMenu';
+import ChatMessages from '../Chat/ChatMessages';
+import ChatInputBar from '../Chat/ChatInputBar';
+import SuggestedPrompts from '../Chat/SuggestedPrompts';
+import ImageGenerator from '../ImageGenerator';
+import VideoGenerator from '../VideoGenerator';
 
 // ========================================
 // 🎬 VIDEO BACKGROUND
@@ -34,12 +33,13 @@ const VideoBackground = memo(function VideoBackground() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
       <video 
-        className="absolute inset-0 w-full h-full object-cover opacity-40 scale-105"
-        style={{ objectPosition: 'center 30%' }}
-        autoPlay muted loop playsInline preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover opacity-40"
+        autoPlay 
+        muted 
+        loop 
+        playsInline
       >
-        <source src="/images/fondo-nora-tres.mp4" type="video/mp4" />
-        <source src="/fondo.webm" type="video/webm" />
+        <source src="/images/fondo.mp4" type="video/mp4" />
       </video>
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 z-10" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-20" />
@@ -81,7 +81,7 @@ const WelcomeScreen = memo(function WelcomeScreen({ onStartChat }: { onStartChat
 export default function ChatLayout() {
   const { userProfile, refreshProfile, plan, user } = useAuth();
   
-  // ✅ NUEVO: Hook de Firestore
+  // Hook de Firestore
   const { 
     currentConversation,
     conversations,
@@ -142,19 +142,15 @@ export default function ChatLayout() {
     setShowSettingsMenu(false);
   }, []);
 
-  // ✅ NUEVA: Iniciar conversación (NO crear hasta que haya mensajes)
   const startNewConversation = useCallback(() => {
     if (!user) {
       console.error('❌ No user para crear conversación');
       return;
     }
-
-    // Solo limpia la conversación actual, NO crea una nueva aún
     setCurrentConversation(null);
     console.log('✅ Lista para nueva conversación (se creará al enviar primer mensaje)');
   }, [user, setCurrentConversation]);
 
-  // ✅ NUEVA: Agregar mensaje con validación de límites
   const addMessage = useCallback(async (message: ChatMessage, conversationId?: string) => {
     const targetConversationId = conversationId || currentConversation?.id;
     
@@ -170,20 +166,18 @@ export default function ChatLayout() {
     );
 
     if (!success) {
-      // El error ya se mostró en el hook
       return false;
     }
 
     return true;
   }, [currentConversation, addMessageToFirestore, validPlan]);
 
-  // ✅ NUEVA: Actualizar título
   const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
     await updateTitle(conversationId, title);
   }, [updateTitle]);
 
   // ========================================
-  // 📤 ENVIAR MENSAJE PRINCIPAL
+  // 📤 ENVIAR MENSAJE PRINCIPAL CON MEMORIA DE USUARIO
   // ========================================
   const sendCoreMessage = async (messageText: string) => {
     const hasContent = messageText.trim() || uploadedFiles.length > 0;
@@ -191,20 +185,16 @@ export default function ChatLayout() {
 
     const originalFiles = [...uploadedFiles];
     
-    // Clear input/files states immediately
     setInput(''); 
     setUploadedFiles([]);
     
-    // ✅ CREAR CONVERSACIÓN SOLO SI NO EXISTE Y HAY CONTENIDO
     let workingConversation = currentConversation;
     
     if (!workingConversation) {
-      // Crear conversación solo cuando se envía el primer mensaje
       const title = messageText.substring(0, 30) + (messageText.length > 30 ? '...' : '');
       const newConv = await createConversation(title, currentMode, validPlan);
       
       if (!newConv) {
-        // Si falla la creación, restaurar input
         setInput(messageText);
         setUploadedFiles(originalFiles);
         return;
@@ -223,10 +213,9 @@ export default function ChatLayout() {
       ...(originalFiles.length > 0 && { files: originalFiles.map(f => f.name) }) 
     };
 
-    // ✅ Agregar mensaje de usuario pasando el ID de la conversación
     const userMessageAdded = await addMessage(userMessage, workingConversation.id);
     if (!userMessageAdded) {
-      setInput(messageText); // Restaurar input si falló
+      setInput(messageText);
       setUploadedFiles(originalFiles);
       return;
     }
@@ -242,6 +231,71 @@ export default function ChatLayout() {
         processedMessage = `Como NORA, tu asistente personal experta, necesito crear un reporte completo sobre: "${messageText}".`;
       } else if (deepThinkingMode) {
         processedMessage = `Como NORA, necesito hacer un análisis profundo sobre: "${messageText}".`;
+      }
+      
+      // ========================================
+      // ✅ NUEVO: LEER PREFERENCIAS Y CONSTRUIR CONTEXTO DE USUARIO
+      // ========================================
+      let userContext = '';
+      try {
+        const preferences = await userPreferencesService.getPreferences();
+        
+        // Construir contexto personalizado
+        const contextParts: string[] = [];
+        
+        // 1. Información de comandos frecuentes (extraer datos personales)
+        if (preferences.frequentCommands && preferences.frequentCommands.length > 0) {
+          const personalInfo: string[] = [];
+          
+          preferences.frequentCommands.forEach((cmd: any) => {
+            // Detectar información personal en los comandos
+            const command = cmd.command.toLowerCase();
+            
+            // Nombres
+            if (command.includes('mi nombre es') || command.includes('me llamo')) {
+              personalInfo.push(`- ${cmd.command}`);
+            }
+            
+            // Profesión
+            if (command.includes('soy') || command.includes('trabajo como') || command.includes('profesión')) {
+              personalInfo.push(`- ${cmd.command}`);
+            }
+            
+            // Ubicación
+            if (command.includes('vivo en') || command.includes('soy de')) {
+              personalInfo.push(`- ${cmd.command}`);
+            }
+            
+            // Otros datos personales
+            if (command.includes('tengo') && (command.includes('años') || command.includes('hijos'))) {
+              personalInfo.push(`- ${cmd.command}`);
+            }
+
+            // Gustos y preferencias
+            if (command.includes('me gusta') || command.includes('prefiero')) {
+              personalInfo.push(`- ${cmd.command}`);
+            }
+          });
+          
+          if (personalInfo.length > 0) {
+            contextParts.push('Información personal del usuario que mencionó antes:\n' + personalInfo.join('\n'));
+          }
+        }
+        
+        // 2. Proyectos activos
+        if (preferences.activeProjects && preferences.activeProjects.length > 0) {
+          const projects = preferences.activeProjects.map((p: any) => `- ${p.name} (${p.type}): ${p.description || 'Sin descripción'}`).join('\n');
+          contextParts.push(`Proyectos activos del usuario:\n${projects}`);
+        }
+        
+        if (contextParts.length > 0) {
+          userContext = '\n\n--- CONTEXTO DEL USUARIO ---\n' + contextParts.join('\n\n') + '\n--- FIN CONTEXTO ---\n';
+          console.log('🧠 Contexto de usuario cargado:', userContext);
+        }
+        
+      } catch (prefError) {
+        console.log('⚠️ No se pudieron cargar preferencias (no crítico)');
+        // Continuar sin contexto de usuario
       }
       
       // Procesar archivos
@@ -260,79 +314,71 @@ export default function ChatLayout() {
       let result: any;
       let aiMessage: ChatMessage;
 
-      // ✅ MANEJAR DIFERENTES MODOS
+      // MANEJAR DIFERENTES MODOS
       if (advancedMode) {
-        const advancedInput = { 
-          message: processedMessage, 
+        const advancedInput: AdvancedModeInput = { 
+          message: processedMessage + userContext, // ✅ Agregar contexto de usuario
           chatHistory: recentMessages.slice(0, -1).map(msg => ({ 
-            role: msg.type === 'user' ? 'user' : 'assistant', 
+            role: msg.type === 'user' ? 'user' as const : 'assistant' as const, 
             content: msg.message 
-          })) 
+          }))
         };
         result = await callAdvancedModeFunction(advancedMode, advancedInput);
-        const advResult = result.data as AdvancedModeOutput;
-        
         aiMessage = {
-          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_ai`,
+          id: `msg_${Date.now()}_ai`,
           type: 'ai',
-          message: advResult.response,
+          message: result.data.response,
           timestamp: new Date(),
-          tokensUsed: advResult.tokensUsed,
+          tokensUsed: result.data.tokensUsed,
           conversationId: workingConversation.id,
-          advancedMode: advancedMode
+          advancedMode
         };
-      } else if (currentMode === 'developer' || currentMode === 'specialist') {
-        const specialty = currentMode === 'developer' ? 'programming' as SpecialtyType : currentSpecialty;
-        
-        if (currentMode === 'developer') {
-          const input: DeveloperModeChatInput = { 
-            message: processedMessage, 
-            chatHistory: recentMessages.slice(0, -1), 
-            fileContext 
-          };
-          result = await cloudFunctions.developerModeChat(input);
-          const devResult = result.data as DeveloperModeChatOutput;
-          
-          aiMessage = {
-            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_ai`,
-            type: 'ai',
-            message: devResult.response,
-            timestamp: new Date(),
-            tokensUsed: devResult.tokensUsed,
-            conversationId: workingConversation.id,
-            mode: 'developer',
-            specialty: 'programming' as SpecialtyType
-          };
-        } else {
-          const input: SpecialistModeChatInput = { 
-            message: processedMessage, 
-            specialty: specialty as SpecialtyType, 
-            chatHistory: recentMessages.slice(0, -1), 
-            fileContext 
-          };
-          result = await cloudFunctions.specialistModeChat(input);
-          const specResult = result.data as SpecialistModeChatOutput;
-
-          aiMessage = {
-            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_ai`,
-            type: 'ai',
-            message: specResult.response,
-            timestamp: new Date(),
-            tokensUsed: specResult.tokensUsed,
-            conversationId: workingConversation.id,
-            mode: 'specialist',
-            specialty: specResult.specialty,
-            specialtyName: specResult.specialtyName
-          };
-        }
+      } else if (currentMode === 'developer') {
+        const devInput: DeveloperModeChatInput = {
+          message: processedMessage + userContext, // ✅ Agregar contexto de usuario
+          chatHistory: recentMessages.slice(0, -1)
+        };
+        result = await cloudFunctions.developerModeChat(devInput);
+        aiMessage = {
+          id: `msg_${Date.now()}_ai`,
+          type: 'ai',
+          message: result.data.response,
+          timestamp: new Date(),
+          tokensUsed: result.data.tokensUsed,
+          conversationId: workingConversation.id,
+          mode: 'developer'
+        };
+      } else if (currentMode === 'specialist' && currentSpecialty) {
+        const specInput: SpecialistModeChatInput = {
+          message: processedMessage + userContext, // ✅ Agregar contexto de usuario
+          specialty: currentSpecialty,
+          chatHistory: recentMessages.slice(0, -1)
+        };
+        result = await cloudFunctions.specialistModeChat(specInput);
+        aiMessage = {
+          id: `msg_${Date.now()}_ai`,
+          type: 'ai',
+          message: result.data.response,
+          timestamp: new Date(),
+          tokensUsed: result.data.tokensUsed,
+          conversationId: workingConversation.id,
+          mode: 'specialist',
+          specialty: currentSpecialty
+        };
       } else {
-        // Modo normal
-        const systemPrompt = validPlan === 'pro' || validPlan === 'pro_max' 
-          ? `Eres NORA, una asistente de IA avanzada. Proporciona respuestas detalladas.` 
-          : `Eres NORA. Responde de forma DIRECTA y CONCISA.`;
+        // ✅ MODIFICADO: System prompt con instrucciones de memoria
+        const baseSystemPrompt = validPlan === 'pro' || validPlan === 'pro_max' 
+          ? `Eres NORA, una asistente de IA avanzada con memoria de usuario. Proporciona respuestas detalladas.` 
+          : `Eres NORA con memoria del usuario. Responde de forma DIRECTA y CONCISA.`;
+        
+        const systemPrompt = baseSystemPrompt + 
+          '\n\nIMPORTANTE: Tienes acceso a información personal del usuario de conversaciones anteriores que aparece en el CONTEXTO DEL USUARIO. ' +
+          'Cuando el usuario pregunte algo que esté en el contexto proporcionado (como su nombre, profesión, gustos, etc.), usa esa información naturalmente sin mencionar que está en un "contexto". ' +
+          'Si el usuario te pregunta su nombre o información personal, responde como si lo recordaras de conversaciones anteriores. ' +
+          'Ejemplo: si preguntan "¿sabes cómo me llamo?" y en el contexto dice "mi nombre es Carlos", responde "Sí, te llamas Carlos" de forma natural.';
 
         const inputData: ChatWithAIInput = {
-          message: processedMessage,
+          message: processedMessage + userContext, // ✅ Agregar contexto de usuario al mensaje
           fileContext,
           chatHistory: recentMessages.slice(0, -1),
           maxTokens: validPlan === 'free' ? 1200 : validPlan === 'pro' ? 3000 : 6000,
@@ -357,9 +403,31 @@ export default function ChatLayout() {
         };
       }
 
-      // ✅ Agregar respuesta de IA pasando el ID de la conversación
       await addMessage(aiMessage!, workingConversation.id);
       await refreshProfile();
+
+      // ✅ GUARDAR EN SISTEMA DE PREFERENCIAS
+      try {
+        // 1. Actualizar última sesión
+        await userPreferencesService.updateLastSession(
+          workingConversation.id,
+          messageText,
+          `Último mensaje: ${messageText.substring(0, 100)}`
+        );
+
+        // 2. Registrar comando frecuente (primeras 50 caracteres)
+        await userPreferencesService.recordFrequentCommand(
+          messageText.substring(0, 50),
+          currentMode === 'developer' ? 'desarrollo' : 
+          currentMode === 'specialist' ? 'especialista' : 
+          'general'
+        );
+
+        console.log('✅ Preferencias actualizadas correctamente');
+      } catch (prefError) {
+        console.error('⚠️ Error actualizando preferencias (no crítico):', prefError);
+        // No mostrar error al usuario, esto es opcional
+      }
 
       if (reportMode) setReportMode(false);
       if (deepThinkingMode) setDeepThinkingMode(false);
@@ -370,7 +438,6 @@ export default function ChatLayout() {
         : 'Error al enviar mensaje';
       toast.error(errorMessage);
       
-      // Restaurar input si hubo error
       setInput(messageText);
       setUploadedFiles(originalFiles);
     } finally {
@@ -479,88 +546,78 @@ export default function ChatLayout() {
       recognitionInstance.interimResults = true;
       recognitionInstance.lang = 'es-ES';
       
-      const MAX_RECORDING_TIME = 120000; // 2 minutos
-      const SILENCE_TIMEOUT = 3000; // 3 segundos
+      const MAX_RECORDING_TIME = 120000;
+      const SILENCE_TIMEOUT = 3000;
 
       const resetSilenceTimer = () => {
         if (silenceTimerRef.current) {
           clearTimeout(silenceTimerRef.current);
         }
         silenceTimerRef.current = setTimeout(() => {
-          console.log('🔇 Silencio detectado. Deteniendo grabación.');
+          console.log('🔇 Silencio detectado. Deteniendo...');
           recognitionInstance.stop();
         }, SILENCE_TIMEOUT);
       };
 
-      const resetMaxTimer = () => {
-        if (maxTimerRef.current) {
-          clearTimeout(maxTimerRef.current);
-        }
-        maxTimerRef.current = setTimeout(() => {
-          console.log('⏱️ Tiempo máximo alcanzado. Deteniendo grabación.');
-          recognitionInstance.stop();
-        }, MAX_RECORDING_TIME);
-      };
-
       recognitionInstance.onstart = () => {
-        console.log('🎤 Grabación iniciada');
         setIsRecording(true);
-        setVoiceText('');
         setShowVoiceText(true);
         finalTranscriptRef.current = '';
+        
+        maxTimerRef.current = setTimeout(() => {
+          console.log('⏱️ Tiempo máximo alcanzado');
+          recognitionInstance.stop();
+        }, MAX_RECORDING_TIME);
+        
         resetSilenceTimer();
-        resetMaxTimer();
       };
 
       recognitionInstance.onresult = (event: any) => {
+        resetSilenceTimer();
         let interimTranscript = '';
-        let finalTranscriptPart = '';
+        let finalTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscriptPart += transcript + ' ';
+            finalTranscript += transcript + ' ';
           } else {
             interimTranscript += transcript;
           }
         }
 
-        if (finalTranscriptPart) {
-          finalTranscriptRef.current += finalTranscriptPart;
-          console.log('📝 Transcripción parcial:', finalTranscriptPart);
+        if (finalTranscript) {
+          finalTranscriptRef.current += finalTranscript;
         }
 
-        setVoiceText(finalTranscriptRef.current + interimTranscript);
-        resetSilenceTimer();
+        const displayText = finalTranscriptRef.current + interimTranscript;
+        setVoiceText(displayText);
       };
 
       recognitionInstance.onend = () => {
-        console.log('🛑 Grabación finalizada');
         setIsRecording(false);
-
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
-
-        const finalResult = finalTranscriptRef.current.trim();
-        if (finalResult) {
-          console.log('✅ Transcripción final lista para procesar:', finalResult);
-          setFinalTranscript(finalResult);
-        } else {
-          console.log('Grabación finalizada sin transcripción válida.');
-          setVoiceText('');
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        
+        if (finalTranscriptRef.current.trim()) {
+          setFinalTranscript(finalTranscriptRef.current.trim());
         }
+      };
+
+      recognitionInstance.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsRecording(false);
+        if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       };
 
       setRecognition(recognitionInstance);
     }
   }, []);
 
-  // ========================================
-  // 🎤 PROCESAMIENTO DE VOZ CON CORRECCIÓN
-  // ========================================
   const processVoiceTranscript = async (transcript: string) => {
-    if (!transcript.trim()) {
-      toast.error('No se detectó voz o el texto es muy corto.');
+    if (!transcript || transcript.trim().length === 0) {
+      toast.error('No se capturó audio');
       setVoiceText('');
       setShowVoiceText(false);
       return;
@@ -569,7 +626,6 @@ export default function ChatLayout() {
     try {
       toast.loading('🧠 Corrigiendo ortografía...', { id: 'voice-proc' });
       
-      // 1. Enviar a /api/process-voice para corrección con Gemini
       const response = await fetch('/api/process-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -586,12 +642,10 @@ export default function ChatLayout() {
       console.log('📝 Transcripción original:', transcript);
       console.log('✅ Texto corregido:', correctedText);
       
-      // 2. Establecer texto corregido y enviar
       setInput(correctedText);
       toast.dismiss('voice-proc');
       toast.success('Texto corregido');
       
-      // 3. Enviar mensaje con el texto corregido
       await sendCoreMessage(correctedText);
 
     } catch (error) {
@@ -599,7 +653,6 @@ export default function ChatLayout() {
       toast.dismiss('voice-proc');
       toast.error('❌ Error al corregir. Usando transcripción original.');
       
-      // Fallback: usar transcripción original
       await sendCoreMessage(transcript);
       
     } finally {
@@ -610,15 +663,13 @@ export default function ChatLayout() {
     }
   };
 
-  // Procesar transcripción final
   useEffect(() => {
     if (finalTranscript) {
       setFinalTranscript('');
-      processVoiceTranscript(finalTranscript); // ✅ Ahora sí corrige
+      processVoiceTranscript(finalTranscript);
     }
   }, [finalTranscript]);
 
-  // Funciones de control de voz
   const startVoiceRecording = useCallback(() => {
     if (recognition) {
       try {
@@ -638,8 +689,7 @@ export default function ChatLayout() {
       recognition.stop();
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
-      toast.dismiss('voice-rec'); // Dismiss toast de grabación
-      // Este toast se mostrará hasta que processVoiceTranscript lo quite
+      toast.dismiss('voice-rec');
       toast.loading('🧠 Corrigiendo ortografía...', { id: 'voice-proc' });
     }
   }, [recognition]);
@@ -668,9 +718,21 @@ export default function ChatLayout() {
       setShowVideoBackground(false);
       setChatStarted(true);
       setIsTransitioning(false);
-      // ✅ NO crear conversación aquí, solo preparar UI
       if (textareaRef.current) textareaRef.current.focus();
     }, 800);
+  };
+
+  const handleSelectPrompt = async (prompt: string) => {
+    if (!chatStarted) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setShowVideoBackground(false);
+        setChatStarted(true);
+        setIsTransitioning(false);
+      }, 800);
+    }
+    
+    await sendCoreMessage(prompt);
   };
   
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -712,21 +774,13 @@ export default function ChatLayout() {
   useEffect(() => {
     if (currentConversation && currentConversation.messages.length > 0) {
       console.log('✅ Conversación cargada en ChatLayout:', currentConversation.id);
-      console.log('📊 Mensajes en conversación:', currentConversation.messages.length);
-      console.log('🔍 CurrentConversation completo:', currentConversation);
-      console.log('💬 Mensajes array:', currentConversation.messages);
       
       setChatStarted(true);
       setShowVideoBackground(false);
       
-      // Scroll al final cuando se carga una conversación
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-    } else if (currentConversation) {
-      console.log('⚠️ Conversación existe pero sin mensajes:', currentConversation);
-    } else {
-      console.log('❌ No hay conversación actual');
     }
   }, [currentConversation]);
 
@@ -792,11 +846,11 @@ export default function ChatLayout() {
             isOpen={showConversationList} 
             onClose={() => setShowConversationList(false)} 
             onNewConversation={() => { 
-              setCurrentConversation(null); // Solo limpia, no crea
+              setCurrentConversation(null);
               setShowConversationList(false); 
             }}
-            onLoadConversation={loadConversation} // ✅ PASAR LA FUNCIÓN DE ESTE COMPONENTE
-            currentConversationId={currentConversation?.id} // ✅ PASAR EL ID ACTUAL
+            onLoadConversation={loadConversation}
+            currentConversationId={currentConversation?.id}
           />
         </div>
       )}
@@ -833,7 +887,7 @@ export default function ChatLayout() {
                   {showImageGenerator && (
                     <ImageGenerator 
                       isEmbedded={true} 
-                      onImageGenerated={(image) => { 
+                      onImageGenerated={(image: any) => { 
                         const imageMessage: ChatMessage = { 
                           id: `msg_${Date.now()}_image`, 
                           type: 'ai', 
@@ -852,6 +906,12 @@ export default function ChatLayout() {
                     <VideoGenerator onClose={() => setShowVideoGenerator(false)} />
                   )}
                 </div>
+              </div>
+            )}
+
+            {messages.length === 0 && !isLoading && (
+              <div className="flex-shrink-0 pb-2">
+                <SuggestedPrompts onSelectPrompt={handleSelectPrompt} />
               </div>
             )}
             
